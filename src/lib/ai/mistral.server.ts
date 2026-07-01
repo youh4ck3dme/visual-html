@@ -2,25 +2,20 @@ import { generateOutputSchema, type GenerateOutput } from "@/lib/validation/gene
 
 const MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions";
 const DEFAULT_MODEL = "pixtral-large-latest";
-const TIMEOUT_MS = 60_000;
+// 55 s — 5 s headroom below Vercel Hobby's 60 s function limit
+const TIMEOUT_MS = 55_000;
 
 export class AiError extends Error {
   constructor(
     public code:
-      | "MISSING_API_KEY"
-      | "AI_TIMEOUT"
-      | "RATE_LIMITED"
-      | "AI_INVALID_RESPONSE"
-      | "SERVER_ERROR",
+      "MISSING_API_KEY" | "AI_TIMEOUT" | "RATE_LIMITED" | "AI_INVALID_RESPONSE" | "SERVER_ERROR",
     message: string,
   ) {
     super(message);
   }
 }
 
-type ChatContent =
-  | { type: "text"; text: string }
-  | { type: "image_url"; image_url: string };
+type ChatContent = { type: "text"; text: string } | { type: "image_url"; image_url: string };
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -79,7 +74,10 @@ async function callMistral(messages: ChatMessage[]): Promise<string> {
 function extractJsonBlob(raw: string): string {
   let s = raw.trim();
   if (s.startsWith("```")) {
-    s = s.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+    s = s
+      .replace(/^```(?:json)?/i, "")
+      .replace(/```$/, "")
+      .trim();
   }
   const first = s.indexOf("{");
   const last = s.lastIndexOf("}");

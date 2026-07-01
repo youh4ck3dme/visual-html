@@ -7,9 +7,25 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
+  vite: {
+    build: {
+      rolldownOptions: {
+        external: ["@vercel/nft"],
+      },
+    },
+  },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
-    server: { entry: "server" },
+    // NOTE: Nitro preset is set to "vercel" via NITRO_PRESET env var in vercel.json
+    // because @lovable.dev/vite-tanstack-config hardcodes the cloudflare preset.
+    server: {
+      entry: "server",
+      // Avoid Nitro's nf3 tracing path (which imports @vercel/nft as a named ESM export).
+      // Bundling server deps sidesteps the CJS/ESM interop bug in this toolchain combo.
+      nitro: {
+        noExternals: true,
+      },
+    },
   },
 });

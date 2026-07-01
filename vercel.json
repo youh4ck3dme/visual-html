@@ -1,0 +1,8 @@
+{
+  "framework": null,
+  "buildCommand": "bun run build",
+  "installCommand": "bun install",
+  "env": {
+    "NITRO_PRESET": "vercel"
+  }
+}

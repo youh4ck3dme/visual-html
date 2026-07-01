@@ -101,7 +101,7 @@ function Index() {
         <div className="min-w-0">
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-border bg-white/5 px-3 py-1 text-[11px] text-muted-foreground">
             <Sparkles className="h-3 w-3 text-primary" aria-hidden />
-            <span>Vision AI · Mistral pixtral</span>
+            <span>Vision AI · Mistral Pixtral Large</span>
           </div>
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">PNGtoHTMLapp</h1>
           <p className="mt-1 text-sm text-muted-foreground">
