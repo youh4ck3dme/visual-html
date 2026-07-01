@@ -4,10 +4,5 @@
   "installCommand": "bun install",
   "env": {
     "NITRO_PRESET": "vercel"
-  },
-  "functions": {
-    "__server": {
-      "maxDuration": 60
-    }
   }
 }
