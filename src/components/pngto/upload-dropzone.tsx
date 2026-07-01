@@ -14,6 +14,9 @@ export interface UploadedImage {
 }
 
 const ALLOWED = ALLOWED_MIME as readonly string[];
+const MAX_IMAGE_DIMENSION = 1600;
+const TARGET_UPLOAD_BYTES = 1_800_000;
+const WEBP_QUALITIES = [0.9, 0.82, 0.74] as const;
 
 async function readAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -24,13 +27,92 @@ async function readAsDataUrl(file: File): Promise<string> {
   });
 }
 
-function imageDims(src: string): Promise<{ width: number; height: number }> {
+async function readBlobAsDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onerror = () => reject(new Error("Could not process image"));
+    r.onload = () => resolve(String(r.result));
+    r.readAsDataURL(blob);
+  });
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    img.onload = () => resolve(img);
     img.onerror = () => reject(new Error("Invalid image"));
     img.src = src;
   });
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) {
+        resolve(blob);
+        return;
+      }
+      reject(new Error("Could not optimize image"));
+    }, type, quality);
+  });
+}
+
+function replaceFileExtension(name: string, ext: string): string {
+  const base = name.replace(/\.[^.]+$/, "");
+  return `${base || "upload"}.${ext}`;
+}
+
+async function toUploadedImage(file: File, dataUrl?: string): Promise<UploadedImage> {
+  const finalDataUrl = dataUrl ?? (await readAsDataUrl(file));
+  const img = await loadImage(finalDataUrl);
+  const base64 = finalDataUrl.split(",")[1] ?? "";
+
+  return {
+    file,
+    dataUrl: finalDataUrl,
+    base64,
+    mimeType: file.type as UploadedImage["mimeType"],
+    width: img.naturalWidth,
+    height: img.naturalHeight,
+  };
+}
+
+async function optimizeUpload(file: File): Promise<UploadedImage> {
+  const originalDataUrl = await readAsDataUrl(file);
+  const originalImage = await loadImage(originalDataUrl);
+  const maxDimension = Math.max(originalImage.naturalWidth, originalImage.naturalHeight);
+
+  if (file.size <= TARGET_UPLOAD_BYTES && maxDimension <= MAX_IMAGE_DIMENSION) {
+    return toUploadedImage(file, originalDataUrl);
+  }
+
+  const scale = Math.min(1, MAX_IMAGE_DIMENSION / maxDimension);
+  const width = Math.max(1, Math.round(originalImage.naturalWidth * scale));
+  const height = Math.max(1, Math.round(originalImage.naturalHeight * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Could not prepare image for upload");
+
+  ctx.drawImage(originalImage, 0, 0, width, height);
+
+  let bestBlob: Blob | null = null;
+  for (const quality of WEBP_QUALITIES) {
+    const blob = await canvasToBlob(canvas, "image/webp", quality);
+    if (!bestBlob || blob.size < bestBlob.size) bestBlob = blob;
+    if (blob.size <= TARGET_UPLOAD_BYTES) break;
+  }
+
+  if (!bestBlob) throw new Error("Could not optimize image");
+
+  const optimizedFile = new File([bestBlob], replaceFileExtension(file.name, "webp"), {
+    type: "image/webp",
+  });
+  const optimizedDataUrl = await readBlobAsDataUrl(bestBlob);
+
+  return toUploadedImage(optimizedFile, optimizedDataUrl);
 }
 
 export function UploadDropzone({
@@ -59,17 +141,7 @@ export function UploadDropzone({
         return;
       }
       try {
-        const dataUrl = await readAsDataUrl(file);
-        const { width, height } = await imageDims(dataUrl);
-        const base64 = dataUrl.split(",")[1] ?? "";
-        onFile({
-          file,
-          dataUrl,
-          base64,
-          mimeType: file.type as UploadedImage["mimeType"],
-          width,
-          height,
-        });
+        onFile(await optimizeUpload(file));
       } catch (e) {
         onError((e as Error).message);
       }

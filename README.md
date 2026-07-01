@@ -5,6 +5,7 @@ AI web app for turning UI screenshots into clean, semantic HTML with a live prev
 ## Features
 
 - Upload PNG, JPG, or WebP UI screenshots
+- Automatically downscale and compress large screenshots before sending them to Mistral
 - Generate semantic HTML, CSS, and optional JavaScript with Mistral Vision
 - Refine previous output with follow-up instructions
 - Preview generated output in a sandboxed frame
@@ -37,9 +38,12 @@ Set your API key in `.env.local`:
 ```env
 MISTRAL_API_KEY=your_real_mistral_api_key
 MISTRAL_MODEL=pixtral-large-latest
+MISTRAL_MAX_TOKENS=3500
+MISTRAL_TIMEOUT_MS=55000
 ```
 
 `pixtral-large-latest` is the recommended model here for screenshot-to-HTML and other UI image analysis tasks.
+Large uploads are automatically optimized in the browser to reduce production timeouts.
 
 ## Run locally
 
@@ -72,6 +76,8 @@ npm run format
 | --- | --- | --- |
 | `MISTRAL_API_KEY` | Yes | Server-side API key used for generation and refinement |
 | `MISTRAL_MODEL` | No | Overrides the default Mistral model; default is `pixtral-large-latest` |
+| `MISTRAL_MAX_TOKENS` | No | Caps completion size; default is `3500` to reduce slow vision responses |
+| `MISTRAL_TIMEOUT_MS` | No | Abort timeout for the Mistral request; default is `55000`, capped below the Vercel 60s function limit |
 
 `.env.local` is ignored by git through the `*.local` rule in `.gitignore`.
 

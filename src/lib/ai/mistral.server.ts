@@ -2,8 +2,10 @@ import { generateOutputSchema, type GenerateOutput } from "@/lib/validation/gene
 
 const MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions";
 const DEFAULT_MODEL = "pixtral-large-latest";
-// 55 s — 5 s headroom below Vercel Hobby's 60 s function limit
-const TIMEOUT_MS = 55_000;
+const DEFAULT_MAX_TOKENS = 3500;
+// Keep headroom below the 60 s Vercel function maxDuration configured in vercel.json.
+const DEFAULT_TIMEOUT_MS = 55_000;
+const MAX_TIMEOUT_MS = 58_000;
 
 export class AiError extends Error {
   constructor(
@@ -22,13 +24,25 @@ interface ChatMessage {
   content: string | ChatContent[];
 }
 
+function readIntEnv(name: string, fallback: number, min: number, max: number): number {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+
+  return Math.min(max, Math.max(min, parsed));
+}
+
 async function callMistral(messages: ChatMessage[]): Promise<string> {
   const apiKey = process.env.MISTRAL_API_KEY;
   if (!apiKey) throw new AiError("MISSING_API_KEY", "MISTRAL_API_KEY is not configured");
   const model = process.env.MISTRAL_MODEL || DEFAULT_MODEL;
+  const timeoutMs = readIntEnv("MISTRAL_TIMEOUT_MS", DEFAULT_TIMEOUT_MS, 5_000, MAX_TIMEOUT_MS);
+  const maxTokens = readIntEnv("MISTRAL_MAX_TOKENS", DEFAULT_MAX_TOKENS, 1000, 6000);
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   let res: Response;
   try {
@@ -42,7 +56,7 @@ async function callMistral(messages: ChatMessage[]): Promise<string> {
       body: JSON.stringify({
         model,
         temperature: 0.2,
-        max_tokens: 6000,
+        max_tokens: maxTokens,
         response_format: { type: "json_object" },
         messages,
       }),
