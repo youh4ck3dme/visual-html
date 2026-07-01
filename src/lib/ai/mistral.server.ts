@@ -1,16 +1,26 @@
+import { put } from "@vercel/blob";
+import { randomUUID } from "node:crypto";
+
 import { generateOutputSchema, type GenerateOutput } from "@/lib/validation/generation";
 
-const MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions";
+const MISTRAL_CHAT_URL = "https://api.mistral.ai/v1/chat/completions";
+const MISTRAL_OCR_URL = "https://api.mistral.ai/v1/ocr";
 const DEFAULT_MODEL = "pixtral-large-latest";
+const DEFAULT_OCR_MODEL = "mistral-ocr-latest";
 const DEFAULT_MAX_TOKENS = 3500;
-// Keep headroom below the 60 s Vercel function maxDuration configured in vercel.json.
+// Keep headroom below the typical serverless hard timeout while still allowing OCR + synthesis.
 const DEFAULT_TIMEOUT_MS = 55_000;
 const MAX_TIMEOUT_MS = 58_000;
 
 export class AiError extends Error {
   constructor(
     public code:
-      "MISSING_API_KEY" | "AI_TIMEOUT" | "RATE_LIMITED" | "AI_INVALID_RESPONSE" | "SERVER_ERROR",
+      | "MISSING_API_KEY"
+      | "MISSING_BLOB_TOKEN"
+      | "AI_TIMEOUT"
+      | "RATE_LIMITED"
+      | "AI_INVALID_RESPONSE"
+      | "SERVER_ERROR",
     message: string,
   ) {
     super(message);
@@ -24,6 +34,13 @@ interface ChatMessage {
   content: string | ChatContent[];
 }
 
+interface OcrResponse {
+  pages?: Array<{
+    index?: number;
+    markdown?: string;
+  }>;
+}
+
 function readIntEnv(name: string, fallback: number, min: number, max: number): number {
   const raw = process.env[name];
   if (!raw) return fallback;
@@ -34,10 +51,42 @@ function readIntEnv(name: string, fallback: number, min: number, max: number): n
   return Math.min(max, Math.max(min, parsed));
 }
 
-async function callMistral(messages: ChatMessage[]): Promise<string> {
+function mimeTypeToExtension(mimeType: string): string {
+  switch (mimeType) {
+    case "image/png":
+      return "png";
+    case "image/jpeg":
+      return "jpg";
+    case "image/webp":
+      return "webp";
+    default:
+      return "bin";
+  }
+}
+
+async function uploadImageToBlob(imageBase64: string, mimeType: string): Promise<string> {
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!token) {
+    throw new AiError("MISSING_BLOB_TOKEN", "BLOB_READ_WRITE_TOKEN is not configured");
+  }
+
+  const body = Buffer.from(imageBase64.replace(/\s+/g, ""), "base64");
+  const extension = mimeTypeToExtension(mimeType);
+  const key = `ocr-inputs/${randomUUID()}.${extension}`;
+  const blob = await put(key, body, {
+    access: "public",
+    addRandomSuffix: false,
+    contentType: mimeType,
+    token,
+  });
+
+  return blob.url;
+}
+
+async function callMistralChat(messages: ChatMessage[], modelOverride?: string): Promise<string> {
   const apiKey = process.env.MISTRAL_API_KEY;
   if (!apiKey) throw new AiError("MISSING_API_KEY", "MISTRAL_API_KEY is not configured");
-  const model = process.env.MISTRAL_MODEL || DEFAULT_MODEL;
+  const model = modelOverride || process.env.MISTRAL_MODEL || DEFAULT_MODEL;
   const timeoutMs = readIntEnv("MISTRAL_TIMEOUT_MS", DEFAULT_TIMEOUT_MS, 5_000, MAX_TIMEOUT_MS);
   const maxTokens = readIntEnv("MISTRAL_MAX_TOKENS", DEFAULT_MAX_TOKENS, 1000, 6000);
 
@@ -46,7 +95,7 @@ async function callMistral(messages: ChatMessage[]): Promise<string> {
 
   let res: Response;
   try {
-    res = await fetch(MISTRAL_URL, {
+    res = await fetch(MISTRAL_CHAT_URL, {
       method: "POST",
       signal: controller.signal,
       headers: {
@@ -85,6 +134,62 @@ async function callMistral(messages: ChatMessage[]): Promise<string> {
   return content;
 }
 
+async function callMistralOcr(imageUrl: string): Promise<string> {
+  const apiKey = process.env.MISTRAL_API_KEY;
+  if (!apiKey) throw new AiError("MISSING_API_KEY", "MISTRAL_API_KEY is not configured");
+  const model = process.env.MISTRAL_OCR_MODEL || DEFAULT_OCR_MODEL;
+  const timeoutMs = readIntEnv("MISTRAL_TIMEOUT_MS", DEFAULT_TIMEOUT_MS, 5_000, MAX_TIMEOUT_MS);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let res: Response;
+  try {
+    res = await fetch(MISTRAL_OCR_URL, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        document: {
+          type: "image_url",
+          image_url: imageUrl,
+        },
+        include_image_base64: false,
+      }),
+    });
+  } catch (err) {
+    if ((err as { name?: string }).name === "AbortError") {
+      throw new AiError("AI_TIMEOUT", "AI request timed out");
+    }
+    throw new AiError("SERVER_ERROR", "Failed to reach AI provider");
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (res.status === 429) throw new AiError("RATE_LIMITED", "Rate limit exceeded");
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    console.error("Mistral OCR error", res.status, body.slice(0, 500));
+    throw new AiError("SERVER_ERROR", `AI provider returned ${res.status}`);
+  }
+
+  const json = (await res.json()) as OcrResponse;
+  const markdown = json.pages
+    ?.map((page) => page.markdown?.trim())
+    .filter((page): page is string => Boolean(page))
+    .join("\n\n");
+
+  if (!markdown) {
+    throw new AiError("AI_INVALID_RESPONSE", "OCR provider returned no readable content");
+  }
+
+  return markdown;
+}
+
 function extractJsonBlob(raw: string): string {
   let s = raw.trim();
   if (s.startsWith("```")) {
@@ -110,7 +215,7 @@ function tryParse(raw: string): GenerateOutput | null {
 }
 
 async function repairJson(broken: string): Promise<string> {
-  return callMistral([
+  return callMistralChat([
     {
       role: "system",
       content:
@@ -124,20 +229,18 @@ async function repairJson(broken: string): Promise<string> {
 }
 
 export async function mistralGenerate(args: {
+  systemPrompt: string;
+  generationPrompt: string;
   imageBase64: string;
   mimeType: string;
-  systemPrompt: string;
-  userInstructions: string;
 }): Promise<GenerateOutput> {
-  const dataUrl = `data:${args.mimeType};base64,${args.imageBase64.replace(/\s+/g, "")}`;
-  const raw = await callMistral([
+  const imageUrl = await uploadImageToBlob(args.imageBase64, args.mimeType);
+  const ocrMarkdown = await callMistralOcr(imageUrl);
+  const raw = await callMistralChat([
     { role: "system", content: args.systemPrompt },
     {
       role: "user",
-      content: [
-        { type: "text", text: args.userInstructions },
-        { type: "image_url", image_url: dataUrl },
-      ],
+      content: `${args.generationPrompt}\n\nOCR markdown:\n${ocrMarkdown}`,
     },
   ]);
   const parsed = tryParse(raw);
@@ -152,7 +255,7 @@ export async function mistralRefine(args: {
   systemPrompt: string;
   refinementPrompt: string;
 }): Promise<GenerateOutput> {
-  const raw = await callMistral([
+  const raw = await callMistralChat([
     { role: "system", content: args.systemPrompt },
     { role: "user", content: args.refinementPrompt },
   ]);

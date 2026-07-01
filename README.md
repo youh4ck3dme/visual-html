@@ -6,7 +6,8 @@ AI web app for turning UI screenshots into clean, semantic HTML with a live prev
 
 - Upload PNG, JPG, or WebP UI screenshots
 - Automatically downscale and compress large screenshots before sending them to Mistral
-- Generate semantic HTML, CSS, and optional JavaScript with Mistral Vision
+- Upload screenshots to Vercel Blob for OCR preprocessing
+- Generate semantic HTML, CSS, and optional JavaScript from Mistral OCR + Pixtral synthesis
 - Refine previous output with follow-up instructions
 - Preview generated output in a sandboxed frame
 - Copy or download generated code
@@ -37,12 +38,14 @@ Set your API key in `.env.local`:
 
 ```env
 MISTRAL_API_KEY=your_real_mistral_api_key
+MISTRAL_OCR_MODEL=mistral-ocr-latest
 MISTRAL_MODEL=pixtral-large-latest
+BLOB_READ_WRITE_TOKEN=your_vercel_blob_rw_token
 MISTRAL_MAX_TOKENS=3500
 MISTRAL_TIMEOUT_MS=55000
 ```
 
-`pixtral-large-latest` is the recommended model here for screenshot-to-HTML and other UI image analysis tasks.
+`mistral-ocr-latest` handles OCR extraction and `pixtral-large-latest` handles HTML synthesis/refinement.
 Large uploads are automatically optimized in the browser to reduce production timeouts.
 
 ## Run locally
@@ -75,7 +78,9 @@ npm run format
 | Variable | Required | Description |
 | --- | --- | --- |
 | `MISTRAL_API_KEY` | Yes | Server-side API key used for generation and refinement |
-| `MISTRAL_MODEL` | No | Overrides the default Mistral model; default is `pixtral-large-latest` |
+| `MISTRAL_OCR_MODEL` | No | OCR model for uploaded screenshots; default is `mistral-ocr-latest` |
+| `MISTRAL_MODEL` | No | Chat/synthesis model for HTML generation and refine; default is `pixtral-large-latest` |
+| `BLOB_READ_WRITE_TOKEN` | Yes for OCR uploads | Vercel Blob token used to stage uploaded images so the OCR API can fetch them by URL |
 | `MISTRAL_MAX_TOKENS` | No | Caps completion size; default is `3500` to reduce slow vision responses |
 | `MISTRAL_TIMEOUT_MS` | No | Abort timeout for the Mistral request; default is `55000`, capped below the Vercel 60s function limit |
 
@@ -85,7 +90,7 @@ npm run format
 
 - AI output should always be reviewed before production use.
 - The app uses server functions for Mistral calls, so the API key stays server-side.
-- The current UI is labeled for **Mistral Pixtral Large** to match the configured default model.
+- The current UI is labeled for **Mistral OCR + Pixtral Large** to match the default OCR/synthesis pipeline.
 
 ## Deployment
 

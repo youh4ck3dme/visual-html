@@ -36,6 +36,7 @@ export type ApiErrorCode =
   | "AI_INVALID_RESPONSE"
   | "RATE_LIMITED"
   | "MISSING_API_KEY"
+  | "MISSING_BLOB_TOKEN"
   | "SERVER_ERROR";
 
 export interface ApiError {

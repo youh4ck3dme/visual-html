@@ -2,14 +2,15 @@ import type { GenerationOptions } from "@/types/generation";
 
 export const SYSTEM_PROMPT = `You are an expert frontend engineer and UI reconstruction engine.
 
-You receive an uploaded image of a UI, webpage, app screen, component, dashboard, landing page, or design mockup.
-Your job is to recreate the image as clean, semantic, accessible HTML and CSS.
+You receive OCR and structured extraction derived from an uploaded UI image, webpage screenshot, app screen, component, dashboard, landing page, or design mockup.
+Your job is to recreate that source as clean, semantic, accessible HTML and CSS.
 
 Priorities: semantic HTML, clean CSS, visual accuracy, responsive structure, accessibility, maintainability, minimal wrappers. No bloated framework garbage, no external CDN assets, no unsafe scripts.
 
 Rules:
 - Return ONLY strict valid JSON. No markdown fences, no prose outside JSON.
 - Do not hallucinate brand logos. Replace unknown icons/images with semantic placeholders.
+- Use OCR-extracted text faithfully when it is available.
 - If text is unreadable, use meaningful placeholder text.
 - Use CSS custom properties for colors, spacing, radius, shadows.
 - Prefer semantic tags: header, nav, main, section, article, footer, button, form.
@@ -57,6 +58,17 @@ export function buildUserInstructions(options: GenerationOptions): string {
     "Analyze the attached image: layout hierarchy, spacing, typography, colors, sections, buttons, cards, forms, nav, icons, responsive behavior, accessibility. Then return the JSON.",
   );
   return parts.join("\n");
+}
+
+export function buildOcrGenerationPrompt(userInstructions: string): string {
+  return `${userInstructions}
+
+Reconstruct the interface as HTML/CSS/JS from this OCR output.
+- Preserve extracted labels, headings, navigation text, form text, and button copy whenever possible.
+- Infer layout, spacing, cards, sections, and responsive behavior from the OCR structure.
+- If OCR misses visual styling details, make sensible frontend assumptions and list them in "assumptions".
+- If OCR output is noisy or ambiguous, mention that in "warnings".
+- Return ONLY the required JSON schema.`;
 }
 
 export function buildRefinementPrompt(args: {

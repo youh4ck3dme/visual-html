@@ -12,27 +12,28 @@ export type ServerResult =
   | { ok: false; error: { code: ApiErrorCode; message: string } };
 
 export const generateHtml = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => generateInputSchema.parse(input))
+  .validator((input: unknown) => generateInputSchema.parse(input))
   .handler(async ({ data }): Promise<ServerResult> => {
     const { AiError, mistralGenerate } = await import("@/lib/ai/mistral.server");
-    const { SYSTEM_PROMPT, buildUserInstructions } = await import("@/lib/ai/prompts");
+    const { SYSTEM_PROMPT, buildOcrGenerationPrompt, buildUserInstructions } = await import("@/lib/ai/prompts");
     try {
       const result = await mistralGenerate({
         imageBase64: data.imageBase64,
         mimeType: data.mimeType,
         systemPrompt: SYSTEM_PROMPT,
-        userInstructions: buildUserInstructions(data.options),
+        generationPrompt: buildOcrGenerationPrompt(buildUserInstructions(data.options)),
       });
       return { ok: true, data: result };
     } catch (err) {
-      if (err instanceof AiError) return { ok: false, error: { code: err.code, message: err.message } };
+      if (err instanceof AiError)
+        return { ok: false, error: { code: err.code, message: err.message } };
       console.error("generateHtml unexpected", err);
       return { ok: false, error: { code: "SERVER_ERROR", message: "Unexpected server error" } };
     }
   });
 
 export const refineHtml = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => refineInputSchema.parse(input))
+  .validator((input: unknown) => refineInputSchema.parse(input))
   .handler(async ({ data }): Promise<ServerResult> => {
     const { AiError, mistralRefine } = await import("@/lib/ai/mistral.server");
     const { SYSTEM_PROMPT, buildRefinementPrompt } = await import("@/lib/ai/prompts");
@@ -49,7 +50,8 @@ export const refineHtml = createServerFn({ method: "POST" })
       });
       return { ok: true, data: result };
     } catch (err) {
-      if (err instanceof AiError) return { ok: false, error: { code: err.code, message: err.message } };
+      if (err instanceof AiError)
+        return { ok: false, error: { code: err.code, message: err.message } };
       console.error("refineHtml unexpected", err);
       return { ok: false, error: { code: "SERVER_ERROR", message: "Unexpected server error" } };
     }

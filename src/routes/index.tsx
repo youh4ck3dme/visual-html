@@ -101,7 +101,7 @@ function Index() {
         <div className="min-w-0">
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-border bg-white/5 px-3 py-1 text-[11px] text-muted-foreground">
             <Sparkles className="h-3 w-3 text-primary" aria-hidden />
-            <span>Vision AI · Mistral Pixtral Large</span>
+            <span>OCR AI · Mistral OCR + Pixtral Large</span>
           </div>
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">PNGtoHTMLapp</h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -147,8 +147,8 @@ function Index() {
           )}
 
           <p className="text-[11px] leading-relaxed text-muted-foreground">
-            AI-generated code is an approximation. Review layout, accessibility, and security
-            before shipping.
+            AI-generated code is an approximation. Review layout, accessibility, and security before
+            shipping.
           </p>
         </section>
 
@@ -156,9 +156,7 @@ function Index() {
         <section className="glass-panel min-h-[500px] space-y-4 p-5">
           {busy && <LoadingSteps />}
 
-          {!result && !busy && (
-            <EmptyState hasImage={!!image} />
-          )}
+          {!result && !busy && <EmptyState hasImage={!!image} />}
 
           {result && (
             <>
@@ -193,6 +191,8 @@ function errorMessage(code: string, msg: string): string {
   switch (code) {
     case "MISSING_API_KEY":
       return "MISTRAL_API_KEY is not configured on the server.";
+    case "MISSING_BLOB_TOKEN":
+      return "BLOB_READ_WRITE_TOKEN is not configured on the server.";
     case "AI_TIMEOUT":
       return "AI request timed out. Try a smaller image or try again.";
     case "RATE_LIMITED":
