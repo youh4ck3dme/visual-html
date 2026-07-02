@@ -70,11 +70,20 @@ export async function checkRateLimit(ip: string, action: string): Promise<RateLi
 
   const identifier = `${action}:${ip}`;
 
-  const daily = await limiters.daily.limit(identifier);
-  if (!daily.success) return { success: false, scope: "daily" };
+  try {
+    const daily = await limiters.daily.limit(identifier);
+    if (!daily.success) return { success: false, scope: "daily" };
 
-  const burst = await limiters.burst.limit(identifier);
-  if (!burst.success) return { success: false, scope: "burst" };
+    const burst = await limiters.burst.limit(identifier);
+    if (!burst.success) return { success: false, scope: "burst" };
+  } catch (err) {
+    console.warn("Rate limiting failed open", {
+      action,
+      name: (err as { name?: string })?.name,
+      message: (err as { message?: string })?.message,
+    });
+    return { success: true };
+  }
 
   return { success: true };
 }
