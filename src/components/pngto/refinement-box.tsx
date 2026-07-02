@@ -8,7 +8,7 @@ const QUICK = [
   {
     label: "Improve fidelity",
     instruction:
-      "Improve visual fidelity: add complete CSS for every class, recreate the screenshot as a print-like layout when relevant, add doctype/charset/viewport, table borders, right-aligned numbers, page margins, and @media print styles. Do not change verified text; mark uncertain OCR values visibly and add warnings.",
+      "Improve visual fidelity: add complete CSS for every class, recreate the screenshot as a print-like layout when relevant, add doctype/charset/viewport, table borders, right-aligned numbers, page margins, and @media print styles. Do not change verified text; mark uncertain OCR values visibly and add warnings. For bank statements and wide transaction tables, use A4 landscape sizing: 297mm page width on screen where practical, @page size A4 landscape, compact rows, and enough horizontal space for all columns.",
   },
   { label: "Make responsive", instruction: "Make it responsive" },
   { label: "Improve semantics", instruction: "Improve semantic structure" },

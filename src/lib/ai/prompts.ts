@@ -18,6 +18,7 @@ Rules:
 - If html contains class attributes, every used class MUST have a matching CSS rule. Never return class names without CSS.
 - Use CSS to recreate the visual appearance, not only semantic structure.
 - For document screenshots, invoices, statements, receipts, forms, letters, and PDFs, prioritize print fidelity: page width, margins, table lines, typography, alignment, dense spacing, headers, footers, and page metadata.
+- Bank statements and wide tabular documents MUST use at least A4 physical page sizing. Prefer A4 landscape (297mm wide) when the screenshot contains transaction tables or many columns.
 - Include @media print rules for document-like screenshots.
 - Do not invent exact financial, legal, tax, account, or identity values. If OCR is uncertain, preserve the uncertain text, visually mark it as uncertain, and add a warning. Never emit NOTPROVIDED as final visible content.
 - Do not hallucinate brand logos. Replace unknown icons/images with semantic placeholders.
@@ -80,7 +81,7 @@ Reconstruct the interface as HTML/CSS/JS from this OCR output.
 - If OCR misses visual styling details, make sensible frontend assumptions and list them in "assumptions".
 - If OCR output is noisy or ambiguous, mention that in "warnings".
 - Critical: return complete CSS for the generated HTML. If you use classes, define them.
-- For bank statements, invoices, receipts, forms, letters, PDFs, and other document screenshots, create a print-like A4 layout with accurate spacing, table borders, compact typography, header blocks, right-aligned numeric columns, and @media print styles.
+- For bank statements, invoices, receipts, forms, letters, PDFs, and other document screenshots, create a print-like A4 layout with accurate spacing, table borders, compact typography, header blocks, right-aligned numeric columns, and @media print styles. Use A4 landscape width for wide transaction tables unless the source is clearly portrait-only.
 - If OCR includes uncertain tokens such as NOTPROVIDED, unreadable, missing, or placeholder values, do not present them as verified data. Mark them with a visible uncertain marker and include a warning.
 - Keep the output compact and parseable. Avoid verbose comments, duplicate sections, and excessive metadata.
 - If full fidelity would exceed the response budget, return a valid shorter reconstruction and put the limitation in "warnings".
