@@ -56,6 +56,24 @@ describe("buildSingleFileHtml sanitization (allowJs = false)", () => {
     expect(out).not.toContain("steal()");
     expect(out).toContain("ok");
   });
+
+  it("injects CSS and missing metadata into full documents", () => {
+    const out = buildSingleFileHtml(
+      {
+        html: `<html><head><title>x</title></head><body><div class="header">A</div></body></html>`,
+        css: `.header{color:red}`,
+        javascript: "",
+      },
+      { allowJs: false },
+    );
+
+    expect(out).toMatch(/<!doctype html>/i);
+    expect(out).toMatch(/<meta[^>]+charset/i);
+    expect(out).toMatch(/name="viewport"/i);
+    expect(out).toContain("<style>");
+    expect(out).toContain(".header{color:red}");
+    expect(out.indexOf(".header{color:red}")).toBeLessThan(out.indexOf("</head>"));
+  });
 });
 
 describe("buildSingleFileHtml JS mode (allowJs = true)", () => {
@@ -69,5 +87,19 @@ describe("buildSingleFileHtml JS mode (allowJs = true)", () => {
     // ...but the breakout sequence inside the JS string is escaped.
     expect(out).toContain("<\\/script>");
     expect(out).not.toContain(`log("</script>`);
+  });
+
+  it("keeps CSS in full documents when JS preview is enabled", () => {
+    const out = buildSingleFileHtml(
+      {
+        html: `<html><head></head><body><div class="header">A</div></body></html>`,
+        css: `.header{color:red}`,
+        javascript: "",
+      },
+      { allowJs: true },
+    );
+
+    expect(out).toContain(".header{color:red}");
+    expect(out.indexOf(".header{color:red}")).toBeLessThan(out.indexOf("</head>"));
   });
 });

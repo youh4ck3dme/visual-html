@@ -84,6 +84,54 @@ export const generateOutputSchema = z.object({
   warnings: outputStringArray,
 });
 
+const QUALITY_WARNINGS = {
+  cssMissingForClasses:
+    "Quality gate: HTML uses class attributes but the CSS field is empty. Visual fidelity will be low until matching CSS is generated.",
+  documentMetadataMissing:
+    "Quality gate: full-document HTML is missing doctype, charset, or viewport metadata.",
+  uncertainOcrToken:
+    "Quality gate: output contains an uncertain OCR token such as NOTPROVIDED. Verify the source text manually before using this result.",
+  printStylesMissing:
+    "Quality gate: document-like/tabular output is missing print-focused CSS such as table rules, borders, or @media print.",
+} as const;
+
+function appendWarning(warnings: string[], warning: string): string[] {
+  return warnings.includes(warning) ? warnings : [...warnings, warning];
+}
+
+export function annotateGenerateOutputQuality(output: GenerateOutput): GenerateOutput {
+  let warnings = [...output.warnings];
+  const html = output.html;
+  const css = output.css;
+  const hasClasses = /\bclass\s*=/.test(html);
+  const isFullDocument = /<html[\s>]/i.test(html) || /<!doctype/i.test(html);
+  const isDocumentLike =
+    /<table[\s>]/i.test(html) || /invoice|statement|receipt|vypis|výpis/i.test(html);
+
+  if (hasClasses && css.trim().length === 0) {
+    warnings = appendWarning(warnings, QUALITY_WARNINGS.cssMissingForClasses);
+  }
+  if (
+    isFullDocument &&
+    (!/<!doctype/i.test(html) ||
+      !/<meta[^>]+charset/i.test(html) ||
+      !/name=["']viewport/i.test(html))
+  ) {
+    warnings = appendWarning(warnings, QUALITY_WARNINGS.documentMetadataMissing);
+  }
+  if (/NOTPROVIDED|\bunreadable\b|\bmissing\b|\bplaceholder\b/i.test(html)) {
+    warnings = appendWarning(warnings, QUALITY_WARNINGS.uncertainOcrToken);
+  }
+  if (
+    isDocumentLike &&
+    (!/@media\s+print/i.test(css) || !/(table|border-collapse)/i.test(css) || !/border/i.test(css))
+  ) {
+    warnings = appendWarning(warnings, QUALITY_WARNINGS.printStylesMissing);
+  }
+
+  return { ...output, warnings };
+}
+
 export type GenerateInput = z.infer<typeof generateInputSchema>;
 export type OcrInput = z.infer<typeof ocrInputSchema>;
 export type ContinueInput = z.infer<typeof continueInputSchema>;

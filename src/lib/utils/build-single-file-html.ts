@@ -45,6 +45,43 @@ function sanitizeHtml(html: string, wholeDocument = false): string {
   }) as string;
 }
 
+function injectHeadContent(documentHtml: string, content: string): string {
+  if (/<\/head>/i.test(documentHtml)) {
+    return documentHtml.replace(/<\/head>/i, `${content}\n</head>`);
+  }
+  if (/<body\b/i.test(documentHtml)) {
+    return documentHtml.replace(/<body\b/i, `<head>${content}</head>\n<body`);
+  }
+  return `<head>${content}</head>\n${documentHtml}`;
+}
+
+function ensureDocumentMetadata(documentHtml: string, title: string): string {
+  let html = documentHtml;
+  const headBits: string[] = [];
+
+  if (!/<!doctype/i.test(html)) html = `<!doctype html>\n${html}`;
+  if (!/<meta[^>]+charset/i.test(html)) headBits.push(`<meta charset="utf-8" />`);
+  if (!/name=["']viewport/i.test(html)) {
+    headBits.push(`<meta name="viewport" content="width=device-width, initial-scale=1" />`);
+  }
+  if (!/<title[\s>]/i.test(html)) headBits.push(`<title>${escapeHtml(title)}</title>`);
+
+  return headBits.length ? injectHeadContent(html, headBits.join("\n")) : html;
+}
+
+function injectCssIntoFullDocument(documentHtml: string, css: string): string {
+  const trimmedCss = css.trim();
+  if (!trimmedCss) return documentHtml;
+
+  const style = `<style>
+*,*::before,*::after{box-sizing:border-box}
+img{max-width:100%;height:auto;display:block}
+${trimmedCss}
+</style>`;
+
+  return injectHeadContent(documentHtml, style);
+}
+
 export interface BuildOptions {
   allowJs: boolean;
   title?: string;
@@ -63,7 +100,7 @@ export function buildSingleFileHtml(
   // allow-same-origin) in preview-frame.tsx. We still escape </script> so inline
   // script strings cannot break out of the injected <script> block.
   if (opts.allowJs) {
-    if (isFullDoc) return raw;
+    if (isFullDoc) return injectCssIntoFullDocument(ensureDocumentMetadata(raw, title), parts.css);
     const script = parts.javascript.trim()
       ? `<script>${safeScript(parts.javascript)}</script>`
       : "";
@@ -73,7 +110,11 @@ export function buildSingleFileHtml(
   // JS-disabled: sanitize the AI-produced HTML with DOMPurify before it is shown
   // or downloaded. This path is trustworthy without relying on the sandbox.
   if (isFullDoc) {
-    return sanitizeHtml(raw, true);
+    const sanitized = sanitizeHtml(
+      injectCssIntoFullDocument(ensureDocumentMetadata(raw, title), parts.css),
+      true,
+    );
+    return ensureDocumentMetadata(sanitized, title);
   }
   return wrapDocument(title, parts.css, sanitizeHtml(raw), "");
 }

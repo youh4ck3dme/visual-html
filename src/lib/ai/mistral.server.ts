@@ -12,7 +12,7 @@ import {
   prepareJsonRepairInput,
   recoverPartialGenerateOutput,
 } from "@/lib/ai/json-output";
-import type { GenerateOutput } from "@/lib/validation/generation";
+import { annotateGenerateOutputQuality, type GenerateOutput } from "@/lib/validation/generation";
 
 const MISTRAL_CHAT_URL = "https://api.mistral.ai/v1/chat/completions";
 const MISTRAL_OCR_URL = "https://api.mistral.ai/v1/ocr";
@@ -341,10 +341,10 @@ ${repairInput}`,
 
 async function parseOrRepairJson(raw: string): Promise<GenerateOutput> {
   const parsed = parseGenerateOutput(raw);
-  if (parsed.ok) return parsed.data;
+  if (parsed.ok) return annotateGenerateOutputQuality(parsed.data);
 
   const recovered = recoverPartialGenerateOutput(parsed.extracted);
-  if (recovered) return recovered;
+  if (recovered) return annotateGenerateOutputQuality(recovered);
 
   let repaired: string;
   try {
@@ -357,10 +357,10 @@ async function parseOrRepairJson(raw: string): Promise<GenerateOutput> {
   }
 
   const repairedParsed = parseGenerateOutput(repaired);
-  if (repairedParsed.ok) return repairedParsed.data;
+  if (repairedParsed.ok) return annotateGenerateOutputQuality(repairedParsed.data);
 
   const recoveredRepair = recoverPartialGenerateOutput(repairedParsed.extracted);
-  if (recoveredRepair) return recoveredRepair;
+  if (recoveredRepair) return annotateGenerateOutputQuality(recoveredRepair);
 
   throw new AiError(
     "JSON_REPAIR_FAILED",
