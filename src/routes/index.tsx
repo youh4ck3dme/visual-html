@@ -48,10 +48,10 @@ export const Route = createFileRoute("/")({
 const DEFAULT_OPTIONS: GenerationOptions = {
   outputMode: "static",
   stylingMode: "vanilla-css",
-  responsiveness: "mobile-first",
-  accessibilityLevel: "standard",
+  responsiveness: "adaptive",
+  accessibilityLevel: "strict",
   additionalInstructions:
-    "Generate clean, semantic, accessible HTML and CSS. Prefer modern standards. Keep it simple and maintainable.",
+    "Recreate the screenshot as closely as possible. Preserve layout, spacing, colors, typography, visible text, buttons, cards, forms, and navigation. Do not invent unrelated content.",
 };
 
 type RetryAction = "generate" | "continue" | "refine";
