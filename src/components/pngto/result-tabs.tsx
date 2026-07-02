@@ -94,14 +94,18 @@ function NotesPanel({ result }: { result: GenerateHtmlResult }) {
       {result.assumptions.length > 0 && (
         <Section title="Assumptions">
           <ul className="list-inside list-disc space-y-1 text-muted-foreground">
-            {result.assumptions.map((a, i) => <li key={i}>{a}</li>)}
+            {result.assumptions.map((a, i) => (
+              <li key={i}>{a}</li>
+            ))}
           </ul>
         </Section>
       )}
       {result.warnings.length > 0 && (
         <Section title="Warnings">
           <ul className="list-inside list-disc space-y-1 text-destructive/90">
-            {result.warnings.map((w, i) => <li key={i}>{w}</li>)}
+            {result.warnings.map((w, i) => (
+              <li key={i}>{w}</li>
+            ))}
           </ul>
         </Section>
       )}

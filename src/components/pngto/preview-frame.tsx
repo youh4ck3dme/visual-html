@@ -1,12 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 
-export function PreviewFrame({
-  srcDoc,
-  allowJs,
-}: {
-  srcDoc: string;
-  allowJs: boolean;
-}) {
+export function PreviewFrame({ srcDoc, allowJs }: { srcDoc: string; allowJs: boolean }) {
   // sandbox="" => scripts disabled, same-origin denied. allow-scripts only when opted-in;
   // NEVER allow-same-origin, so the frame cannot touch the parent.
   const sandbox = allowJs ? "allow-scripts" : "";

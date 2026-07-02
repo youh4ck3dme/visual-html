@@ -31,7 +31,9 @@ export function GenerationOptionsPanel({
             value={value.outputMode}
             onValueChange={(v) => set("outputMode", v as GenerationOptions["outputMode"])}
           >
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="static">Static HTML + CSS</SelectItem>
               <SelectItem value="single-file">Single-file HTML</SelectItem>
@@ -48,7 +50,9 @@ export function GenerationOptionsPanel({
             value={value.stylingMode}
             onValueChange={(v) => set("stylingMode", v as GenerationOptions["stylingMode"])}
           >
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="vanilla-css">Vanilla CSS</SelectItem>
               <SelectItem value="css-modules">CSS Modules</SelectItem>
@@ -63,11 +67,11 @@ export function GenerationOptionsPanel({
           <Select
             disabled={disabled}
             value={value.responsiveness}
-            onValueChange={(v) =>
-              set("responsiveness", v as GenerationOptions["responsiveness"])
-            }
+            onValueChange={(v) => set("responsiveness", v as GenerationOptions["responsiveness"])}
           >
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="mobile-first">Mobile-first</SelectItem>
               <SelectItem value="desktop-first">Desktop-first</SelectItem>
@@ -85,7 +89,9 @@ export function GenerationOptionsPanel({
               set("accessibilityLevel", v as GenerationOptions["accessibilityLevel"])
             }
           >
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="standard">Standard</SelectItem>
               <SelectItem value="strict">Strict (WCAG AA)</SelectItem>
@@ -95,16 +101,14 @@ export function GenerationOptionsPanel({
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">
-          Extra instructions (optional)
-        </Label>
+        <Label className="text-xs text-muted-foreground">Extra instructions (optional)</Label>
         <Textarea
           disabled={disabled}
           maxLength={2000}
           rows={3}
           value={value.additionalInstructions ?? ""}
           onChange={(e) => set("additionalInstructions", e.target.value)}
-          placeholder="e.g. Make it feel like Apple's product pages, use rounded pill buttons…"
+          placeholder="Customize the generation behavior…"
         />
       </div>
     </div>

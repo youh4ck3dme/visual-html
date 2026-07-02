@@ -34,6 +34,12 @@ npm install
 cp .env.example .env.local
 ```
 
+For a minimal and safer local env, you can start from:
+
+```bash
+cp .env.local.template .env.local
+```
+
 Set your API key in `.env.local`:
 
 ```env
@@ -43,6 +49,8 @@ MISTRAL_MODEL=pixtral-large-latest
 BLOB_READ_WRITE_TOKEN=your_vercel_blob_rw_token
 MISTRAL_MAX_TOKENS=3500
 MISTRAL_TIMEOUT_MS=55000
+UPSTASH_REDIS_REST_URL=your_upstash_redis_rest_url
+UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_rest_token
 ```
 
 `mistral-ocr-latest` handles OCR extraction and `pixtral-large-latest` handles HTML synthesis/refinement.
@@ -75,16 +83,30 @@ npm run format
 
 ## Environment variables
 
-| Variable | Required | Description |
-| --- | --- | --- |
-| `MISTRAL_API_KEY` | Yes | Server-side API key used for generation and refinement |
-| `MISTRAL_OCR_MODEL` | No | OCR model for uploaded screenshots; default is `mistral-ocr-latest` |
-| `MISTRAL_MODEL` | No | Chat/synthesis model for HTML generation and refine; default is `pixtral-large-latest` |
-| `BLOB_READ_WRITE_TOKEN` | Yes for OCR uploads | Vercel Blob token used to stage uploaded images so the OCR API can fetch them by URL |
-| `MISTRAL_MAX_TOKENS` | No | Caps completion size; default is `3500` to reduce slow vision responses |
-| `MISTRAL_TIMEOUT_MS` | No | Abort timeout for the Mistral request; default is `55000`, capped below the Vercel 60s function limit |
+| Variable                   | Required            | Description                                                                                           |
+| -------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------- |
+| `MISTRAL_API_KEY`          | Yes                 | Server-side API key used for generation and refinement                                                |
+| `MISTRAL_OCR_MODEL`        | No                  | OCR model for uploaded screenshots; default is `mistral-ocr-latest`                                   |
+| `MISTRAL_MODEL`            | No                  | Chat/synthesis model for HTML generation and refine; default is `pixtral-large-latest`                |
+| `BLOB_READ_WRITE_TOKEN`    | Yes for OCR uploads | Vercel Blob token used to stage uploaded images so the OCR API can fetch them by URL                  |
+| `MISTRAL_MAX_TOKENS`       | No                  | Caps completion size; default is `3500` to reduce slow vision responses                               |
+| `MISTRAL_TIMEOUT_MS`       | No                  | Abort timeout for the Mistral request; default is `55000`, capped below the Vercel 60s function limit |
+| `UPSTASH_REDIS_REST_URL`   | Yes in production   | Upstash Redis REST URL used for persistent per-IP rate limiting                                       |
+| `UPSTASH_REDIS_REST_TOKEN` | Yes in production   | Upstash Redis REST token. If either Upstash var is missing, rate limiting is disabled (fail-open)     |
+| `RATE_LIMIT_BURST`         | No                  | Max requests per IP per 60s window; default is `5`                                                    |
+| `RATE_LIMIT_DAILY`         | No                  | Max requests per IP per 24h; default is `100`                                                         |
 
 `.env.local` is ignored by git through the `*.local` rule in `.gitignore`.
+
+## Secret Rotation Checklist
+
+Use the built-in checklist script after any possible secret exposure:
+
+```bash
+bash scripts/security/rotate-secrets-checklist.sh
+```
+
+The script prints a rotation playbook and performs a quick `.env.local` audit for risky runtime tokens.
 
 ## Notes
 

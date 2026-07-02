@@ -38,7 +38,7 @@ const DEFAULT_OPTIONS: GenerationOptions = {
   stylingMode: "vanilla-css",
   responsiveness: "mobile-first",
   accessibilityLevel: "standard",
-  additionalInstructions: "",
+  additionalInstructions: "Generate clean, semantic, accessible HTML and CSS. Prefer modern standards. Keep it simple and maintainable.",
 };
 
 function Index() {

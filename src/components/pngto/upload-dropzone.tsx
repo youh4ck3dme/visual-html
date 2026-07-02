@@ -47,13 +47,17 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number): Promise<Blob> {
   return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (blob) {
-        resolve(blob);
-        return;
-      }
-      reject(new Error("Could not optimize image"));
-    }, type, quality);
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob);
+          return;
+        }
+        reject(new Error("Could not optimize image"));
+      },
+      type,
+      quality,
+    );
   });
 }
 
@@ -187,6 +191,7 @@ export function UploadDropzone({
         type="file"
         accept={ALLOWED.join(",")}
         className="hidden"
+        aria-label="Upload image file"
         onChange={(e) => {
           void handle(e.target.files?.[0]);
           e.target.value = "";

@@ -1,4 +1,4 @@
-import { put } from "@vercel/blob";
+import { del, put } from "@vercel/blob";
 import { randomUUID } from "node:crypto";
 
 import { generateOutputSchema, type GenerateOutput } from "@/lib/validation/generation";
@@ -83,6 +83,20 @@ async function uploadImageToBlob(imageBase64: string, mimeType: string): Promise
   return blob.url;
 }
 
+async function deleteBlobUrl(url: string): Promise<void> {
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!token) return;
+
+  try {
+    await del(url, { token });
+  } catch (err) {
+    console.warn("Blob cleanup failed", {
+      name: (err as { name?: string })?.name,
+      message: (err as { message?: string })?.message,
+    });
+  }
+}
+
 async function callMistralChat(messages: ChatMessage[], modelOverride?: string): Promise<string> {
   const apiKey = process.env.MISTRAL_API_KEY;
   if (!apiKey) throw new AiError("MISSING_API_KEY", "MISTRAL_API_KEY is not configured");
@@ -121,8 +135,10 @@ async function callMistralChat(messages: ChatMessage[], modelOverride?: string):
 
   if (res.status === 429) throw new AiError("RATE_LIMITED", "Rate limit exceeded");
   if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    console.error("Mistral error", res.status, body.slice(0, 500));
+    console.error("Mistral chat error", {
+      status: res.status,
+      requestId: res.headers.get("x-request-id") ?? undefined,
+    });
     throw new AiError("SERVER_ERROR", `AI provider returned ${res.status}`);
   }
 
@@ -172,8 +188,10 @@ async function callMistralOcr(imageUrl: string): Promise<string> {
 
   if (res.status === 429) throw new AiError("RATE_LIMITED", "Rate limit exceeded");
   if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    console.error("Mistral OCR error", res.status, body.slice(0, 500));
+    console.error("Mistral OCR error", {
+      status: res.status,
+      requestId: res.headers.get("x-request-id") ?? undefined,
+    });
     throw new AiError("SERVER_ERROR", `AI provider returned ${res.status}`);
   }
 
@@ -235,20 +253,31 @@ export async function mistralGenerate(args: {
   mimeType: string;
 }): Promise<GenerateOutput> {
   const imageUrl = await uploadImageToBlob(args.imageBase64, args.mimeType);
-  const ocrMarkdown = await callMistralOcr(imageUrl);
-  const raw = await callMistralChat([
-    { role: "system", content: args.systemPrompt },
-    {
-      role: "user",
-      content: `${args.generationPrompt}\n\nOCR markdown:\n${ocrMarkdown}`,
-    },
-  ]);
-  const parsed = tryParse(raw);
-  if (parsed) return parsed;
-  const repaired = await repairJson(raw);
-  const parsed2 = tryParse(repaired);
-  if (parsed2) return parsed2;
-  throw new AiError("AI_INVALID_RESPONSE", "AI returned malformed JSON");
+  try {
+    const ocrMarkdown = await callMistralOcr(imageUrl);
+    const imageDataUrl = `data:${args.mimeType};base64,${args.imageBase64.replace(/\s+/g, "")}`;
+    const raw = await callMistralChat([
+      { role: "system", content: args.systemPrompt },
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: `${args.generationPrompt}\n\nOCR markdown (use ONLY as the source of truth for text content; infer layout, spacing, colors, typography, and visual structure from the attached image):\n${ocrMarkdown}`,
+          },
+          { type: "image_url", image_url: imageDataUrl },
+        ],
+      },
+    ]);
+    const parsed = tryParse(raw);
+    if (parsed) return parsed;
+    const repaired = await repairJson(raw);
+    const parsed2 = tryParse(repaired);
+    if (parsed2) return parsed2;
+    throw new AiError("AI_INVALID_RESPONSE", "AI returned malformed JSON");
+  } finally {
+    await deleteBlobUrl(imageUrl);
+  }
 }
 
 export async function mistralRefine(args: {

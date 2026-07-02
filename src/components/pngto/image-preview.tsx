@@ -2,13 +2,7 @@ import { X } from "lucide-react";
 import type { UploadedImage } from "./upload-dropzone";
 import { formatBytes } from "@/lib/utils/download";
 
-export function ImagePreview({
-  image,
-  onRemove,
-}: {
-  image: UploadedImage;
-  onRemove: () => void;
-}) {
+export function ImagePreview({ image, onRemove }: { image: UploadedImage; onRemove: () => void }) {
   return (
     <div className="glass-inset flex items-center gap-3 p-3">
       <img
