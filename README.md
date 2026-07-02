@@ -4,6 +4,24 @@ AI web app for turning UI screenshots into clean, semantic HTML with a live prev
 
 Business and monetization strategy is documented in [docs/business/README.md](docs/business/README.md).
 
+## Top competition
+
+Najblizsia priama konkurencia je **Screenshot to Code**: <https://screenshottocode.com> a <https://github.com/abi/screenshot-to-code>.
+
+Je to najpodobnejsi produkt, pretoze riesi rovnaky core use case: pouzivatel nahra screenshot, mockup, Figma dizajn alebo screen recording a AI z toho generuje frontend kod. Podporuje HTML + CSS, HTML + Tailwind, React + Tailwind, Vue + Tailwind, Bootstrap a dalsie stacky. Je silny hlavne tym, ze ma hosted app, open-source/self-host moznost, viac AI providerov a velmi silny GitHub signal.
+
+Pre Visual HTML je preto najdolezitejsie nebyt iba dalsia kopia vseobecneho screenshot-to-code nastroja. Najsilnejsia diferenciacia je zameranie na verne HTML rekonstrukcie hustych UI obrazoviek, dokumentov, tabuliek, bankovych vypisov, faktur, formularov a A4 print layoutov s preview, refinement loopom, standalone exportom, OCR warnings a QA dashboardom.
+
+Najdolezitejsi benchmark:
+
+- **Top 1 direct competitor:** Screenshot to Code / screenshottocode.com.
+- **Top commercial design-to-code benchmark:** Locofy.ai.
+- **Top enterprise design-to-code benchmark:** Builder.io Visual Copilot.
+
+Strategicka pozicia Visual HTML:
+
+> Screenshot to Code je vseobecny screenshot-to-code nastroj. Visual HTML sa ma odlisit ako specializovany screenshot/document-to-HTML workflow pre verne UI, dokumenty, tabulky a A4/print vystupy s QA kontrolou.
+
 ## Features
 
 - Upload PNG, JPG, or WebP UI screenshots
