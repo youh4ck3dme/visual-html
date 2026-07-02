@@ -5,11 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 const QUICK = [
-  "Make it responsive",
-  "Improve semantic structure",
-  "Remove unnecessary wrappers",
-  "Convert to Tailwind",
-  "Optimize for SEO",
+  {
+    label: "Improve fidelity",
+    instruction:
+      "Improve visual fidelity: add complete CSS for every class, recreate the screenshot as a print-like layout when relevant, add doctype/charset/viewport, table borders, right-aligned numbers, page margins, and @media print styles. Do not change verified text; mark uncertain OCR values visibly and add warnings.",
+  },
+  { label: "Make responsive", instruction: "Make it responsive" },
+  { label: "Improve semantics", instruction: "Improve semantic structure" },
+  { label: "Simplify wrappers", instruction: "Remove unnecessary wrappers" },
+  { label: "Convert to Tailwind", instruction: "Convert to Tailwind" },
+  { label: "Optimize SEO", instruction: "Optimize for SEO" },
 ];
 
 export function RefinementBox({
@@ -31,13 +36,13 @@ export function RefinementBox({
       <div className="flex flex-wrap gap-1.5">
         {QUICK.map((q) => (
           <button
-            key={q}
+            key={q.label}
             type="button"
             disabled={disabled}
-            onClick={() => onSubmit(q)}
+            onClick={() => onSubmit(q.instruction)}
             className="rounded-full border border-border bg-white/5 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-white/10 hover:text-foreground disabled:opacity-50"
           >
-            {q}
+            {q.label}
           </button>
         ))}
       </div>

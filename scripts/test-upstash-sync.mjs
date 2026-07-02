@@ -173,7 +173,12 @@ async function callOcr(id) {
   try {
     parsed = fromCrossJSON(JSON.parse(text), { plugins });
   } catch {
-    return { httpStatus: res.status, rateLimited: false, parseError: true, raw: text.slice(0, 200) };
+    return {
+      httpStatus: res.status,
+      rateLimited: false,
+      parseError: true,
+      raw: text.slice(0, 200),
+    };
   }
   const result = parsed?.result;
   const rateLimited = result?.ok === false && result?.error?.code === "RATE_LIMITED";
@@ -197,7 +202,9 @@ async function testProductionSync() {
   for (let i = 1; i <= burst + 2; i++) {
     const res = await callOcr(ocrId);
     if (res.parseError) {
-      console.log(`request ${i}: http ${res.httpStatus} (parse error — deployment may have changed fn id)`);
+      console.log(
+        `request ${i}: http ${res.httpStatus} (parse error — deployment may have changed fn id)`,
+      );
       continue;
     }
     if (res.rateLimited) {
@@ -209,7 +216,10 @@ async function testProductionSync() {
     }
   }
 
-  assert(limited > 0, "production never returned RATE_LIMITED — Upstash may be disconnected on Vercel");
+  assert(
+    limited > 0,
+    "production never returned RATE_LIMITED — Upstash may be disconnected on Vercel",
+  );
   console.log(`OK: production rate limiting active (${allowed} allowed, ${limited} limited)`);
 }
 
