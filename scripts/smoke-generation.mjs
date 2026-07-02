@@ -53,6 +53,9 @@ function checkEnv() {
   loadDotEnv();
   const keys = [
     "MISTRAL_API_KEY",
+    "MISTRAL_API_KEY_FALLBACK",
+    "MISTRAL_OCR_API_KEY",
+    "MISTRAL_CHAT_API_KEY",
     "BLOB_READ_WRITE_TOKEN",
     "UPSTASH_REDIS_REST_URL",
     "UPSTASH_REDIS_REST_TOKEN",
@@ -61,8 +64,18 @@ function checkEnv() {
   ];
   console.log("=== Environment check (local .env.local) ===");
   for (const key of keys) console.log(`${key}: ${mask(process.env[key])}`);
-  if (!process.env.MISTRAL_API_KEY) {
-    console.error("\nFAIL: MISTRAL_API_KEY is missing — local `bun run dev` cannot generate HTML.");
+  const hasMistralKey = [
+    process.env.MISTRAL_API_KEY,
+    process.env.MISTRAL_API_KEY_FALLBACK,
+    process.env.MISTRAL_OCR_API_KEY,
+    process.env.MISTRAL_CHAT_API_KEY,
+    process.env.MISTRAL_API_KEYS,
+  ].some((value) => Boolean(value?.trim()));
+
+  if (!hasMistralKey) {
+    console.error(
+      "\nFAIL: no Mistral API key configured — set MISTRAL_API_KEY or MISTRAL_API_KEY_FALLBACK.",
+    );
     process.exit(1);
   }
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
@@ -162,9 +175,17 @@ async function main() {
   console.log(`ocr fn: ${ocr.slice(0, 12)}…`);
   console.log(`generate fn: ${generate.slice(0, 12)}…`);
 
-  if (!process.env.MISTRAL_API_KEY) {
+  const hasLocalMistralKey = [
+    process.env.MISTRAL_API_KEY,
+    process.env.MISTRAL_API_KEY_FALLBACK,
+    process.env.MISTRAL_OCR_API_KEY,
+    process.env.MISTRAL_CHAT_API_KEY,
+    process.env.MISTRAL_API_KEYS,
+  ].some((value) => Boolean(value?.trim()));
+
+  if (!hasLocalMistralKey) {
     console.warn(
-      "\nWARN: MISTRAL_API_KEY missing locally — remote BASE_URL may still work if Vercel env is configured.",
+      "\nWARN: no local Mistral key — remote BASE_URL may still work if Vercel env is configured.",
     );
   }
 

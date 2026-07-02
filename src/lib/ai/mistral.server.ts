@@ -1,14 +1,25 @@
 import { del, put } from "@vercel/blob";
 import { randomUUID } from "node:crypto";
 
-import { parseGenerateOutput } from "@/lib/ai/json-output";
+import {
+  getMistralKeyPool,
+  maskApiKey,
+  shouldFailoverToNextKey,
+  type MistralKeyRole,
+} from "@/lib/ai/mistral-keys";
+import {
+  parseGenerateOutput,
+  prepareJsonRepairInput,
+  recoverPartialGenerateOutput,
+} from "@/lib/ai/json-output";
 import type { GenerateOutput } from "@/lib/validation/generation";
 
 const MISTRAL_CHAT_URL = "https://api.mistral.ai/v1/chat/completions";
 const MISTRAL_OCR_URL = "https://api.mistral.ai/v1/ocr";
 const DEFAULT_MODEL = "pixtral-large-latest";
 const DEFAULT_OCR_MODEL = "mistral-ocr-latest";
-const DEFAULT_MAX_TOKENS = 3500;
+const DEFAULT_MAX_TOKENS = 3000;
+const REPAIR_MAX_TOKENS = 3500;
 // Keep headroom below the typical serverless hard timeout while still allowing OCR + synthesis.
 const DEFAULT_TIMEOUT_MS = 55_000;
 const MAX_TIMEOUT_MS = 58_000;
@@ -116,37 +127,16 @@ async function deleteBlobUrl(url: string): Promise<void> {
   }
 }
 
-async function callMistralChat(
-  messages: ChatMessage[],
-  options: ChatOptions = {},
-): Promise<string> {
-  const apiKey = process.env.MISTRAL_API_KEY;
-  if (!apiKey) throw new AiError("MISSING_API_KEY", "MISTRAL_API_KEY is not configured");
-  const model = options.modelOverride || process.env.MISTRAL_MODEL || DEFAULT_MODEL;
-  const timeoutMs = readIntEnv("MISTRAL_TIMEOUT_MS", DEFAULT_TIMEOUT_MS, 5_000, MAX_TIMEOUT_MS);
-  const maxTokens =
-    options.maxTokens ?? readIntEnv("MISTRAL_MAX_TOKENS", DEFAULT_MAX_TOKENS, 1000, 6000);
-
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  let res: Response;
   try {
-    res = await fetch(MISTRAL_CHAT_URL, {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        temperature: options.temperature ?? 0.2,
-        max_tokens: maxTokens,
-        response_format: { type: "json_object" },
-        messages,
-      }),
-    });
+    return await fetch(url, { ...init, signal: controller.signal });
   } catch (err) {
     if ((err as { name?: string }).name === "AbortError") {
       throw new AiError("AI_TIMEOUT", "AI request timed out");
@@ -155,20 +145,115 @@ async function callMistralChat(
   } finally {
     clearTimeout(timer);
   }
+}
 
-  if (res.status === 429) throw new AiError("RATE_LIMITED", "Rate limit exceeded");
+async function callMistralWithKeyPool(
+  role: MistralKeyRole,
+  operation: (apiKey: string) => Promise<Response>,
+): Promise<Response> {
+  const keys = getMistralKeyPool(role);
+  if (keys.length === 0) {
+    throw new AiError(
+      "MISSING_API_KEY",
+      "No Mistral API keys configured (set MISTRAL_API_KEY or role-specific keys)",
+    );
+  }
+
+  let lastStatus = 0;
+  let lastBody = "";
+
+  for (let index = 0; index < keys.length; index += 1) {
+    const apiKey = keys[index];
+    const hasMoreKeys = index < keys.length - 1;
+    const res = await operation(apiKey);
+
+    if (res.ok) {
+      if (index > 0) {
+        console.info(`Mistral ${role} succeeded with fallback key ${maskApiKey(apiKey)}`);
+      }
+      return res;
+    }
+
+    lastStatus = res.status;
+    lastBody = await res.text();
+
+    if (shouldFailoverToNextKey(res.status, lastBody, hasMoreKeys)) {
+      console.warn(
+        `Mistral ${role} key ${maskApiKey(apiKey)} returned ${res.status}; trying next key`,
+      );
+      continue;
+    }
+
+    return new Response(lastBody, {
+      status: lastStatus,
+      headers: res.headers,
+    });
+  }
+
+  if (lastStatus === 429 || QUOTA_STATUS_HINT.test(lastBody)) {
+    throw new AiError(
+      "RATE_LIMITED",
+      "All configured Mistral API keys are rate-limited or out of quota",
+    );
+  }
+  if (lastStatus === 401 || lastStatus === 403) {
+    throw new AiError("AI_AUTH_ERROR", `AI provider rejected credentials (${lastStatus})`);
+  }
+  throw new AiError("SERVER_ERROR", `AI provider returned ${lastStatus || 500}`);
+}
+
+const QUOTA_STATUS_HINT =
+  /quota|rate.?limit|billing|exceeded|insufficient|credit|capacity|too many requests/i;
+
+function throwMistralHttpError(role: MistralKeyRole, res: Response, bodyText: string): never {
+  if (res.status === 429 || (res.status === 402 && QUOTA_STATUS_HINT.test(bodyText))) {
+    throw new AiError("RATE_LIMITED", "Rate limit or quota exceeded");
+  }
   if (res.status === 401 || res.status === 403) {
     throw new AiError("AI_AUTH_ERROR", `AI provider rejected credentials (${res.status})`);
   }
-  if (!res.ok) {
-    console.error("Mistral chat error", {
-      status: res.status,
-      requestId: res.headers.get("x-request-id") ?? undefined,
-    });
-    throw new AiError("SERVER_ERROR", `AI provider returned ${res.status}`);
-  }
 
-  const json = (await res.json()) as {
+  console.error(`Mistral ${role} error`, {
+    status: res.status,
+    requestId: res.headers.get("x-request-id") ?? undefined,
+  });
+  throw new AiError("SERVER_ERROR", `AI provider returned ${res.status}`);
+}
+
+async function callMistralChat(
+  messages: ChatMessage[],
+  options: ChatOptions = {},
+): Promise<string> {
+  const model = options.modelOverride || process.env.MISTRAL_MODEL || DEFAULT_MODEL;
+  const timeoutMs = readIntEnv("MISTRAL_TIMEOUT_MS", DEFAULT_TIMEOUT_MS, 5_000, MAX_TIMEOUT_MS);
+  const maxTokens =
+    options.maxTokens ?? readIntEnv("MISTRAL_MAX_TOKENS", DEFAULT_MAX_TOKENS, 1000, 6000);
+
+  const res = await callMistralWithKeyPool("chat", (apiKey) =>
+    fetchWithTimeout(
+      MISTRAL_CHAT_URL,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          temperature: options.temperature ?? 0.2,
+          max_tokens: maxTokens,
+          response_format: { type: "json_object" },
+          messages,
+        }),
+      },
+      timeoutMs,
+    ),
+  );
+
+  const bodyText = await res.text();
+  if (!res.ok) throwMistralHttpError("chat", res, bodyText);
+
+  const json = JSON.parse(bodyText) as {
     choices?: Array<{ message?: { content?: string } }>;
   };
   const content = json.choices?.[0]?.message?.content;
@@ -177,54 +262,35 @@ async function callMistralChat(
 }
 
 async function callMistralOcr(imageUrl: string): Promise<string> {
-  const apiKey = process.env.MISTRAL_API_KEY;
-  if (!apiKey) throw new AiError("MISSING_API_KEY", "MISTRAL_API_KEY is not configured");
   const model = process.env.MISTRAL_OCR_MODEL || DEFAULT_OCR_MODEL;
   const timeoutMs = readIntEnv("MISTRAL_TIMEOUT_MS", DEFAULT_TIMEOUT_MS, 5_000, MAX_TIMEOUT_MS);
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-  let res: Response;
-  try {
-    res = await fetch(MISTRAL_OCR_URL, {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        document: {
-          type: "image_url",
-          image_url: imageUrl,
+  const res = await callMistralWithKeyPool("ocr", (apiKey) =>
+    fetchWithTimeout(
+      MISTRAL_OCR_URL,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${apiKey}`,
         },
-        include_image_base64: false,
-      }),
-    });
-  } catch (err) {
-    if ((err as { name?: string }).name === "AbortError") {
-      throw new AiError("AI_TIMEOUT", "AI request timed out");
-    }
-    throw new AiError("SERVER_ERROR", "Failed to reach AI provider");
-  } finally {
-    clearTimeout(timer);
-  }
+        body: JSON.stringify({
+          model,
+          document: {
+            type: "image_url",
+            image_url: imageUrl,
+          },
+          include_image_base64: false,
+        }),
+      },
+      timeoutMs,
+    ),
+  );
 
-  if (res.status === 429) throw new AiError("RATE_LIMITED", "Rate limit exceeded");
-  if (res.status === 401 || res.status === 403) {
-    throw new AiError("AI_AUTH_ERROR", `AI provider rejected credentials (${res.status})`);
-  }
-  if (!res.ok) {
-    console.error("Mistral OCR error", {
-      status: res.status,
-      requestId: res.headers.get("x-request-id") ?? undefined,
-    });
-    throw new AiError("SERVER_ERROR", `AI provider returned ${res.status}`);
-  }
+  const bodyText = await res.text();
+  if (!res.ok) throwMistralHttpError("ocr", res, bodyText);
 
-  const json = (await res.json()) as OcrResponse;
+  const json = JSON.parse(bodyText) as OcrResponse;
   const markdown = json.pages
     ?.map((page) => page.markdown?.trim())
     .filter((page): page is string => Boolean(page))
@@ -238,6 +304,8 @@ async function callMistralOcr(imageUrl: string): Promise<string> {
 }
 
 async function repairJson(broken: string, reason: string): Promise<string> {
+  const repairInput = prepareJsonRepairInput(broken);
+
   return callMistralChat(
     [
       {
@@ -253,7 +321,9 @@ async function repairJson(broken: string, reason: string): Promise<string> {
   "assumptions": string[],
   "warnings": string[]
 }
-No prose. No markdown fences. No comments. No extra keys. Arrays must be JSON arrays. Use empty strings or empty arrays for missing content.`,
+No prose. No markdown fences. No comments. No extra keys. Arrays must be JSON arrays. Use empty strings or empty arrays for missing content.
+If the input is truncated, synthesize minimal valid content for missing or cut fields instead of continuing an unterminated string.
+Keep explanation, accessibilityNotes, responsiveNotes, assumptions, and warnings brief.`,
       },
       {
         role: "user",
@@ -261,16 +331,19 @@ No prose. No markdown fences. No comments. No extra keys. Arrays must be JSON ar
 
 Repair this into the exact JSON schema only:
 
-${broken.slice(0, 20_000)}`,
+${repairInput}`,
       },
     ],
-    { temperature: 0, maxTokens: 4500 },
+    { temperature: 0, maxTokens: REPAIR_MAX_TOKENS },
   );
 }
 
 async function parseOrRepairJson(raw: string): Promise<GenerateOutput> {
   const parsed = parseGenerateOutput(raw);
   if (parsed.ok) return parsed.data;
+
+  const recovered = recoverPartialGenerateOutput(parsed.extracted);
+  if (recovered) return recovered;
 
   let repaired: string;
   try {
@@ -284,6 +357,9 @@ async function parseOrRepairJson(raw: string): Promise<GenerateOutput> {
 
   const repairedParsed = parseGenerateOutput(repaired);
   if (repairedParsed.ok) return repairedParsed.data;
+
+  const recoveredRepair = recoverPartialGenerateOutput(repairedParsed.extracted);
+  if (recoveredRepair) return recoveredRepair;
 
   throw new AiError(
     "JSON_REPAIR_FAILED",
