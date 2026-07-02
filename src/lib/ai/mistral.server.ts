@@ -31,6 +31,7 @@ export class AiError extends Error {
       | "MISSING_BLOB_TOKEN"
       | "BLOB_UPLOAD_FAILED"
       | "AI_AUTH_ERROR"
+      | "AI_QUOTA_EXHAUSTED"
       | "AI_TIMEOUT"
       | "RATE_LIMITED"
       | "AI_INVALID_RESPONSE"
@@ -192,7 +193,7 @@ async function callMistralWithKeyPool(
 
   if (lastStatus === 429 || QUOTA_STATUS_HINT.test(lastBody)) {
     throw new AiError(
-      "RATE_LIMITED",
+      "AI_QUOTA_EXHAUSTED",
       "All configured Mistral API keys are rate-limited or out of quota",
     );
   }
@@ -207,7 +208,7 @@ const QUOTA_STATUS_HINT =
 
 function throwMistralHttpError(role: MistralKeyRole, res: Response, bodyText: string): never {
   if (res.status === 429 || (res.status === 402 && QUOTA_STATUS_HINT.test(bodyText))) {
-    throw new AiError("RATE_LIMITED", "Rate limit or quota exceeded");
+    throw new AiError("AI_QUOTA_EXHAUSTED", "Mistral rate limit or quota exceeded");
   }
   if (res.status === 401 || res.status === 403) {
     throw new AiError("AI_AUTH_ERROR", `AI provider rejected credentials (${res.status})`);

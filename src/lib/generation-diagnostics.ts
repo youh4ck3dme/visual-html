@@ -123,6 +123,17 @@ export function diagnosticForError(
         suggestedFix: "Rotate the Mistral key, update it in Vercel, and redeploy before retrying.",
         retryable: false,
       };
+    case "AI_QUOTA_EXHAUSTED":
+      return {
+        code,
+        title: "Mistral quota exhausted",
+        detail: message || "All configured Mistral API keys are rate-limited or out of quota.",
+        likelyCause:
+          "The active Mistral key has no remaining quota, and no usable fallback key is configured for this environment.",
+        suggestedFix:
+          "Add MISTRAL_API_KEY_FALLBACK or MISTRAL_API_KEYS in Vercel for Production/Preview/Development, or configure MISTRAL_OCR_API_KEY and MISTRAL_CHAT_API_KEY to split OCR and synthesis usage. Redeploy after changing env vars.",
+        retryable: true,
+      };
     case "MISSING_BLOB_TOKEN":
       return {
         code,

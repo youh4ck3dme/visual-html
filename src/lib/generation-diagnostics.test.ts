@@ -21,6 +21,19 @@ describe("generation diagnostics", () => {
     expect(error.diagnostic?.retryable).toBe(true);
   });
 
+  it("maps Mistral quota exhaustion to fallback key guidance", () => {
+    const diagnostic = diagnosticForError(
+      "AI_QUOTA_EXHAUSTED",
+      "All configured Mistral API keys are rate-limited or out of quota",
+      "synthesizing",
+    );
+
+    expect(diagnostic.title).toBe("Mistral quota exhausted");
+    expect(diagnostic.suggestedFix).toContain("MISTRAL_API_KEY_FALLBACK");
+    expect(diagnostic.suggestedFix).toContain("MISTRAL_OCR_API_KEY");
+    expect(diagnostic.retryable).toBe(true);
+  });
+
   it("maps OCR timeout to the OCR phase", () => {
     const diagnostic = diagnosticForError("AI_TIMEOUT", "AI request timed out", "ocr");
 
