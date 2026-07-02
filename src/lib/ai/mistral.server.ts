@@ -1,7 +1,8 @@
 import { del, put } from "@vercel/blob";
 import { randomUUID } from "node:crypto";
 
-import { generateOutputSchema, type GenerateOutput } from "@/lib/validation/generation";
+import { parseGenerateOutput } from "@/lib/ai/json-output";
+import type { GenerateOutput } from "@/lib/validation/generation";
 
 const MISTRAL_CHAT_URL = "https://api.mistral.ai/v1/chat/completions";
 const MISTRAL_OCR_URL = "https://api.mistral.ai/v1/ocr";
@@ -35,6 +36,12 @@ type ChatContent = { type: "text"; text: string } | { type: "image_url"; image_u
 interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string | ChatContent[];
+}
+
+interface ChatOptions {
+  modelOverride?: string;
+  temperature?: number;
+  maxTokens?: number;
 }
 
 interface OcrResponse {
@@ -109,12 +116,16 @@ async function deleteBlobUrl(url: string): Promise<void> {
   }
 }
 
-async function callMistralChat(messages: ChatMessage[], modelOverride?: string): Promise<string> {
+async function callMistralChat(
+  messages: ChatMessage[],
+  options: ChatOptions = {},
+): Promise<string> {
   const apiKey = process.env.MISTRAL_API_KEY;
   if (!apiKey) throw new AiError("MISSING_API_KEY", "MISTRAL_API_KEY is not configured");
-  const model = modelOverride || process.env.MISTRAL_MODEL || DEFAULT_MODEL;
+  const model = options.modelOverride || process.env.MISTRAL_MODEL || DEFAULT_MODEL;
   const timeoutMs = readIntEnv("MISTRAL_TIMEOUT_MS", DEFAULT_TIMEOUT_MS, 5_000, MAX_TIMEOUT_MS);
-  const maxTokens = readIntEnv("MISTRAL_MAX_TOKENS", DEFAULT_MAX_TOKENS, 1000, 6000);
+  const maxTokens =
+    options.maxTokens ?? readIntEnv("MISTRAL_MAX_TOKENS", DEFAULT_MAX_TOKENS, 1000, 6000);
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -130,7 +141,7 @@ async function callMistralChat(messages: ChatMessage[], modelOverride?: string):
       },
       body: JSON.stringify({
         model,
-        temperature: 0.2,
+        temperature: options.temperature ?? 0.2,
         max_tokens: maxTokens,
         response_format: { type: "json_object" },
         messages,
@@ -226,42 +237,58 @@ async function callMistralOcr(imageUrl: string): Promise<string> {
   return markdown;
 }
 
-function extractJsonBlob(raw: string): string {
-  let s = raw.trim();
-  if (s.startsWith("```")) {
-    s = s
-      .replace(/^```(?:json)?/i, "")
-      .replace(/```$/, "")
-      .trim();
-  }
-  const first = s.indexOf("{");
-  const last = s.lastIndexOf("}");
-  if (first === -1 || last === -1 || last <= first) return s;
-  return s.slice(first, last + 1);
+async function repairJson(broken: string, reason: string): Promise<string> {
+  return callMistralChat(
+    [
+      {
+        role: "system",
+        content: `You are a strict JSON repair tool. Return ONLY one valid JSON object matching this exact schema:
+{
+  "html": string,
+  "css": string,
+  "javascript": string,
+  "explanation": string,
+  "accessibilityNotes": string,
+  "responsiveNotes": string,
+  "assumptions": string[],
+  "warnings": string[]
+}
+No prose. No markdown fences. No comments. No extra keys. Arrays must be JSON arrays. Use empty strings or empty arrays for missing content.`,
+      },
+      {
+        role: "user",
+        content: `The previous response failed with: ${reason}
+
+Repair this into the exact JSON schema only:
+
+${broken.slice(0, 20_000)}`,
+      },
+    ],
+    { temperature: 0, maxTokens: 4500 },
+  );
 }
 
-function tryParse(raw: string): GenerateOutput | null {
+async function parseOrRepairJson(raw: string): Promise<GenerateOutput> {
+  const parsed = parseGenerateOutput(raw);
+  if (parsed.ok) return parsed.data;
+
+  let repaired: string;
   try {
-    const obj = JSON.parse(extractJsonBlob(raw));
-    const parsed = generateOutputSchema.safeParse(obj);
-    return parsed.success ? parsed.data : null;
-  } catch {
-    return null;
+    repaired = await repairJson(parsed.extracted, parsed.reason);
+  } catch (err) {
+    if (err instanceof AiError) {
+      throw new AiError("JSON_REPAIR_FAILED", `Automatic JSON repair failed: ${err.message}`);
+    }
+    throw err;
   }
-}
 
-async function repairJson(broken: string): Promise<string> {
-  return callMistralChat([
-    {
-      role: "system",
-      content:
-        "You are a strict JSON repair tool. Return only valid JSON that matches the previous schema (html, css, javascript, explanation, accessibilityNotes, responsiveNotes, assumptions, warnings). No prose, no fences.",
-    },
-    {
-      role: "user",
-      content: `Repair this into valid JSON only:\n\n${broken.slice(0, 20_000)}`,
-    },
-  ]);
+  const repairedParsed = parseGenerateOutput(repaired);
+  if (repairedParsed.ok) return repairedParsed.data;
+
+  throw new AiError(
+    "JSON_REPAIR_FAILED",
+    `AI returned malformed JSON after automatic repair. ${repairedParsed.reason}`,
+  );
 }
 
 export async function mistralOcr(args: {
@@ -301,20 +328,7 @@ export async function mistralSynthesize(args: {
       ],
     },
   ]);
-  const parsed = tryParse(raw);
-  if (parsed) return parsed;
-  let repaired: string;
-  try {
-    repaired = await repairJson(raw);
-  } catch (err) {
-    if (err instanceof AiError) {
-      throw new AiError("JSON_REPAIR_FAILED", err.message);
-    }
-    throw err;
-  }
-  const parsed2 = tryParse(repaired);
-  if (parsed2) return parsed2;
-  throw new AiError("JSON_REPAIR_FAILED", "AI returned malformed JSON after repair");
+  return parseOrRepairJson(raw);
 }
 
 export async function mistralRefine(args: {
@@ -325,18 +339,5 @@ export async function mistralRefine(args: {
     { role: "system", content: args.systemPrompt },
     { role: "user", content: args.refinementPrompt },
   ]);
-  const parsed = tryParse(raw);
-  if (parsed) return parsed;
-  let repaired: string;
-  try {
-    repaired = await repairJson(raw);
-  } catch (err) {
-    if (err instanceof AiError) {
-      throw new AiError("JSON_REPAIR_FAILED", err.message);
-    }
-    throw err;
-  }
-  const parsed2 = tryParse(repaired);
-  if (parsed2) return parsed2;
-  throw new AiError("JSON_REPAIR_FAILED", "AI returned malformed JSON after repair");
+  return parseOrRepairJson(raw);
 }

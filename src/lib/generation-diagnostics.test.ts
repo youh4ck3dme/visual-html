@@ -58,6 +58,8 @@ describe("generation diagnostics", () => {
 
     expect(error.phase).toBe("json_repair");
     expect(error.diagnostic?.title).toBe("JSON repair failed");
+    expect(error.diagnostic?.likelyCause).toContain("already tried to repair");
+    expect(error.diagnostic?.suggestedFix).toContain("default preset");
     expect(error.diagnostic?.retryable).toBe(true);
   });
 

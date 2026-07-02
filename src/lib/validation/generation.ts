@@ -56,15 +56,32 @@ export const continueInputSchema = z.object({
   options: optionsSchema,
 });
 
+const outputString = z.preprocess((value) => {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  return String(value);
+}, z.string().default(""));
+
+const outputStringArray = z.preprocess((value) => {
+  if (value == null) return [];
+  if (typeof value === "string") return value.trim() ? [value] : [];
+  if (Array.isArray(value)) {
+    return value
+      .filter((item) => item != null)
+      .map((item) => (typeof item === "string" ? item : String(item)));
+  }
+  return [String(value)];
+}, z.array(z.string()).default([]));
+
 export const generateOutputSchema = z.object({
-  html: z.string().default(""),
-  css: z.string().default(""),
-  javascript: z.string().default(""),
-  explanation: z.string().default(""),
-  accessibilityNotes: z.string().default(""),
-  responsiveNotes: z.string().default(""),
-  assumptions: z.array(z.string()).default([]),
-  warnings: z.array(z.string()).default([]),
+  html: outputString,
+  css: outputString,
+  javascript: outputString,
+  explanation: outputString,
+  accessibilityNotes: outputString,
+  responsiveNotes: outputString,
+  assumptions: outputStringArray,
+  warnings: outputStringArray,
 });
 
 export type GenerateInput = z.infer<typeof generateInputSchema>;

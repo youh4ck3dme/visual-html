@@ -169,9 +169,9 @@ export function diagnosticForError(
         title: "JSON repair failed",
         detail: message || "The model output could not be repaired into the required JSON schema.",
         likelyCause:
-          "The synthesis model returned badly malformed JSON even after the repair pass.",
+          "The synthesis model returned badly malformed JSON. The app already tried to repair it automatically, but the response was still not usable.",
         suggestedFix:
-          "Retry generation. If it repeats, simplify the screenshot or reduce custom instructions.",
+          "Retry once with the default preset. If it repeats, reduce extra instructions, use a smaller screenshot, or split a large page into sections.",
         retryable: true,
       };
     case "SANITIZE_FAILED":
