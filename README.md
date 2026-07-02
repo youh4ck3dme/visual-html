@@ -2,6 +2,8 @@
 
 AI web app for turning UI screenshots into clean, semantic HTML with a live preview and refinement loop.
 
+Business and monetization strategy is documented in [docs/business/README.md](docs/business/README.md).
+
 ## Features
 
 - Upload PNG, JPG, or WebP UI screenshots
