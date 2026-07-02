@@ -12,6 +12,8 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:integrity": "node scripts/integrity.mjs",
+    "test:integrity:fast": "node scripts/integrity.mjs --skip-smoke",
     "postinstall": "node scripts/patch-nf3-nft-import.mjs"
   },
   "dependencies": {

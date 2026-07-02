@@ -1,0 +1,156 @@
+#!/usr/bin/env node
+/**
+ * Full app integrity suite.
+ * Usage: node scripts/integrity.mjs [--skip-smoke] [--skip-production]
+ */
+import { spawnSync } from "node:child_process";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
+const args = new Set(process.argv.slice(2));
+const skipSmoke = args.has("--skip-smoke");
+const skipProduction = args.has("--skip-production");
+const root = process.cwd();
+
+const results = [];
+
+function run(name, command, cmdArgs = [], options = {}) {
+  const started = Date.now();
+  const proc = spawnSync(command, cmdArgs, {
+    cwd: root,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    ...options,
+  });
+  const ok = proc.status === 0;
+  results.push({
+    name,
+    ok,
+    ms: Date.now() - started,
+    stdout: (proc.stdout || "").trim(),
+    stderr: (proc.stderr || "").trim(),
+  });
+  return ok;
+}
+
+function section(title) {
+  console.log(`\n=== ${title} ===`);
+}
+
+section("TypeScript");
+run("tsc --noEmit", "npx", ["tsc", "--noEmit"]);
+
+section("Unit tests");
+run("vitest", "npx", ["vitest", "run"]);
+
+section("ESLint (src + scripts)");
+run("eslint", "npx", ["eslint", "src", "scripts", "--max-warnings", "0"]);
+
+section("Production build");
+run("build", "bun", ["run", "build"], {
+  env: { ...process.env, NITRO_PRESET: "vercel" },
+});
+
+section("Build artifacts");
+const staticDir = ".vercel/output/static";
+const requiredStatic = [
+  "favicon.ico",
+  "site.webmanifest",
+  "apple-touch-icon.png",
+  "android-chrome-512x512.png",
+];
+const artifactOk = existsSync(staticDir);
+let artifactDetail = artifactOk ? "static dir present" : "missing .vercel/output/static";
+if (artifactOk) {
+  const missing = requiredStatic.filter((file) => !existsSync(join(staticDir, file)));
+  if (missing.length) {
+    results.push({
+      name: "build artifacts",
+      ok: false,
+      ms: 0,
+      stdout: "",
+      stderr: `Missing: ${missing.join(", ")}`,
+    });
+  } else {
+    const ssrDir = ".vercel/output/functions/__server.func/_ssr";
+    const genFile = existsSync(ssrDir)
+      ? readdirSync(ssrDir).find((name) => name.startsWith("generate.functions-"))
+      : null;
+    const hasServerFns = Boolean(
+      genFile && readFileSync(join(ssrDir, genFile), "utf8").includes("runOcr"),
+    );
+    results.push({
+      name: "build artifacts",
+      ok: hasServerFns,
+      ms: 0,
+      stdout: `favicon/manifest OK; server fns ${hasServerFns ? "OK" : "MISSING"}`,
+      stderr: hasServerFns ? "" : "generate.functions bundle missing runOcr",
+    });
+  }
+} else {
+  results.push({
+    name: "build artifacts",
+    ok: false,
+    ms: 0,
+    stdout: "",
+    stderr: artifactDetail,
+  });
+}
+
+if (!skipSmoke) {
+  section("Env check");
+  run("smoke --check-env", "node", ["scripts/smoke-generation.mjs", "--check-env"]);
+
+  section("Rate limit (Upstash)");
+  const rateOk = run("rate-limit", "bun", ["--env-file=.env.local", "scripts/test-rate-limit.mjs"]);
+  if (!rateOk) {
+    const last = results[results.length - 1];
+    if (/NOPERM|no permissions/i.test(`${last.stdout}\n${last.stderr}`)) {
+      last.stderr +=
+        "\nHint: UPSTASH_REDIS_REST_TOKEN must be read-write (not KV_REST_API_READ_ONLY_TOKEN).";
+    }
+  }
+}
+
+if (!skipProduction) {
+  section("Production HTTP");
+  const base = process.env.SMOKE_BASE_URL || "https://visual-html.vercel.app";
+  const paths = ["/", "/favicon.ico", "/site.webmanifest"];
+  const checks = [];
+  for (const path of paths) {
+    const proc = spawnSync(
+      "curl",
+      ["-sI", "-o", "/dev/null", "-w", "%{http_code}", `${base}${path}`],
+      {
+        encoding: "utf8",
+      },
+    );
+    const code = (proc.stdout || "").trim();
+    checks.push({ path, code, ok: code === "200" });
+  }
+  const prodOk = checks.every((c) => c.ok);
+  results.push({
+    name: "production http",
+    ok: prodOk,
+    ms: 0,
+    stdout: checks.map((c) => `${c.path} -> ${c.code}`).join("; "),
+    stderr: prodOk ? "" : "One or more production endpoints not 200",
+  });
+}
+
+if (!skipSmoke) {
+  section("E2E generation smoke (production API)");
+  run("smoke generation", "node", ["scripts/smoke-generation.mjs"]);
+}
+
+section("Summary");
+let failed = 0;
+for (const result of results) {
+  const status = result.ok ? "PASS" : "FAIL";
+  if (!result.ok) failed += 1;
+  console.log(`${status}  ${result.name} (${result.ms}ms)`);
+  if (!result.ok && result.stderr) console.log(`       ${result.stderr.split("\n")[0]}`);
+}
+
+console.log(`\n${results.length - failed}/${results.length} checks passed`);
+process.exit(failed === 0 ? 0 : 1);

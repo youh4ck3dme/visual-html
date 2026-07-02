@@ -4,6 +4,7 @@
  * Usage: node --env-file=.env.local scripts/test-rate-limit.mjs
  */
 import { readFileSync } from "node:fs";
+import { Redis } from "@upstash/redis";
 
 // Bun/node --env-file may not exist on older node; load .env.local manually as fallback.
 try {
@@ -17,6 +18,28 @@ try {
 }
 
 const { checkRateLimit } = await import("../src/lib/rate-limit.server.ts");
+
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
+
+if (!redisUrl || !redisToken) {
+  console.error("FAIL: UPSTASH_REDIS_REST_URL/TOKEN or KV_REST_API_URL/TOKEN are not set");
+  process.exit(1);
+}
+
+try {
+  const redis = new Redis({ url: redisUrl, token: redisToken });
+  await redis.incr(`rl:probe:${Date.now()}`);
+} catch (error) {
+  const message = error?.message ?? String(error);
+  if (/NOPERM|no permissions/i.test(message)) {
+    console.error(
+      "FAIL: Upstash token is read-only. Use the read-write REST token from the database Connect tab, not KV_REST_API_READ_ONLY_TOKEN.",
+    );
+    process.exit(1);
+  }
+  throw error;
+}
 
 const ip = `test-${Date.now()}`;
 const burst = Number.parseInt(process.env.RATE_LIMIT_BURST ?? "5", 10);

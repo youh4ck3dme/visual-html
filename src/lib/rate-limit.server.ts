@@ -22,6 +22,7 @@ function getRedis(): Redis | null {
   if (cached !== undefined) return cached;
 
   // Vercel Upstash integration exposes KV_*; manual setup uses UPSTASH_*.
+  // Never use read-only tokens — rate limiting needs INCR/EXPIRE.
   const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
 
