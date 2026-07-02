@@ -1,4 +1,3 @@
-import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
 // Per-IP rate limiting backed by Upstash Redis so limits are shared across all
@@ -6,21 +5,20 @@ import { Redis } from "@upstash/redis";
 // and is not shared between lambdas).
 //
 // Two independent limiters are enforced:
-//   - Burst:  BURST_LIMIT requests per BURST_WINDOW (short-term abuse guard).
+//   - Burst:  BURST_LIMIT requests per 60s fixed window (short-term abuse guard).
 //   - Daily:  DAILY_LIMIT requests per 24h (cost cap against sustained abuse).
+//
+// This intentionally avoids @upstash/ratelimit because that package uses Lua
+// script commands (eval/evalsha). Some Vercel KV / restricted Upstash tokens do
+// not allow those commands, but they do allow INCR + EXPIRE.
 
 const BURST_LIMIT = Number.parseInt(process.env.RATE_LIMIT_BURST ?? "5", 10);
-const BURST_WINDOW = "60 s" as const;
+const BURST_WINDOW_SECONDS = 60;
 const DAILY_LIMIT = Number.parseInt(process.env.RATE_LIMIT_DAILY ?? "100", 10);
 
-type Limiters = {
-  burst: Ratelimit;
-  daily: Ratelimit;
-};
+let cached: Redis | null | undefined;
 
-let cached: Limiters | null | undefined;
-
-function getLimiters(): Limiters | null {
+function getRedis(): Redis | null {
   if (cached !== undefined) return cached;
 
   // Vercel Upstash integration exposes KV_*; manual setup uses UPSTASH_*.
@@ -35,21 +33,7 @@ function getLimiters(): Limiters | null {
     return cached;
   }
 
-  const redis = new Redis({ url, token });
-  cached = {
-    burst: new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(BURST_LIMIT, BURST_WINDOW),
-      prefix: "rl:burst",
-      analytics: false,
-    }),
-    daily: new Ratelimit({
-      redis,
-      limiter: Ratelimit.fixedWindow(DAILY_LIMIT, "1 d"),
-      prefix: "rl:daily",
-      analytics: false,
-    }),
-  };
+  cached = new Redis({ url, token });
   return cached;
 }
 
@@ -65,17 +49,20 @@ export interface RateLimitResult {
  * limiting is not configured). On failure, `scope` indicates which limit tripped.
  */
 export async function checkRateLimit(ip: string, action: string): Promise<RateLimitResult> {
-  const limiters = getLimiters();
-  if (!limiters) return { success: true };
+  const redis = getRedis();
+  if (!redis) return { success: true };
 
-  const identifier = `${action}:${ip}`;
+  const identifier = sanitizeIdentifier(`${action}:${ip}`);
 
   try {
-    const daily = await limiters.daily.limit(identifier);
-    if (!daily.success) return { success: false, scope: "daily" };
+    const dailyKey = `rl:daily:${identifier}:${utcDayKey()}`;
+    const dailyCount = await incrementWindow(redis, dailyKey, secondsUntilTomorrowUtc());
+    if (dailyCount > DAILY_LIMIT) return { success: false, scope: "daily" };
 
-    const burst = await limiters.burst.limit(identifier);
-    if (!burst.success) return { success: false, scope: "burst" };
+    const burstBucket = Math.floor(Date.now() / (BURST_WINDOW_SECONDS * 1000));
+    const burstKey = `rl:burst:${identifier}:${burstBucket}`;
+    const burstCount = await incrementWindow(redis, burstKey, BURST_WINDOW_SECONDS + 5);
+    if (burstCount > BURST_LIMIT) return { success: false, scope: "burst" };
   } catch (err) {
     console.warn("Rate limiting failed open", {
       action,
@@ -86,4 +73,25 @@ export async function checkRateLimit(ip: string, action: string): Promise<RateLi
   }
 
   return { success: true };
+}
+
+async function incrementWindow(redis: Redis, key: string, ttlSeconds: number): Promise<number> {
+  const count = await redis.incr(key);
+  if (count === 1) {
+    await redis.expire(key, ttlSeconds);
+  }
+  return count;
+}
+
+function sanitizeIdentifier(identifier: string): string {
+  return identifier.replace(/[^a-zA-Z0-9:._-]/g, "_").slice(0, 200);
+}
+
+function utcDayKey(date = new Date()): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function secondsUntilTomorrowUtc(date = new Date()): number {
+  const tomorrow = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1);
+  return Math.max(60, Math.ceil((tomorrow - date.getTime()) / 1000));
 }
