@@ -143,14 +143,16 @@
   }
 
   body {
-    background-color: var(--color-background);
+    background-color: #030303;
     color: var(--color-foreground);
-    background-image:
-      radial-gradient(1200px 600px at 10% -10%, oklch(0.68 0.19 295 / 0.18), transparent 60%),
-      radial-gradient(900px 500px at 110% 10%, oklch(0.78 0.15 200 / 0.15), transparent 60%);
-    background-attachment: fixed;
     min-height: 100dvh;
   }
+}
+
+@utility visual-shell {
+  background-color: #030303;
+  color: #f4f4f5;
+  min-height: 100dvh;
 }
 
 @utility glass-panel {

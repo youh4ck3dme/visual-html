@@ -4,11 +4,24 @@ import { imageBudgetReport } from "@/lib/image-budget";
 import { cn } from "@/lib/utils";
 import { formatBytes } from "@/lib/utils/download";
 
-export function ImagePreview({ image, onRemove }: { image: UploadedImage; onRemove: () => void }) {
+export function ImagePreview({
+  image,
+  onRemove,
+  variant = "dark",
+}: {
+  image: UploadedImage;
+  onRemove: () => void;
+  variant?: "dark" | "light";
+}) {
   const budget = imageBudgetReport(image.file.size, image.width, image.height);
 
   return (
-    <div className="glass-inset space-y-3 p-3">
+    <div
+      className={cn(
+        "space-y-3 p-3",
+        variant === "light" ? "rounded-lg border border-zinc-200 bg-white" : "glass-inset",
+      )}
+    >
       <div className="flex items-center gap-3">
         <img
           src={image.dataUrl}
@@ -16,8 +29,15 @@ export function ImagePreview({ image, onRemove }: { image: UploadedImage; onRemo
           className="h-16 w-16 rounded-md object-cover"
         />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{image.file.name}</p>
-          <p className="text-xs text-muted-foreground">
+          <p className={cn("truncate text-sm font-medium", variant === "light" && "text-zinc-900")}>
+            {image.file.name}
+          </p>
+          <p
+            className={cn(
+              "text-xs",
+              variant === "light" ? "text-zinc-500" : "text-muted-foreground",
+            )}
+          >
             {image.width}×{image.height} · {formatBytes(image.file.size)}
           </p>
         </div>
@@ -25,7 +45,12 @@ export function ImagePreview({ image, onRemove }: { image: UploadedImage; onRemo
           type="button"
           onClick={onRemove}
           aria-label="Remove image"
-          className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-white/10 hover:text-foreground"
+          className={cn(
+            "grid h-8 w-8 place-items-center rounded-md",
+            variant === "light"
+              ? "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+              : "text-muted-foreground hover:bg-white/10 hover:text-foreground",
+          )}
         >
           <X className="h-4 w-4" aria-hidden />
         </button>

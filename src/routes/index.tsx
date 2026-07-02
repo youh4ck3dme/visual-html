@@ -12,6 +12,9 @@ import {
   type ServerResult,
 } from "@/lib/generate.functions";
 import { createApiError, createSensor, PHASE_LABELS } from "@/lib/generation-diagnostics";
+import { CapabilityCards, TrustStrip } from "@/components/pngto/capability-cards";
+import { AdvancedSettings, AppWindow, TopCreditBar } from "@/components/pngto/home-workspace";
+import { VisualSidebar } from "@/components/pngto/sidebar-nav";
 import { UploadDropzone, type UploadedImage } from "@/components/pngto/upload-dropzone";
 import { ImagePreview } from "@/components/pngto/image-preview";
 import { GenerationOptionsPanel } from "@/components/pngto/generation-options";
@@ -79,6 +82,14 @@ function Index() {
       setError(res.error);
       setSensor(createSensor(res.error.phase ?? "failed", "failed", res.error.diagnostic));
     }
+  };
+
+  const resetForNewImage = () => {
+    setResult(null);
+    setError(null);
+    setLastRetryAction("generate");
+    setLastRefineInstruction(null);
+    setSensor(createSensor("validating", "idle"));
   };
 
   const generateMut = useMutation({
@@ -205,112 +216,98 @@ function Index() {
         : "Generate HTML";
 
   return (
-    <div className="mx-auto min-h-dvh max-w-350 px-4 py-8 sm:px-6 lg:px-10">
-      <header className="mb-8 flex flex-col gap-3 sm:mb-10 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-border bg-white/5 px-3 py-1 text-[11px] text-muted-foreground">
-            <Sparkles className="h-3 w-3 text-primary" aria-hidden />
-            <span>OCR AI · Mistral OCR + Pixtral Large</span>
+    <div className="visual-shell min-h-dvh">
+      <VisualSidebar />
+
+      <div className="min-h-dvh pl-16">
+        <TopCreditBar />
+
+        <main className="mx-auto max-w-5xl px-6 py-10 pb-16">
+          <div className="relative">
+            <AppWindow>
+              <div className="space-y-5">
+                {image ? (
+                  <ImagePreview
+                    image={image}
+                    onRemove={() => {
+                      setImage(null);
+                      resetForNewImage();
+                    }}
+                    variant="light"
+                  />
+                ) : (
+                  <UploadDropzone
+                    variant="light"
+                    onFile={(img) => {
+                      setImage(img);
+                      resetForNewImage();
+                    }}
+                    onError={(message) =>
+                      setError(createApiError("INVALID_FILE", message, "validating"))
+                    }
+                  />
+                )}
+
+                <AdvancedSettings>
+                  <GenerationOptionsPanel value={options} onChange={setOptions} disabled={busy} />
+                </AdvancedSettings>
+
+                <Button
+                  className="h-11 w-full bg-[#5b35d5] text-white hover:bg-[#4c2bb8]"
+                  size="lg"
+                  disabled={(!image && !result) || busy}
+                  onClick={() => {
+                    if (result) continueMut.mutate();
+                    else generateMut.mutate();
+                  }}
+                >
+                  <Sparkles className="h-4 w-4" aria-hidden />
+                  {primaryButtonLabel}
+                </Button>
+
+                {error && (
+                  <DiagnosticErrorPanel
+                    error={error}
+                    onRetry={() => {
+                      if (lastRetryAction === "continue" && result) continueMut.mutate();
+                      else if (lastRetryAction === "refine" && lastRefineInstruction && result)
+                        refineMut.mutate(lastRefineInstruction);
+                      else generateMut.mutate();
+                    }}
+                  />
+                )}
+
+                {busy && <LoadingSteps sensor={sensor} />}
+              </div>
+            </AppWindow>
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">PNGtoHTMLapp</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Upload a UI image. Get clean, semantic HTML.
-          </p>
-        </div>
-      </header>
-
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
-        {/* LEFT: upload + options */}
-        <section className="glass-panel space-y-5 p-5">
-          {image ? (
-            <ImagePreview
-              image={image}
-              onRemove={() => {
-                setImage(null);
-                setResult(null);
-                setError(null);
-                setLastRetryAction("generate");
-                setLastRefineInstruction(null);
-                setSensor(createSensor("validating", "idle"));
-              }}
-            />
-          ) : (
-            <UploadDropzone
-              onFile={(img) => {
-                setImage(img);
-                setResult(null);
-                setError(null);
-                setLastRetryAction("generate");
-                setLastRefineInstruction(null);
-                setSensor(createSensor("validating", "idle"));
-              }}
-              onError={(message) => setError(createApiError("INVALID_FILE", message, "validating"))}
-            />
-          )}
-
-          <GenerationOptionsPanel value={options} onChange={setOptions} disabled={busy} />
-
-          <Button
-            className="w-full"
-            size="lg"
-            disabled={(!image && !result) || busy}
-            onClick={() => {
-              if (result) continueMut.mutate();
-              else generateMut.mutate();
-            }}
-          >
-            <Sparkles className="h-4 w-4" aria-hidden />
-            {primaryButtonLabel}
-          </Button>
-
-          {error && (
-            <DiagnosticErrorPanel
-              error={error}
-              onRetry={() => {
-                if (lastRetryAction === "continue" && result) continueMut.mutate();
-                else if (lastRetryAction === "refine" && lastRefineInstruction && result)
-                  refineMut.mutate(lastRefineInstruction);
-                else generateMut.mutate();
-              }}
-            />
-          )}
-
-          <p className="text-[11px] leading-relaxed text-muted-foreground">
-            AI-generated code is an approximation. Review layout, accessibility, and security before
-            shipping.
-          </p>
-        </section>
-
-        {/* RIGHT: result */}
-        <section className="glass-panel min-h-125 space-y-4 p-5">
-          {busy && <LoadingSteps sensor={sensor} />}
-
-          {!result && !busy && <EmptyState hasImage={!!image} />}
 
           {result && (
-            <>
+            <section className="mt-8 space-y-4 rounded-xl border border-[#2a2a31] bg-[#17171a] p-5">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-sm font-medium text-white">Generated output</h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResult(null);
+                    setError(null);
+                    setSensor(createSensor("validating", "idle"));
+                  }}
+                  className="text-xs text-[#8b90a0] hover:text-[#c9ccd6]"
+                >
+                  New upload
+                </button>
+              </div>
               <ResultTabs result={result} />
-              <div className="border-t border-border pt-4">
+              <div className="border-t border-[#2a2a31] pt-4">
                 <RefinementBox onSubmit={(i) => refineMut.mutate(i)} disabled={busy} />
               </div>
-            </>
+            </section>
           )}
-        </section>
-      </div>
-    </div>
-  );
-}
 
-function EmptyState({ hasImage }: { hasImage: boolean }) {
-  return (
-    <div className="flex h-full min-h-100 flex-col items-center justify-center gap-2 text-center">
-      <div className="text-sm font-medium">
-        {hasImage ? "Ready when you are." : "Upload an image to begin."}
-      </div>
-      <div className="max-w-sm text-xs text-muted-foreground">
-        {hasImage
-          ? "Choose your output mode on the left and hit Generate HTML."
-          : "Drop a PNG, JPG, or WebP screenshot of a UI, landing page, or component. The AI reconstructs it as clean, semantic HTML/CSS."}
+          {!result && !busy && <CapabilityCards />}
+          <TrustStrip />
+        </main>
       </div>
     </div>
   );
@@ -323,24 +320,29 @@ function DiagnosticErrorPanel({ error, onRetry }: { error: ApiError; onRetry: ()
   return (
     <div
       role="alert"
-      className="glass-inset space-y-3 border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive-foreground"
+      className="space-y-3 rounded-lg border border-red-300 bg-red-50 p-3 text-xs text-red-900"
     >
       <div className="flex items-start gap-2">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
         <div className="min-w-0 space-y-1">
           <div className="text-sm font-medium">{diagnostic?.title ?? error.message}</div>
-          <div className="text-muted-foreground">Phase: {PHASE_LABELS[phase]}</div>
+          <div className="text-red-700/80">Phase: {PHASE_LABELS[phase]}</div>
         </div>
       </div>
 
-      <div className="space-y-2 text-muted-foreground">
+      <div className="space-y-2 text-red-800/90">
         <p>{diagnostic?.detail ?? error.message}</p>
         {diagnostic && <p>Likely cause: {diagnostic.likelyCause}</p>}
         {diagnostic && <p>Suggested fix: {diagnostic.suggestedFix}</p>}
       </div>
 
       {diagnostic?.retryable && (
-        <Button size="sm" variant="outline" className="h-8" onClick={onRetry}>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 border-red-300 bg-white text-red-900 hover:bg-red-100"
+          onClick={onRetry}
+        >
           <RotateCcw className="h-3.5 w-3.5" aria-hidden />
           Try again
         </Button>
