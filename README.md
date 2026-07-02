@@ -443,22 +443,26 @@ npm run format
 
 ## Environment variables
 
-| Variable                   | Required            | Description                                                                                           |
-| -------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------- |
-| `MISTRAL_API_KEY`          | Yes                 | Primary server-side API key used for OCR, generation, refinement, and continuation                    |
-| `MISTRAL_API_KEY_FALLBACK` | No                  | Secondary Mistral key used automatically when the primary key is rate-limited or out of quota         |
-| `MISTRAL_API_KEYS`         | No                  | Comma-separated ordered fallback pool, for example `key1,key2,key3`                                   |
-| `MISTRAL_OCR_API_KEY`      | No                  | Dedicated OCR key; falls back to the global key pool if unset                                         |
-| `MISTRAL_CHAT_API_KEY`     | No                  | Dedicated synthesis/refine/continue key; falls back to the global key pool if unset                   |
-| `MISTRAL_OCR_MODEL`        | No                  | OCR model for uploaded screenshots; default is `mistral-ocr-latest`                                   |
-| `MISTRAL_MODEL`            | No                  | Chat/synthesis model for HTML generation and refine; default is `pixtral-large-latest`                |
-| `BLOB_READ_WRITE_TOKEN`    | Yes for OCR uploads | Vercel Blob token used to stage uploaded images so the OCR API can fetch them by URL                  |
-| `MISTRAL_MAX_TOKENS`       | No                  | Caps completion size; default is `3000` to reduce truncated JSON responses                            |
-| `MISTRAL_TIMEOUT_MS`       | No                  | Abort timeout for the Mistral request; default is `55000`, capped below the Vercel 60s function limit |
-| `UPSTASH_REDIS_REST_URL`   | Yes in production   | Upstash Redis REST URL used for persistent per-IP rate limiting                                       |
-| `UPSTASH_REDIS_REST_TOKEN` | Yes in production   | Upstash Redis REST token. If either Upstash var is missing, rate limiting is disabled (fail-open)     |
-| `RATE_LIMIT_BURST`         | No                  | Max requests per IP per 60s window; default is `5`                                                    |
-| `RATE_LIMIT_DAILY`         | No                  | Max requests per IP per 24h; default is `100`                                                         |
+| Variable                        | Required            | Description                                                                                           |
+| ------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------- |
+| `MISTRAL_API_KEY`               | Yes                 | Primary server-side API key used for OCR, generation, refinement, and continuation                    |
+| `MISTRAL_API_KEY_FALLBACK`      | No                  | Secondary Mistral key used automatically when the primary key is rate-limited or out of quota         |
+| `MISTRAL_API_KEYS`              | No                  | Comma-separated ordered fallback pool, for example `key1,key2,key3`                                   |
+| `MISTRAL_OCR_API_KEY`           | No                  | Dedicated OCR key; falls back to the global key pool if unset                                         |
+| `MISTRAL_OCR_API_KEY_FALLBACK`  | No                  | Dedicated OCR fallback key tried before the global pool                                               |
+| `MISTRAL_OCR_API_KEYS`          | No                  | Comma-separated OCR-only key pool                                                                     |
+| `MISTRAL_CHAT_API_KEY`          | No                  | Dedicated synthesis/refine/continue key; falls back to the global key pool if unset                   |
+| `MISTRAL_CHAT_API_KEY_FALLBACK` | No                  | Dedicated synthesis/refine/continue fallback key tried before the global pool                         |
+| `MISTRAL_CHAT_API_KEYS`         | No                  | Comma-separated synthesis/refine/continue-only key pool                                               |
+| `MISTRAL_OCR_MODEL`             | No                  | OCR model for uploaded screenshots; default is `mistral-ocr-latest`                                   |
+| `MISTRAL_MODEL`                 | No                  | Chat/synthesis model for HTML generation and refine; default is `pixtral-large-latest`                |
+| `BLOB_READ_WRITE_TOKEN`         | Yes for OCR uploads | Vercel Blob token used to stage uploaded images so the OCR API can fetch them by URL                  |
+| `MISTRAL_MAX_TOKENS`            | No                  | Caps completion size; default is `3000` to reduce truncated JSON responses                            |
+| `MISTRAL_TIMEOUT_MS`            | No                  | Abort timeout for the Mistral request; default is `55000`, capped below the Vercel 60s function limit |
+| `UPSTASH_REDIS_REST_URL`        | Yes in production   | Upstash Redis REST URL used for persistent per-IP rate limiting                                       |
+| `UPSTASH_REDIS_REST_TOKEN`      | Yes in production   | Upstash Redis REST token. If either Upstash var is missing, rate limiting is disabled (fail-open)     |
+| `RATE_LIMIT_BURST`              | No                  | Max requests per IP per 60s window; default is `5`                                                    |
+| `RATE_LIMIT_DAILY`              | No                  | Max requests per IP per 24h; default is `100`                                                         |
 
 `.env.local` is ignored by git through the `*.local` rule in `.gitignore`.
 
@@ -479,11 +483,20 @@ For more capacity, use an ordered pool:
 MISTRAL_API_KEYS=key1,key2,key3
 ```
 
-For separate OCR and synthesis quotas, split the pipeline:
+For separate OCR and synthesis quotas, split the pipeline. This is the strongest setup because each phase has its own primary and fallback before the shared global pool:
 
 ```env
-MISTRAL_OCR_API_KEY=ocr_key
-MISTRAL_CHAT_API_KEY=chat_generation_key
+MISTRAL_OCR_API_KEY=ocr_primary_key
+MISTRAL_OCR_API_KEY_FALLBACK=ocr_fallback_key
+MISTRAL_CHAT_API_KEY=chat_primary_key
+MISTRAL_CHAT_API_KEY_FALLBACK=chat_fallback_key
+```
+
+Failover order:
+
+```txt
+OCR:  MISTRAL_OCR_API_KEY  -> MISTRAL_OCR_API_KEY_FALLBACK  -> MISTRAL_OCR_API_KEYS  -> MISTRAL_API_KEY -> MISTRAL_API_KEY_FALLBACK -> MISTRAL_API_KEYS
+Chat: MISTRAL_CHAT_API_KEY -> MISTRAL_CHAT_API_KEY_FALLBACK -> MISTRAL_CHAT_API_KEYS -> MISTRAL_API_KEY -> MISTRAL_API_KEY_FALLBACK -> MISTRAL_API_KEYS
 ```
 
 Failover happens on provider quota/rate-limit responses such as `429`, `402`, `503`, or quota hints in `400/401/403` responses. If all configured keys are exhausted, the UI shows `Mistral quota exhausted` and asks for fallback keys or new quota.

@@ -54,8 +54,13 @@ function checkEnv() {
   const keys = [
     "MISTRAL_API_KEY",
     "MISTRAL_API_KEY_FALLBACK",
+    "MISTRAL_API_KEYS",
     "MISTRAL_OCR_API_KEY",
+    "MISTRAL_OCR_API_KEY_FALLBACK",
+    "MISTRAL_OCR_API_KEYS",
     "MISTRAL_CHAT_API_KEY",
+    "MISTRAL_CHAT_API_KEY_FALLBACK",
+    "MISTRAL_CHAT_API_KEYS",
     "BLOB_READ_WRITE_TOKEN",
     "UPSTASH_REDIS_REST_URL",
     "UPSTASH_REDIS_REST_TOKEN",
@@ -67,9 +72,13 @@ function checkEnv() {
   const hasMistralKey = [
     process.env.MISTRAL_API_KEY,
     process.env.MISTRAL_API_KEY_FALLBACK,
-    process.env.MISTRAL_OCR_API_KEY,
-    process.env.MISTRAL_CHAT_API_KEY,
     process.env.MISTRAL_API_KEYS,
+    process.env.MISTRAL_OCR_API_KEY,
+    process.env.MISTRAL_OCR_API_KEY_FALLBACK,
+    process.env.MISTRAL_OCR_API_KEYS,
+    process.env.MISTRAL_CHAT_API_KEY,
+    process.env.MISTRAL_CHAT_API_KEY_FALLBACK,
+    process.env.MISTRAL_CHAT_API_KEYS,
   ].some((value) => Boolean(value?.trim()));
 
   if (!hasMistralKey) {

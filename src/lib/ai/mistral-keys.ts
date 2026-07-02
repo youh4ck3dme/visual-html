@@ -29,13 +29,22 @@ function globalKeyPool(): string[] {
   ]);
 }
 
-function roleDedicatedKey(role: MistralKeyRole): string | undefined {
-  if (role === "ocr") return process.env.MISTRAL_OCR_API_KEY;
-  return (
-    process.env.MISTRAL_CHAT_API_KEY ??
-    process.env.MISTRAL_SYNTHESIS_API_KEY ??
-    process.env.MISTRAL_GENERATE_API_KEY
-  );
+function rolePrimaryKeys(role: MistralKeyRole): string[] {
+  if (role === "ocr") return parseCsvKeys(process.env.MISTRAL_OCR_API_KEY);
+  return [
+    ...parseCsvKeys(process.env.MISTRAL_CHAT_API_KEY),
+    ...parseCsvKeys(process.env.MISTRAL_SYNTHESIS_API_KEY),
+    ...parseCsvKeys(process.env.MISTRAL_GENERATE_API_KEY),
+  ];
+}
+
+function roleFallbackKeys(role: MistralKeyRole): string[] {
+  if (role === "ocr") return parseCsvKeys(process.env.MISTRAL_OCR_API_KEY_FALLBACK);
+  return [
+    ...parseCsvKeys(process.env.MISTRAL_CHAT_API_KEY_FALLBACK),
+    ...parseCsvKeys(process.env.MISTRAL_SYNTHESIS_API_KEY_FALLBACK),
+    ...parseCsvKeys(process.env.MISTRAL_GENERATE_API_KEY_FALLBACK),
+  ];
 }
 
 function roleExtraKeys(role: MistralKeyRole): string[] {
@@ -60,11 +69,12 @@ function roleExtraKeys(role: MistralKeyRole): string[] {
  *   MISTRAL_API_KEYS=key1,key2,key3
  */
 export function getMistralKeyPool(role: MistralKeyRole): string[] {
-  const dedicated = roleDedicatedKey(role);
-  const pool = dedicated
-    ? dedupeKeys([dedicated, ...roleExtraKeys(role), ...globalKeyPool()])
-    : globalKeyPool();
-  return pool;
+  return dedupeKeys([
+    ...rolePrimaryKeys(role),
+    ...roleFallbackKeys(role),
+    ...roleExtraKeys(role),
+    ...globalKeyPool(),
+  ]);
 }
 
 const QUOTA_HINT =
