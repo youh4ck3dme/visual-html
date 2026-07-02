@@ -1,5 +1,7 @@
 import { Redis } from "@upstash/redis";
 
+import { resolveUpstashRestConfig } from "@/lib/redis-config";
+
 // Per-IP rate limiting backed by Upstash Redis so limits are shared across all
 // serverless instances (unlike an in-memory counter, which resets on cold start
 // and is not shared between lambdas).
@@ -21,20 +23,18 @@ let cached: Redis | null | undefined;
 function getRedis(): Redis | null {
   if (cached !== undefined) return cached;
 
-  // Vercel Upstash integration exposes KV_*; manual setup uses UPSTASH_*.
-  // Never use read-only tokens — rate limiting needs INCR/EXPIRE.
-  const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
-
-  if (!url || !token) {
+  const config = resolveUpstashRestConfig();
+  if (!config) {
     // Fail-open when unconfigured (e.g. local dev) so the app stays usable, but
     // make the missing protection loud so it is not silently shipped to prod.
-    console.warn("Rate limiting disabled: UPSTASH_REDIS_REST_* or KV_REST_API_* are not set.");
+    console.warn(
+      "Rate limiting disabled: set UPSTASH_REDIS_REST_* / KV_REST_API_* or REDIS_URL from Upstash.",
+    );
     cached = null;
     return cached;
   }
 
-  cached = new Redis({ url, token });
+  cached = new Redis({ url: config.url, token: config.token });
   return cached;
 }
 
