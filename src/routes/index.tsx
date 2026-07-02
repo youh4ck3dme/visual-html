@@ -4,13 +4,13 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Sparkles } from "lucide-react";
 
-import { generateHtml, refineHtml, type ServerResult } from "@/lib/generate.functions";
+import { generateHtml, refineHtml, runOcr, type ServerResult } from "@/lib/generate.functions";
 import { UploadDropzone, type UploadedImage } from "@/components/pngto/upload-dropzone";
 import { ImagePreview } from "@/components/pngto/image-preview";
 import { GenerationOptionsPanel } from "@/components/pngto/generation-options";
 import { ResultTabs } from "@/components/pngto/result-tabs";
 import { RefinementBox } from "@/components/pngto/refinement-box";
-import { LoadingSteps } from "@/components/pngto/loading-steps";
+import { LoadingSteps, type LoadPhase } from "@/components/pngto/loading-steps";
 import { Button } from "@/components/ui/button";
 import type { GenerationOptions, GenerateHtmlResult } from "@/types/generation";
 
@@ -38,7 +38,8 @@ const DEFAULT_OPTIONS: GenerationOptions = {
   stylingMode: "vanilla-css",
   responsiveness: "mobile-first",
   accessibilityLevel: "standard",
-  additionalInstructions: "Generate clean, semantic, accessible HTML and CSS. Prefer modern standards. Keep it simple and maintainable.",
+  additionalInstructions:
+    "Generate clean, semantic, accessible HTML and CSS. Prefer modern standards. Keep it simple and maintainable.",
 };
 
 function Index() {
@@ -46,7 +47,9 @@ function Index() {
   const [options, setOptions] = useState<GenerationOptions>(DEFAULT_OPTIONS);
   const [result, setResult] = useState<GenerateHtmlResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [phase, setPhase] = useState<LoadPhase>("ocr");
 
+  const ocrFn = useServerFn(runOcr);
   const generateFn = useServerFn(generateHtml);
   const refineFn = useServerFn(refineHtml);
 
@@ -60,23 +63,36 @@ function Index() {
   };
 
   const generateMut = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<ServerResult> => {
       if (!image) throw new Error("No image");
+
+      // Phase 1 — real in-flight OCR request.
+      setPhase("ocr");
+      const ocr = await ocrFn({
+        data: { imageBase64: image.base64, mimeType: image.mimeType },
+      });
+      if (!ocr.ok) return { ok: false, error: ocr.error };
+
+      // Phase 2 — real in-flight synthesis request.
+      setPhase("synthesizing");
       return generateFn({
         data: {
           imageBase64: image.base64,
           mimeType: image.mimeType,
+          ocrMarkdown: ocr.ocrMarkdown,
           options,
         },
       });
     },
     onSuccess: handleResult,
     onError: (e) => setError((e as Error).message ?? "Unexpected error"),
+    onSettled: () => setPhase("ocr"),
   });
 
   const refineMut = useMutation({
     mutationFn: async (instruction: string) => {
       if (!result) throw new Error("No prior result");
+      setPhase("refining");
       return refineFn({
         data: {
           prior: {
@@ -91,6 +107,7 @@ function Index() {
     },
     onSuccess: handleResult,
     onError: (e) => setError((e as Error).message ?? "Unexpected error"),
+    onSettled: () => setPhase("ocr"),
   });
 
   const busy = generateMut.isPending || refineMut.isPending;
@@ -154,7 +171,7 @@ function Index() {
 
         {/* RIGHT: result */}
         <section className="glass-panel min-h-[500px] space-y-4 p-5">
-          {busy && <LoadingSteps />}
+          {busy && <LoadingSteps phase={phase} />}
 
           {!result && !busy && <EmptyState hasImage={!!image} />}
 
@@ -196,7 +213,7 @@ function errorMessage(code: string, msg: string): string {
     case "AI_TIMEOUT":
       return "AI request timed out. Try a smaller image or try again.";
     case "RATE_LIMITED":
-      return "Rate limited by AI provider. Please retry shortly.";
+      return "Too many requests. Please slow down and try again shortly.";
     case "AI_INVALID_RESPONSE":
       return "AI returned an unreadable response. Try again or refine your instructions.";
     case "FILE_TOO_LARGE":

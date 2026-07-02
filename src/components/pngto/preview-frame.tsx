@@ -16,7 +16,7 @@ export function PreviewFrame({ srcDoc, allowJs }: { srcDoc: string; allowJs: boo
         title="Generated HTML preview"
         sandbox={sandbox}
         srcDoc={srcDoc}
-        className="h-[520px] w-full bg-white"
+        className="h-130 w-full bg-white"
       />
     </div>
   );

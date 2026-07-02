@@ -1,20 +1,48 @@
+import DOMPurify from "dompurify";
+
 // Sanitize inline JS boundary so a stray "</script>" inside strings can't break out.
 function safeScript(js: string): string {
   return js.replace(/<\/script/gi, "<\\/script");
 }
 
-// Strip inline event handlers (onclick=, onload=, ...) and javascript: URLs.
-function stripInlineHandlers(html: string): string {
-  return html
-    .replace(/\son[a-z]+\s*=\s*"[^"]*"/gi, "")
-    .replace(/\son[a-z]+\s*=\s*'[^']*'/gi, "")
-    .replace(/\son[a-z]+\s*=\s*[^\s>]+/gi, "")
-    .replace(/(href|src)\s*=\s*"\s*javascript:[^"]*"/gi, '$1="#"')
-    .replace(/(href|src)\s*=\s*'\s*javascript:[^']*'/gi, "$1='#'");
+function escapeHtml(input: string): string {
+  return input.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function stripScripts(html: string): string {
-  return html.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "");
+// Strict, audited sanitization via DOMPurify. Removes <script>, inline event
+// handlers (on*), javascript: URLs, SVG script vectors (e.g. <svg onload>), and
+// iframe srcdoc smuggling. This is the primary defense; the sandboxed preview
+// iframe (sandbox="allow-scripts" without allow-same-origin) is a second,
+// independent layer.
+const PURIFY_CONFIG: Parameters<typeof DOMPurify.sanitize>[1] = {
+  USE_PROFILES: { html: true, svg: true },
+  ALLOW_DATA_ATTR: false,
+  ALLOW_ARIA_ATTR: true,
+  // Belt-and-suspenders on top of the curated allowlist.
+  FORBID_TAGS: ["script", "iframe", "object", "embed", "base", "meta", "link", "form"],
+  FORBID_ATTR: ["srcdoc", "ping", "formaction", "target"],
+};
+
+let cachedPurifier: typeof DOMPurify | null | undefined;
+
+function getPurifier(): typeof DOMPurify | null {
+  if (cachedPurifier !== undefined) return cachedPurifier;
+  // DOMPurify needs a DOM. buildSingleFileHtml runs client-side only (preview
+  // memo + download handler), so window is present in practice; guard anyway.
+  cachedPurifier = typeof window === "undefined" ? null : DOMPurify;
+  return cachedPurifier;
+}
+
+function sanitizeHtml(html: string, wholeDocument = false): string {
+  const purifier = getPurifier();
+  if (!purifier) {
+    // Unreachable in normal runtime (no DOM). Fail safe: render as inert text.
+    return escapeHtml(html);
+  }
+  return purifier.sanitize(html, {
+    ...PURIFY_CONFIG,
+    WHOLE_DOCUMENT: wholeDocument,
+  }) as string;
 }
 
 export interface BuildOptions {
@@ -28,21 +56,29 @@ export function buildSingleFileHtml(
 ): string {
   const raw = parts.html.trim();
   const isFullDoc = /^<!doctype/i.test(raw) || /<html[\s>]/i.test(raw);
-  const cleanedBody = opts.allowJs
-    ? stripInlineHandlers(raw)
-    : stripInlineHandlers(stripScripts(raw));
-
-  if (isFullDoc) {
-    // If AI returned a full document, still enforce our JS policy.
-    return opts.allowJs ? cleanedBody : stripScripts(cleanedBody);
-  }
-
   const title = opts.title ?? "Generated Preview";
-  const script =
-    opts.allowJs && parts.javascript.trim()
+
+  // JS-enabled preview: user has explicitly opted in. Scripts are NOT stripped;
+  // the ONLY execution boundary is the iframe sandbox="allow-scripts" (without
+  // allow-same-origin) in preview-frame.tsx. We still escape </script> so inline
+  // script strings cannot break out of the injected <script> block.
+  if (opts.allowJs) {
+    if (isFullDoc) return raw;
+    const script = parts.javascript.trim()
       ? `<script>${safeScript(parts.javascript)}</script>`
       : "";
+    return wrapDocument(title, parts.css, raw, script);
+  }
 
+  // JS-disabled: sanitize the AI-produced HTML with DOMPurify before it is shown
+  // or downloaded. This path is trustworthy without relying on the sandbox.
+  if (isFullDoc) {
+    return sanitizeHtml(raw, true);
+  }
+  return wrapDocument(title, parts.css, sanitizeHtml(raw), "");
+}
+
+function wrapDocument(title: string, css: string, body: string, script: string): string {
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -54,11 +90,11 @@ export function buildSingleFileHtml(
 html,body{margin:0;padding:0}
 body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#0f172a;background:#fff}
 img{max-width:100%;height:auto;display:block}
-${parts.css}
+${css}
 </style>
 </head>
 <body>
-${cleanedBody}
+${body}
 ${script}
 </body>
 </html>`;

@@ -246,38 +246,49 @@ async function repairJson(broken: string): Promise<string> {
   ]);
 }
 
-export async function mistralGenerate(args: {
-  systemPrompt: string;
-  generationPrompt: string;
+export async function mistralOcr(args: {
   imageBase64: string;
   mimeType: string;
-}): Promise<GenerateOutput> {
+}): Promise<{ ocrMarkdown: string }> {
+  // Blob is uploaded only so the OCR API can fetch the image by URL, then removed
+  // immediately. The synthesis step re-sends the image as a data URL, so nothing
+  // is left behind if the client abandons the flow between phases.
   const imageUrl = await uploadImageToBlob(args.imageBase64, args.mimeType);
   try {
     const ocrMarkdown = await callMistralOcr(imageUrl);
-    const imageDataUrl = `data:${args.mimeType};base64,${args.imageBase64.replace(/\s+/g, "")}`;
-    const raw = await callMistralChat([
-      { role: "system", content: args.systemPrompt },
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: `${args.generationPrompt}\n\nOCR markdown (use ONLY as the source of truth for text content; infer layout, spacing, colors, typography, and visual structure from the attached image):\n${ocrMarkdown}`,
-          },
-          { type: "image_url", image_url: imageDataUrl },
-        ],
-      },
-    ]);
-    const parsed = tryParse(raw);
-    if (parsed) return parsed;
-    const repaired = await repairJson(raw);
-    const parsed2 = tryParse(repaired);
-    if (parsed2) return parsed2;
-    throw new AiError("AI_INVALID_RESPONSE", "AI returned malformed JSON");
+    return { ocrMarkdown };
   } finally {
     await deleteBlobUrl(imageUrl);
   }
+}
+
+export async function mistralSynthesize(args: {
+  systemPrompt: string;
+  generationPrompt: string;
+  ocrMarkdown: string;
+  imageBase64: string;
+  mimeType: string;
+}): Promise<GenerateOutput> {
+  const imageDataUrl = `data:${args.mimeType};base64,${args.imageBase64.replace(/\s+/g, "")}`;
+  const raw = await callMistralChat([
+    { role: "system", content: args.systemPrompt },
+    {
+      role: "user",
+      content: [
+        {
+          type: "text",
+          text: `${args.generationPrompt}\n\nOCR markdown (use ONLY as the source of truth for text content; infer layout, spacing, colors, typography, and visual structure from the attached image):\n${args.ocrMarkdown}`,
+        },
+        { type: "image_url", image_url: imageDataUrl },
+      ],
+    },
+  ]);
+  const parsed = tryParse(raw);
+  if (parsed) return parsed;
+  const repaired = await repairJson(raw);
+  const parsed2 = tryParse(repaired);
+  if (parsed2) return parsed2;
+  throw new AiError("AI_INVALID_RESPONSE", "AI returned malformed JSON");
 }
 
 export async function mistralRefine(args: {

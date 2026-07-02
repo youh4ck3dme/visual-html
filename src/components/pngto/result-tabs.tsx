@@ -42,7 +42,7 @@ export function ResultTabs({ result }: { result: GenerateHtmlResult }) {
                   type="checkbox"
                   checked={allowJs}
                   onChange={(e) => setAllowJs(e.target.checked)}
-                  className="h-3.5 w-3.5 accent-[color:var(--primary)]"
+                  className="h-3.5 w-3.5 accent-primary"
                 />
                 Run JS in preview
               </label>
