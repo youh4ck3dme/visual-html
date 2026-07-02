@@ -17,9 +17,12 @@ export class AiError extends Error {
     public code:
       | "MISSING_API_KEY"
       | "MISSING_BLOB_TOKEN"
+      | "BLOB_UPLOAD_FAILED"
+      | "AI_AUTH_ERROR"
       | "AI_TIMEOUT"
       | "RATE_LIMITED"
       | "AI_INVALID_RESPONSE"
+      | "JSON_REPAIR_FAILED"
       | "SERVER_ERROR",
     message: string,
   ) {
@@ -73,12 +76,21 @@ async function uploadImageToBlob(imageBase64: string, mimeType: string): Promise
   const body = Buffer.from(imageBase64.replace(/\s+/g, ""), "base64");
   const extension = mimeTypeToExtension(mimeType);
   const key = `ocr-inputs/${randomUUID()}.${extension}`;
-  const blob = await put(key, body, {
-    access: "public",
-    addRandomSuffix: false,
-    contentType: mimeType,
-    token,
-  });
+  let blob: { url: string };
+  try {
+    blob = await put(key, body, {
+      access: "public",
+      addRandomSuffix: false,
+      contentType: mimeType,
+      token,
+    });
+  } catch (err) {
+    console.error("Blob upload failed", {
+      name: (err as { name?: string })?.name,
+      message: (err as { message?: string })?.message,
+    });
+    throw new AiError("BLOB_UPLOAD_FAILED", "Failed to upload image for OCR");
+  }
 
   return blob.url;
 }
@@ -134,6 +146,9 @@ async function callMistralChat(messages: ChatMessage[], modelOverride?: string):
   }
 
   if (res.status === 429) throw new AiError("RATE_LIMITED", "Rate limit exceeded");
+  if (res.status === 401 || res.status === 403) {
+    throw new AiError("AI_AUTH_ERROR", `AI provider rejected credentials (${res.status})`);
+  }
   if (!res.ok) {
     console.error("Mistral chat error", {
       status: res.status,
@@ -187,6 +202,9 @@ async function callMistralOcr(imageUrl: string): Promise<string> {
   }
 
   if (res.status === 429) throw new AiError("RATE_LIMITED", "Rate limit exceeded");
+  if (res.status === 401 || res.status === 403) {
+    throw new AiError("AI_AUTH_ERROR", `AI provider rejected credentials (${res.status})`);
+  }
   if (!res.ok) {
     console.error("Mistral OCR error", {
       status: res.status,
@@ -285,10 +303,18 @@ export async function mistralSynthesize(args: {
   ]);
   const parsed = tryParse(raw);
   if (parsed) return parsed;
-  const repaired = await repairJson(raw);
+  let repaired: string;
+  try {
+    repaired = await repairJson(raw);
+  } catch (err) {
+    if (err instanceof AiError) {
+      throw new AiError("JSON_REPAIR_FAILED", err.message);
+    }
+    throw err;
+  }
   const parsed2 = tryParse(repaired);
   if (parsed2) return parsed2;
-  throw new AiError("AI_INVALID_RESPONSE", "AI returned malformed JSON");
+  throw new AiError("JSON_REPAIR_FAILED", "AI returned malformed JSON after repair");
 }
 
 export async function mistralRefine(args: {
@@ -301,8 +327,16 @@ export async function mistralRefine(args: {
   ]);
   const parsed = tryParse(raw);
   if (parsed) return parsed;
-  const repaired = await repairJson(raw);
+  let repaired: string;
+  try {
+    repaired = await repairJson(raw);
+  } catch (err) {
+    if (err instanceof AiError) {
+      throw new AiError("JSON_REPAIR_FAILED", err.message);
+    }
+    throw err;
+  }
   const parsed2 = tryParse(repaired);
   if (parsed2) return parsed2;
-  throw new AiError("AI_INVALID_RESPONSE", "AI returned malformed JSON");
+  throw new AiError("JSON_REPAIR_FAILED", "AI returned malformed JSON after repair");
 }

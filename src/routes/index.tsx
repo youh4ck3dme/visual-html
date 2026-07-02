@@ -2,17 +2,23 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Sparkles } from "lucide-react";
+import { AlertTriangle, RotateCcw, Sparkles } from "lucide-react";
 
 import { generateHtml, refineHtml, runOcr, type ServerResult } from "@/lib/generate.functions";
+import { createApiError, createSensor, PHASE_LABELS } from "@/lib/generation-diagnostics";
 import { UploadDropzone, type UploadedImage } from "@/components/pngto/upload-dropzone";
 import { ImagePreview } from "@/components/pngto/image-preview";
 import { GenerationOptionsPanel } from "@/components/pngto/generation-options";
 import { ResultTabs } from "@/components/pngto/result-tabs";
 import { RefinementBox } from "@/components/pngto/refinement-box";
-import { LoadingSteps, type LoadPhase } from "@/components/pngto/loading-steps";
+import { LoadingSteps } from "@/components/pngto/loading-steps";
 import { Button } from "@/components/ui/button";
-import type { GenerationOptions, GenerateHtmlResult } from "@/types/generation";
+import type {
+  ApiError,
+  GenerationOptions,
+  GenerationSensor,
+  GenerateHtmlResult,
+} from "@/types/generation";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -46,8 +52,9 @@ function Index() {
   const [image, setImage] = useState<UploadedImage | null>(null);
   const [options, setOptions] = useState<GenerationOptions>(DEFAULT_OPTIONS);
   const [result, setResult] = useState<GenerateHtmlResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [phase, setPhase] = useState<LoadPhase>("ocr");
+  const [error, setError] = useState<ApiError | null>(null);
+  const [sensor, setSensor] = useState<GenerationSensor>(createSensor("validating", "idle"));
+  const [lastRefineInstruction, setLastRefineInstruction] = useState<string | null>(null);
 
   const ocrFn = useServerFn(runOcr);
   const generateFn = useServerFn(generateHtml);
@@ -57,8 +64,10 @@ function Index() {
     if (res.ok) {
       setResult(res.data);
       setError(null);
+      setSensor(createSensor("done", "success"));
     } else {
-      setError(errorMessage(res.error.code, res.error.message));
+      setError(res.error);
+      setSensor(createSensor(res.error.phase ?? "failed", "failed", res.error.diagnostic));
     }
   };
 
@@ -66,15 +75,25 @@ function Index() {
     mutationFn: async (): Promise<ServerResult> => {
       if (!image) throw new Error("No image");
 
-      // Phase 1 — real in-flight OCR request.
-      setPhase("ocr");
+      setError(null);
+      setLastRefineInstruction(null);
+      setSensor(createSensor("validating"));
+      setSensor(createSensor("rate_limited_check"));
+      setSensor({
+        ...createSensor("uploading_to_blob"),
+        progress: 10,
+        message: "Preparing image for OCR...",
+      });
       const ocr = await ocrFn({
         data: { imageBase64: image.base64, mimeType: image.mimeType },
       });
       if (!ocr.ok) return { ok: false, error: ocr.error };
 
-      // Phase 2 — real in-flight synthesis request.
-      setPhase("synthesizing");
+      setSensor(createSensor("ocr"));
+      setSensor({
+        ...createSensor("synthesizing"),
+        progress: 45,
+      });
       return generateFn({
         data: {
           imageBase64: image.base64,
@@ -85,14 +104,27 @@ function Index() {
       });
     },
     onSuccess: handleResult,
-    onError: (e) => setError((e as Error).message ?? "Unexpected error"),
-    onSettled: () => setPhase("ocr"),
+    onError: (e) => {
+      const apiError = createApiError(
+        "SERVER_ERROR",
+        (e as Error).message ?? "Unexpected error",
+        "failed",
+      );
+      setError(apiError);
+      setSensor(createSensor("failed", "failed", apiError.diagnostic));
+    },
   });
 
   const refineMut = useMutation({
     mutationFn: async (instruction: string) => {
       if (!result) throw new Error("No prior result");
-      setPhase("refining");
+      setLastRefineInstruction(instruction);
+      setError(null);
+      setSensor({
+        ...createSensor("synthesizing"),
+        progress: 10,
+        message: "Applying your refinement...",
+      });
       return refineFn({
         data: {
           prior: {
@@ -106,8 +138,15 @@ function Index() {
       });
     },
     onSuccess: handleResult,
-    onError: (e) => setError((e as Error).message ?? "Unexpected error"),
-    onSettled: () => setPhase("ocr"),
+    onError: (e) => {
+      const apiError = createApiError(
+        "SERVER_ERROR",
+        (e as Error).message ?? "Unexpected error",
+        "failed",
+      );
+      setError(apiError);
+      setSensor(createSensor("failed", "failed", apiError.diagnostic));
+    },
   });
 
   const busy = generateMut.isPending || refineMut.isPending;
@@ -137,8 +176,10 @@ function Index() {
               onFile={(img) => {
                 setImage(img);
                 setError(null);
+                setLastRefineInstruction(null);
+                setSensor(createSensor("validating", "idle"));
               }}
-              onError={setError}
+              onError={(message) => setError(createApiError("INVALID_FILE", message, "validating"))}
             />
           )}
 
@@ -155,12 +196,13 @@ function Index() {
           </Button>
 
           {error && (
-            <div
-              role="alert"
-              className="glass-inset border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive-foreground"
-            >
-              {error}
-            </div>
+            <DiagnosticErrorPanel
+              error={error}
+              onRetry={() => {
+                if (lastRefineInstruction && result) refineMut.mutate(lastRefineInstruction);
+                else generateMut.mutate();
+              }}
+            />
           )}
 
           <p className="text-[11px] leading-relaxed text-muted-foreground">
@@ -171,7 +213,7 @@ function Index() {
 
         {/* RIGHT: result */}
         <section className="glass-panel min-h-125 space-y-4 p-5">
-          {busy && <LoadingSteps phase={phase} />}
+          {busy && <LoadingSteps sensor={sensor} />}
 
           {!result && !busy && <EmptyState hasImage={!!image} />}
 
@@ -204,23 +246,35 @@ function EmptyState({ hasImage }: { hasImage: boolean }) {
   );
 }
 
-function errorMessage(code: string, msg: string): string {
-  switch (code) {
-    case "MISSING_API_KEY":
-      return "MISTRAL_API_KEY is not configured on the server.";
-    case "MISSING_BLOB_TOKEN":
-      return "BLOB_READ_WRITE_TOKEN is not configured on the server.";
-    case "AI_TIMEOUT":
-      return "AI request timed out. Try a smaller image or try again.";
-    case "RATE_LIMITED":
-      return "Too many requests. Please slow down and try again shortly.";
-    case "AI_INVALID_RESPONSE":
-      return "AI returned an unreadable response. Try again or refine your instructions.";
-    case "FILE_TOO_LARGE":
-    case "UNSUPPORTED_FORMAT":
-    case "INVALID_FILE":
-      return msg;
-    default:
-      return msg || "Unexpected error";
-  }
+function DiagnosticErrorPanel({ error, onRetry }: { error: ApiError; onRetry: () => void }) {
+  const diagnostic = error.diagnostic;
+  const phase = error.phase ?? "failed";
+
+  return (
+    <div
+      role="alert"
+      className="glass-inset space-y-3 border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive-foreground"
+    >
+      <div className="flex items-start gap-2">
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+        <div className="min-w-0 space-y-1">
+          <div className="text-sm font-medium">{diagnostic?.title ?? error.message}</div>
+          <div className="text-muted-foreground">Phase: {PHASE_LABELS[phase]}</div>
+        </div>
+      </div>
+
+      <div className="space-y-2 text-muted-foreground">
+        <p>{diagnostic?.detail ?? error.message}</p>
+        {diagnostic && <p>Likely cause: {diagnostic.likelyCause}</p>}
+        {diagnostic && <p>Suggested fix: {diagnostic.suggestedFix}</p>}
+      </div>
+
+      {diagnostic?.retryable && (
+        <Button size="sm" variant="outline" className="h-8" onClick={onRetry}>
+          <RotateCcw className="h-3.5 w-3.5" aria-hidden />
+          Try again
+        </Button>
+      )}
+    </div>
+  );
 }
