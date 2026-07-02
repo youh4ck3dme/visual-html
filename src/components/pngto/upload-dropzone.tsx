@@ -202,6 +202,8 @@ export function UploadDropzone({
         Choose file
       </button>
       <input
+        id="upload-image-file"
+        name="image"
         ref={inputRef}
         type="file"
         accept={ALLOWED.join(",")}

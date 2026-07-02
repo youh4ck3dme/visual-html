@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { extractJsonBlob, parseGenerateOutput } from "@/lib/ai/json-output";
+import {
+  extractJsonBlob,
+  parseGenerateOutput,
+  prepareJsonRepairInput,
+  recoverPartialGenerateOutput,
+} from "@/lib/ai/json-output";
 
 const validOutput = {
   html: "<main><h1>Hello</h1></main>",
@@ -60,5 +65,33 @@ describe("AI JSON output parsing", () => {
 
     expect(parsed.ok).toBe(false);
     if (!parsed.ok) expect(parsed.reason).toContain("JSON parse failed");
+  });
+
+  it("recovers complete fields before an unterminated later string", () => {
+    const raw = `{"html":"<main><section>Recovered</section></main>","css":".page { display: grid; }","javascript":"","explanation":"`;
+
+    const recovered = recoverPartialGenerateOutput(raw);
+
+    expect(recovered?.html).toContain("Recovered");
+    expect(recovered?.css).toContain("display: grid");
+    expect(recovered?.warnings).toContain(
+      "AI output was truncated; recovered the complete fields that were available.",
+    );
+  });
+
+  it("does not recover when no code fields are complete", () => {
+    const recovered = recoverPartialGenerateOutput('{"html":"<main>');
+
+    expect(recovered).toBeNull();
+  });
+
+  it("prepares repair input at a complete field boundary", () => {
+    const raw = `{"html":"${"x".repeat(200)}","css":"${"y".repeat(200)}","javascript":"${"z".repeat(200)}"`;
+
+    const repairInput = prepareJsonRepairInput(raw, 260);
+
+    expect(repairInput.endsWith("\n}")).toBe(true);
+    expect(repairInput).toContain('"html"');
+    expect(repairInput).not.toContain('"css":"');
   });
 });

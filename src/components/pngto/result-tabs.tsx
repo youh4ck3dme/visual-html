@@ -37,8 +37,13 @@ export function ResultTabs({ result }: { result: GenerateHtmlResult }) {
           </TabsList>
           <div className="flex items-center gap-2">
             {hasJs && (
-              <label className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+              <label
+                htmlFor="preview-allow-js"
+                className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground"
+              >
                 <input
+                  id="preview-allow-js"
+                  name="allowPreviewJavaScript"
                   type="checkbox"
                   checked={allowJs}
                   onChange={(e) => setAllowJs(e.target.checked)}

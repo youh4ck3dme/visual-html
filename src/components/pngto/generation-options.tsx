@@ -25,13 +25,16 @@ export function GenerationOptionsPanel({
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Output</Label>
+          <Label htmlFor="generation-output-mode" className="text-xs text-muted-foreground">
+            Output
+          </Label>
           <Select
+            name="outputMode"
             disabled={disabled}
             value={value.outputMode}
             onValueChange={(v) => set("outputMode", v as GenerationOptions["outputMode"])}
           >
-            <SelectTrigger>
+            <SelectTrigger id="generation-output-mode">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -44,13 +47,16 @@ export function GenerationOptionsPanel({
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Styling</Label>
+          <Label htmlFor="generation-styling-mode" className="text-xs text-muted-foreground">
+            Styling
+          </Label>
           <Select
+            name="stylingMode"
             disabled={disabled}
             value={value.stylingMode}
             onValueChange={(v) => set("stylingMode", v as GenerationOptions["stylingMode"])}
           >
-            <SelectTrigger>
+            <SelectTrigger id="generation-styling-mode">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -63,13 +69,16 @@ export function GenerationOptionsPanel({
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Responsiveness</Label>
+          <Label htmlFor="generation-responsiveness" className="text-xs text-muted-foreground">
+            Responsiveness
+          </Label>
           <Select
+            name="responsiveness"
             disabled={disabled}
             value={value.responsiveness}
             onValueChange={(v) => set("responsiveness", v as GenerationOptions["responsiveness"])}
           >
-            <SelectTrigger>
+            <SelectTrigger id="generation-responsiveness">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -81,15 +90,18 @@ export function GenerationOptionsPanel({
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Accessibility</Label>
+          <Label htmlFor="generation-accessibility-level" className="text-xs text-muted-foreground">
+            Accessibility
+          </Label>
           <Select
+            name="accessibilityLevel"
             disabled={disabled}
             value={value.accessibilityLevel}
             onValueChange={(v) =>
               set("accessibilityLevel", v as GenerationOptions["accessibilityLevel"])
             }
           >
-            <SelectTrigger>
+            <SelectTrigger id="generation-accessibility-level">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -101,8 +113,12 @@ export function GenerationOptionsPanel({
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Extra instructions (optional)</Label>
+        <Label htmlFor="generation-extra-instructions" className="text-xs text-muted-foreground">
+          Extra instructions (optional)
+        </Label>
         <Textarea
+          id="generation-extra-instructions"
+          name="additionalInstructions"
           disabled={disabled}
           maxLength={2000}
           rows={3}

@@ -23,8 +23,8 @@ function dedupeKeys(keys: Array<string | undefined>): string[] {
 
 function globalKeyPool(): string[] {
   return dedupeKeys([
-    process.env.MISTRAL_API_KEY,
-    process.env.MISTRAL_API_KEY_FALLBACK,
+    ...parseCsvKeys(process.env.MISTRAL_API_KEY),
+    ...parseCsvKeys(process.env.MISTRAL_API_KEY_FALLBACK),
     ...parseCsvKeys(process.env.MISTRAL_API_KEYS),
   ]);
 }

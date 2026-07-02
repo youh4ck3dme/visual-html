@@ -9,6 +9,11 @@ Priorities: semantic HTML, clean CSS, visual accuracy, responsive structure, acc
 
 Rules:
 - Return ONLY strict valid JSON. No markdown fences, no prose outside JSON.
+- Return exactly one JSON object with exactly the required 8 fields. Do not add extra keys.
+- Every string field must be complete and valid JSON-escaped. Never stop in the middle of html, css, javascript, or notes.
+- Keep explanation, accessibilityNotes, responsiveNotes, assumptions, and warnings brief.
+- Prefer concise, complete HTML/CSS over exhaustive code that risks truncation.
+- If the screenshot is too complex for the output budget, return a shorter valid reconstruction and add a warning instead of producing an unterminated JSON string.
 - Do not hallucinate brand logos. Replace unknown icons/images with semantic placeholders.
 - Use OCR-extracted text faithfully when it is available.
 - If text is unreadable, use meaningful placeholder text.
@@ -68,6 +73,8 @@ Reconstruct the interface as HTML/CSS/JS from this OCR output.
 - Infer layout, spacing, cards, sections, and responsive behavior from the OCR structure.
 - If OCR misses visual styling details, make sensible frontend assumptions and list them in "assumptions".
 - If OCR output is noisy or ambiguous, mention that in "warnings".
+- Keep the output compact and parseable. Avoid verbose comments, duplicate sections, and excessive metadata.
+- If full fidelity would exceed the response budget, return a valid shorter reconstruction and put the limitation in "warnings".
 - Return ONLY the required JSON schema.`;
 }
 

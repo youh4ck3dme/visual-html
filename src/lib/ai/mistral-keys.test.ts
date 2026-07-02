@@ -55,8 +55,6 @@ describe("shouldFailoverToNextKey", () => {
   });
 
   it("fails over on quota hints in auth-like responses", () => {
-    expect(
-      shouldFailoverToNextKey(403, '{"message":"Monthly quota exceeded"}', true),
-    ).toBe(true);
+    expect(shouldFailoverToNextKey(403, '{"message":"Monthly quota exceeded"}', true)).toBe(true);
   });
 });

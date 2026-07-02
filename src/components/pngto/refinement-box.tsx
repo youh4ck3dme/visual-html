@@ -42,7 +42,12 @@ export function RefinementBox({
         ))}
       </div>
       <div className="flex gap-2">
+        <label htmlFor="refinement-instruction" className="sr-only">
+          Refinement instruction
+        </label>
         <Textarea
+          id="refinement-instruction"
+          name="refinementInstruction"
           rows={2}
           maxLength={2000}
           value={text}
