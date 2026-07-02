@@ -29,6 +29,14 @@ describe("generation diagnostics", () => {
     expect(diagnostic.retryable).toBe(true);
   });
 
+  it("includes concrete image size guidance for AI timeouts", () => {
+    const diagnostic = diagnosticForError("AI_TIMEOUT", "AI request timed out", "synthesizing");
+
+    expect(diagnostic.suggestedFix).toContain("<=700 KB");
+    expect(diagnostic.suggestedFix).toContain("<=1.2 MB");
+    expect(diagnostic.suggestedFix).toContain("<=1600 px");
+  });
+
   it("maps invalid synthesis JSON to a retryable invalid output diagnostic", () => {
     const diagnostic = diagnosticForError(
       "AI_INVALID_RESPONSE",

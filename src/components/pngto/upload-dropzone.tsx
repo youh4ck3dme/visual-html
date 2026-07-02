@@ -1,6 +1,11 @@
 import { useCallback, useRef, useState } from "react";
 import { Upload } from "lucide-react";
 
+import {
+  HARD_AI_IMAGE_BYTES,
+  IDEAL_AI_IMAGE_BYTES,
+  MAX_AI_IMAGE_DIMENSION,
+} from "@/lib/image-budget";
 import { ALLOWED_MIME, MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from "@/lib/validation/generation";
 import { cn } from "@/lib/utils";
 
@@ -14,9 +19,8 @@ export interface UploadedImage {
 }
 
 const ALLOWED = ALLOWED_MIME as readonly string[];
-const MAX_IMAGE_DIMENSION = 1600;
-const TARGET_UPLOAD_BYTES = 1_800_000;
-const WEBP_QUALITIES = [0.9, 0.82, 0.74] as const;
+const TARGET_UPLOAD_BYTES = IDEAL_AI_IMAGE_BYTES;
+const WEBP_QUALITIES = [0.88, 0.78, 0.68, 0.58, 0.48] as const;
 
 async function readAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -86,11 +90,11 @@ async function optimizeUpload(file: File): Promise<UploadedImage> {
   const originalImage = await loadImage(originalDataUrl);
   const maxDimension = Math.max(originalImage.naturalWidth, originalImage.naturalHeight);
 
-  if (file.size <= TARGET_UPLOAD_BYTES && maxDimension <= MAX_IMAGE_DIMENSION) {
+  if (file.size <= TARGET_UPLOAD_BYTES && maxDimension <= 1400) {
     return toUploadedImage(file, originalDataUrl);
   }
 
-  const scale = Math.min(1, MAX_IMAGE_DIMENSION / maxDimension);
+  const scale = Math.min(1, MAX_AI_IMAGE_DIMENSION / maxDimension);
   const width = Math.max(1, Math.round(originalImage.naturalWidth * scale));
   const height = Math.max(1, Math.round(originalImage.naturalHeight * scale));
   const canvas = document.createElement("canvas");
@@ -107,6 +111,17 @@ async function optimizeUpload(file: File): Promise<UploadedImage> {
     const blob = await canvasToBlob(canvas, "image/webp", quality);
     if (!bestBlob || blob.size < bestBlob.size) bestBlob = blob;
     if (blob.size <= TARGET_UPLOAD_BYTES) break;
+  }
+
+  if (bestBlob && bestBlob.size > HARD_AI_IMAGE_BYTES) {
+    const aggressiveScale = Math.min(1, Math.sqrt(HARD_AI_IMAGE_BYTES / bestBlob.size) * 0.9);
+    const smallerCanvas = document.createElement("canvas");
+    smallerCanvas.width = Math.max(1, Math.round(width * aggressiveScale));
+    smallerCanvas.height = Math.max(1, Math.round(height * aggressiveScale));
+    const smallerCtx = smallerCanvas.getContext("2d");
+    if (!smallerCtx) throw new Error("Could not prepare image for upload");
+    smallerCtx.drawImage(canvas, 0, 0, smallerCanvas.width, smallerCanvas.height);
+    bestBlob = await canvasToBlob(smallerCanvas, "image/webp", 0.62);
   }
 
   if (!bestBlob) throw new Error("Could not optimize image");

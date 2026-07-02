@@ -7,6 +7,9 @@ import type {
   SensorStatus,
 } from "@/types/generation";
 
+const IMAGE_TIMEOUT_GUIDANCE =
+  "Use a screenshot <=700 KB for best reliability; <=1.2 MB is usually acceptable. Keep the longest side <=1600 px and crop unrelated content.";
+
 export const PHASE_PROGRESS: Record<GenerationPhase, number> = {
   validating: 5,
   rate_limited_check: 10,
@@ -146,8 +149,8 @@ export function diagnosticForError(
         title: phase === "ocr" ? "OCR timeout" : "AI generation timeout",
         detail: message || "The AI provider did not respond before the server timeout.",
         likelyCause:
-          "The screenshot may be large, Mistral may be slow, or the network is degraded.",
-        suggestedFix: "Try again or use a smaller screenshot with fewer visual details.",
+          "The screenshot may be too large or visually complex, Mistral may be slow, or the network is degraded.",
+        suggestedFix: IMAGE_TIMEOUT_GUIDANCE,
         retryable: true,
       };
     case "AI_INVALID_RESPONSE":
