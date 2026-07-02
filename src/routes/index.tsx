@@ -113,7 +113,7 @@ function Index() {
   const busy = generateMut.isPending || refineMut.isPending;
 
   return (
-    <div className="mx-auto min-h-dvh max-w-[1400px] px-4 py-8 sm:px-6 lg:px-10">
+    <div className="mx-auto min-h-dvh max-w-350 px-4 py-8 sm:px-6 lg:px-10">
       <header className="mb-8 flex flex-col gap-3 sm:mb-10 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-border bg-white/5 px-3 py-1 text-[11px] text-muted-foreground">
@@ -170,7 +170,7 @@ function Index() {
         </section>
 
         {/* RIGHT: result */}
-        <section className="glass-panel min-h-[500px] space-y-4 p-5">
+        <section className="glass-panel min-h-125 space-y-4 p-5">
           {busy && <LoadingSteps phase={phase} />}
 
           {!result && !busy && <EmptyState hasImage={!!image} />}
@@ -191,7 +191,7 @@ function Index() {
 
 function EmptyState({ hasImage }: { hasImage: boolean }) {
   return (
-    <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-2 text-center">
+    <div className="flex h-full min-h-100 flex-col items-center justify-center gap-2 text-center">
       <div className="text-sm font-medium">
         {hasImage ? "Ready when you are." : "Upload an image to begin."}
       </div>

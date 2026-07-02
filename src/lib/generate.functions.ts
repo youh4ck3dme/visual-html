@@ -14,7 +14,8 @@ export type ServerResult =
   | { ok: false; error: { code: ApiErrorCode; message: string } };
 
 export type OcrResult =
-  { ok: true; ocrMarkdown: string } | { ok: false; error: { code: ApiErrorCode; message: string } };
+  | { ok: true; ocrMarkdown: string }
+  | { ok: false; error: { code: ApiErrorCode; message: string } };
 
 const RATE_LIMITED_ERROR = {
   code: "RATE_LIMITED" as const,

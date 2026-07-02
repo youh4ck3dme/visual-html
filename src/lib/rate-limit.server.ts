@@ -25,15 +25,12 @@ function getLimiters(): Limiters | null {
 
   // Vercel Upstash integration exposes KV_*; manual setup uses UPSTASH_*.
   const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
-  const token =
-    process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
 
   if (!url || !token) {
     // Fail-open when unconfigured (e.g. local dev) so the app stays usable, but
     // make the missing protection loud so it is not silently shipped to prod.
-    console.warn(
-      "Rate limiting disabled: UPSTASH_REDIS_REST_* or KV_REST_API_* are not set.",
-    );
+    console.warn("Rate limiting disabled: UPSTASH_REDIS_REST_* or KV_REST_API_* are not set.");
     cached = null;
     return cached;
   }
