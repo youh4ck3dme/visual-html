@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestIP } from "@tanstack/react-start/server";
 
 import {
+  continueInputSchema,
   generateInputSchema,
   ocrInputSchema,
   refineInputSchema,
@@ -148,6 +149,47 @@ export const refineHtml = createServerFn({ method: "POST" })
         };
       }
       console.error("refineHtml unexpected", err);
+      return {
+        ok: false,
+        error: createApiError("SERVER_ERROR", "Unexpected server error", "synthesizing"),
+      };
+    }
+  });
+
+export const continueHtml = createServerFn({ method: "POST" })
+  .validator((input: unknown) => continueInputSchema.parse(input))
+  .handler(async ({ data }): Promise<ServerResult> => {
+    const { AiError, mistralRefine } = await import("@/lib/ai/mistral.server");
+    const { SYSTEM_PROMPT, buildContinuationPrompt } = await import("@/lib/ai/prompts");
+    const { checkRateLimit } = await import("@/lib/rate-limit.server");
+
+    const limit = await checkRateLimit(getClientIp(), "continue");
+    if (!limit.success) {
+      return {
+        ok: false,
+        error: createApiError("RATE_LIMITED", RATE_LIMITED_MESSAGE, "rate_limited_check"),
+      };
+    }
+
+    try {
+      const result = await mistralRefine({
+        systemPrompt: SYSTEM_PROMPT,
+        refinementPrompt: buildContinuationPrompt({
+          html: data.prior.html,
+          css: data.prior.css,
+          javascript: data.prior.javascript,
+          options: data.options,
+        }),
+      });
+      return { ok: true, data: result };
+    } catch (err) {
+      if (err instanceof AiError) {
+        return {
+          ok: false,
+          error: createApiError(err.code, err.message, phaseForAiError(err.code, "synthesizing")),
+        };
+      }
+      console.error("continueHtml unexpected", err);
       return {
         ok: false,
         error: createApiError("SERVER_ERROR", "Unexpected server error", "synthesizing"),

@@ -96,3 +96,36 @@ ${args.css}
 Previous JavaScript:
 ${args.javascript}`;
 }
+
+export function buildContinuationPrompt(args: {
+  html: string;
+  css: string;
+  javascript: string;
+  options: GenerationOptions;
+}): string {
+  return `You are continuing a previously generated HTML/CSS/JS reconstruction. The prior output may be incomplete, truncated, too shallow, or missing lower-page sections. Continue and complete the implementation without discarding good existing work.
+
+Goals:
+- Preserve and improve the existing semantic structure.
+- Complete unfinished HTML, CSS, and JavaScript.
+- Add missing visible sections, states, responsive rules, accessibility details, and polish that naturally follow from the existing code.
+- Keep class naming consistent with the prior output.
+- Do not duplicate identical sections.
+- Do not introduce unsafe scripts, tracking, external dependencies, or CDN assets.
+- Return the full updated result, not only a patch or diff.
+- Return ONLY strict valid JSON matching the same schema.
+
+Output mode: ${args.options.outputMode}
+Styling mode: ${args.options.stylingMode}
+Responsiveness: ${args.options.responsiveness}
+Accessibility target: ${args.options.accessibilityLevel}
+
+Previous HTML:
+${args.html}
+
+Previous CSS:
+${args.css}
+
+Previous JavaScript:
+${args.javascript}`;
+}

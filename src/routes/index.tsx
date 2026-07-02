@@ -4,7 +4,13 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, RotateCcw, Sparkles } from "lucide-react";
 
-import { generateHtml, refineHtml, runOcr, type ServerResult } from "@/lib/generate.functions";
+import {
+  continueHtml,
+  generateHtml,
+  refineHtml,
+  runOcr,
+  type ServerResult,
+} from "@/lib/generate.functions";
 import { createApiError, createSensor, PHASE_LABELS } from "@/lib/generation-diagnostics";
 import { UploadDropzone, type UploadedImage } from "@/components/pngto/upload-dropzone";
 import { ImagePreview } from "@/components/pngto/image-preview";
@@ -48,6 +54,8 @@ const DEFAULT_OPTIONS: GenerationOptions = {
     "Generate clean, semantic, accessible HTML and CSS. Prefer modern standards. Keep it simple and maintainable.",
 };
 
+type RetryAction = "generate" | "continue" | "refine";
+
 function Index() {
   const [image, setImage] = useState<UploadedImage | null>(null);
   const [options, setOptions] = useState<GenerationOptions>(DEFAULT_OPTIONS);
@@ -55,9 +63,11 @@ function Index() {
   const [error, setError] = useState<ApiError | null>(null);
   const [sensor, setSensor] = useState<GenerationSensor>(createSensor("validating", "idle"));
   const [lastRefineInstruction, setLastRefineInstruction] = useState<string | null>(null);
+  const [lastRetryAction, setLastRetryAction] = useState<RetryAction>("generate");
 
   const ocrFn = useServerFn(runOcr);
   const generateFn = useServerFn(generateHtml);
+  const continueFn = useServerFn(continueHtml);
   const refineFn = useServerFn(refineHtml);
 
   const handleResult = (res: ServerResult) => {
@@ -76,6 +86,7 @@ function Index() {
       if (!image) throw new Error("No image");
 
       setError(null);
+      setLastRetryAction("generate");
       setLastRefineInstruction(null);
       setSensor(createSensor("validating"));
       setSensor(createSensor("rate_limited_check"));
@@ -115,9 +126,44 @@ function Index() {
     },
   });
 
+  const continueMut = useMutation({
+    mutationFn: async (): Promise<ServerResult> => {
+      if (!result) throw new Error("No prior result");
+
+      setError(null);
+      setLastRetryAction("continue");
+      setSensor({
+        ...createSensor("synthesizing"),
+        progress: 75,
+        message: "Continuing code generation...",
+      });
+      return continueFn({
+        data: {
+          prior: {
+            html: result.html,
+            css: result.css,
+            javascript: result.javascript,
+          },
+          options,
+        },
+      });
+    },
+    onSuccess: handleResult,
+    onError: (e) => {
+      const apiError = createApiError(
+        "SERVER_ERROR",
+        (e as Error).message ?? "Unexpected error",
+        "failed",
+      );
+      setError(apiError);
+      setSensor(createSensor("failed", "failed", apiError.diagnostic));
+    },
+  });
+
   const refineMut = useMutation({
     mutationFn: async (instruction: string) => {
       if (!result) throw new Error("No prior result");
+      setLastRetryAction("refine");
       setLastRefineInstruction(instruction);
       setError(null);
       setSensor({
@@ -149,7 +195,14 @@ function Index() {
     },
   });
 
-  const busy = generateMut.isPending || refineMut.isPending;
+  const busy = generateMut.isPending || continueMut.isPending || refineMut.isPending;
+  const primaryButtonLabel = continueMut.isPending
+    ? "Continuing..."
+    : busy
+      ? "Generating..."
+      : result
+        ? "Continue code generation"
+        : "Generate HTML";
 
   return (
     <div className="mx-auto min-h-dvh max-w-350 px-4 py-8 sm:px-6 lg:px-10">
@@ -170,12 +223,24 @@ function Index() {
         {/* LEFT: upload + options */}
         <section className="glass-panel space-y-5 p-5">
           {image ? (
-            <ImagePreview image={image} onRemove={() => setImage(null)} />
+            <ImagePreview
+              image={image}
+              onRemove={() => {
+                setImage(null);
+                setResult(null);
+                setError(null);
+                setLastRetryAction("generate");
+                setLastRefineInstruction(null);
+                setSensor(createSensor("validating", "idle"));
+              }}
+            />
           ) : (
             <UploadDropzone
               onFile={(img) => {
                 setImage(img);
+                setResult(null);
                 setError(null);
+                setLastRetryAction("generate");
                 setLastRefineInstruction(null);
                 setSensor(createSensor("validating", "idle"));
               }}
@@ -188,18 +253,23 @@ function Index() {
           <Button
             className="w-full"
             size="lg"
-            disabled={!image || busy}
-            onClick={() => generateMut.mutate()}
+            disabled={(!image && !result) || busy}
+            onClick={() => {
+              if (result) continueMut.mutate();
+              else generateMut.mutate();
+            }}
           >
             <Sparkles className="h-4 w-4" aria-hidden />
-            {busy ? "Generating…" : "Generate HTML"}
+            {primaryButtonLabel}
           </Button>
 
           {error && (
             <DiagnosticErrorPanel
               error={error}
               onRetry={() => {
-                if (lastRefineInstruction && result) refineMut.mutate(lastRefineInstruction);
+                if (lastRetryAction === "continue" && result) continueMut.mutate();
+                else if (lastRetryAction === "refine" && lastRefineInstruction && result)
+                  refineMut.mutate(lastRefineInstruction);
                 else generateMut.mutate();
               }}
             />

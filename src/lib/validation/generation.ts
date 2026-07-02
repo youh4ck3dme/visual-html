@@ -47,6 +47,15 @@ export const refineInputSchema = z.object({
   options: optionsSchema,
 });
 
+export const continueInputSchema = z.object({
+  prior: z.object({
+    html: z.string().max(200_000),
+    css: z.string().max(200_000),
+    javascript: z.string().max(200_000),
+  }),
+  options: optionsSchema,
+});
+
 export const generateOutputSchema = z.object({
   html: z.string().default(""),
   css: z.string().default(""),
@@ -60,5 +69,6 @@ export const generateOutputSchema = z.object({
 
 export type GenerateInput = z.infer<typeof generateInputSchema>;
 export type OcrInput = z.infer<typeof ocrInputSchema>;
+export type ContinueInput = z.infer<typeof continueInputSchema>;
 export type RefineInput = z.infer<typeof refineInputSchema>;
 export type GenerateOutput = z.infer<typeof generateOutputSchema>;
