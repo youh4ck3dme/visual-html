@@ -219,10 +219,10 @@ function Index() {
     <div className="visual-shell min-h-dvh">
       <VisualSidebar />
 
-      <div className="min-h-dvh pl-16">
+      <div className="min-h-dvh pb-[4.5rem] md:pl-16 md:pb-0">
         <TopCreditBar />
 
-        <main className="mx-auto max-w-5xl px-6 py-10 pb-16">
+        <main className="mx-auto max-w-5xl px-4 py-6 pb-8 sm:px-6 sm:py-10 sm:pb-16">
           <div className="relative">
             <AppWindow>
               <div className="space-y-5">

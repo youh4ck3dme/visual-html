@@ -185,7 +185,7 @@ export function UploadDropzone({
         void handle(e.dataTransfer.files?.[0]);
       }}
       className={cn(
-        "flex flex-col items-center justify-center gap-3 px-6 py-12 text-center transition-colors",
+        "flex flex-col items-center justify-center gap-3 px-4 py-10 text-center transition-colors sm:px-6 sm:py-12",
         variant === "light"
           ? "rounded-lg border-2 border-dashed border-zinc-300 bg-white hover:border-[#3b82f6]/50"
           : "glass-inset",
