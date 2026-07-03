@@ -74,13 +74,20 @@ export function ProjectDetailPage() {
 
   const commitRename = () => {
     const next = nameDraft.trim();
-    if (next && next !== project.name) renameProject(project.id, next);
+    if (next && next !== project.name) {
+      const ok = renameProject(project.id, next);
+      if (!ok) {
+        setNameDraft(project.name);
+        setEditingName(false);
+        return;
+      }
+    }
     setEditingName(false);
   };
 
   const handleDelete = () => {
     if (!window.confirm(t("projectDetail.deleteConfirm", { name: project.name }))) return;
-    deleteProject(project.id);
+    if (!deleteProject(project.id)) return;
     void navigate({ to: "/projects" });
   };
 

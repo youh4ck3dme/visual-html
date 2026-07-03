@@ -91,6 +91,55 @@ describe("buttons › projects detail", () => {
     confirmSpy.mockRestore();
   });
 
+  it("Save rename — shows toast and keeps original name when storage write fails", async () => {
+    const user = userEvent.setup();
+    await openProjectDetail();
+
+    const originalSetItem = Storage.prototype.setItem;
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key, value) {
+      if (key === PROJECTS_STORAGE_KEY) {
+        throw new DOMException("QuotaExceededError", "QuotaExceededError");
+      }
+      return originalSetItem.call(this, key, value);
+    });
+    await user.click(screen.getByLabelText("Rename project"));
+    const input = screen.getByLabelText("Project name");
+    await user.clear(input);
+    await user.type(input, "Bank statement v2");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/Could not save project changes/i)).toBeInTheDocument(),
+    );
+    expect(screen.getByRole("heading", { level: 1, name: "Invoice UI" })).toBeInTheDocument();
+    const stored = JSON.parse(localStorage.getItem(PROJECTS_STORAGE_KEY) || "[]") as Array<{
+      name: string;
+    }>;
+    expect(stored[0]?.name).toBe("Invoice UI");
+  });
+
+  it("Delete — shows toast and keeps project when storage write fails", async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const { router } = await openProjectDetail();
+
+    const originalSetItem = Storage.prototype.setItem;
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key, value) {
+      if (key === PROJECTS_STORAGE_KEY) {
+        throw new DOMException("QuotaExceededError", "QuotaExceededError");
+      }
+      return originalSetItem.call(this, key, value);
+    });
+    await user.click(screen.getByRole("button", { name: /Delete/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/Could not save project changes/i)).toBeInTheDocument(),
+    );
+    expect(router.state.location.pathname).toBe("/projects/detail-1");
+    expect(JSON.parse(localStorage.getItem(PROJECTS_STORAGE_KEY) || "[]")).toHaveLength(1);
+    confirmSpy.mockRestore();
+  });
+
   it("Delete — cancelled confirm keeps project", async () => {
     const user = userEvent.setup();
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);

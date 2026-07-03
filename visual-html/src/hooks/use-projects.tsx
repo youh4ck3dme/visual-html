@@ -19,6 +19,7 @@ import {
   saveProjectsToStorage,
   upsertProject,
 } from "@/lib/projects-store";
+import { shouldShowMigrationPersistWarning } from "@/lib/projects-storage-session";
 import type { CreateProjectInput, SavedProject } from "@/types/project";
 import type { GenerateHtmlResult, GenerationOptions } from "@/types/generation";
 
@@ -48,10 +49,17 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const { t } = useT();
   const [projects, setProjects] = useState<SavedProject[]>([]);
 
+  const notifyPersistFailed = useCallback(() => {
+    toast.error(t("projects.persistFailed.title"), {
+      description: t("projects.persistFailed.description"),
+      duration: 8000,
+    });
+  }, [t]);
+
   const refresh = useCallback(() => {
     const { projects: loaded, migrationPersistFailed } = loadProjectsFromStorageWithMeta();
     setProjects(loaded);
-    if (migrationPersistFailed) {
+    if (migrationPersistFailed && shouldShowMigrationPersistWarning()) {
       toast.warning(t("projects.migrationPersistFailed.title"), {
         description: t("projects.migrationPersistFailed.description"),
         duration: 8000,
@@ -94,13 +102,21 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   );
 
   const renameProject = useCallback(
-    (id: string, name: string) => persist(renameProjectById(projects, id, name)),
-    [persist, projects],
+    (id: string, name: string) => {
+      const ok = persist(renameProjectById(projects, id, name));
+      if (!ok) notifyPersistFailed();
+      return ok;
+    },
+    [notifyPersistFailed, persist, projects],
   );
 
   const deleteProject = useCallback(
-    (id: string) => persist(deleteProjectById(projects, id)),
-    [persist, projects],
+    (id: string) => {
+      const ok = persist(deleteProjectById(projects, id));
+      if (!ok) notifyPersistFailed();
+      return ok;
+    },
+    [notifyPersistFailed, persist, projects],
   );
 
   const storageBytes = useMemo(() => estimateProjectsBytes(projects), [projects]);
