@@ -15,6 +15,7 @@ import { LocaleProvider } from "../hooks/use-locale";
 import { ProjectsProvider } from "../hooks/use-projects";
 import { ThemeProvider } from "../hooks/use-theme";
 import { themeInitScript } from "../lib/theme";
+import { DocumentHead } from "../components/pngto/document-head";
 import { Toaster } from "../components/ui/sonner";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
@@ -142,6 +143,7 @@ function RootComponent() {
         <ProjectsProvider>
           <QueryClientProvider client={queryClient}>
             {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+            <DocumentHead />
             <Outlet />
             <Toaster />
           </QueryClientProvider>

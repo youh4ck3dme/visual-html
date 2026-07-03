@@ -4,7 +4,9 @@ import { AlertTriangle, RotateCcw, Sparkles } from "lucide-react";
 import { useT } from "@/hooks/use-t";
 import { useGenerationWorkflow } from "@/hooks/use-generation-workflow";
 import {
+  localizedDiagnosticDetail,
   localizedDiagnosticFix,
+  localizedDiagnosticLikelyCause,
   localizedDiagnosticTitle,
   localizedPhaseLabel,
 } from "@/lib/i18n/helpers";
@@ -198,8 +200,16 @@ function DiagnosticErrorPanel({ error, onRetry }: { error: ApiError; onRetry: ()
   const phase = error.phase ?? "failed";
   const title =
     diagnostic && error.code
-      ? localizedDiagnosticTitle(locale, error.code, diagnostic.title)
+      ? localizedDiagnosticTitle(locale, error.code, diagnostic.title, phase)
       : (diagnostic?.title ?? error.message);
+  const detail =
+    diagnostic && error.code
+      ? localizedDiagnosticDetail(locale, error.code, diagnostic.detail ?? error.message, phase)
+      : (diagnostic?.detail ?? error.message);
+  const likelyCause =
+    diagnostic && error.code && diagnostic.likelyCause
+      ? localizedDiagnosticLikelyCause(locale, error.code, diagnostic.likelyCause, phase)
+      : diagnostic?.likelyCause;
   const suggestedFix =
     diagnostic && error.code
       ? localizedDiagnosticFix(locale, error.code, diagnostic.suggestedFix)
@@ -221,10 +231,10 @@ function DiagnosticErrorPanel({ error, onRetry }: { error: ApiError; onRetry: ()
       </div>
 
       <div className="space-y-2 text-destructive/90">
-        <p>{diagnostic?.detail ?? error.message}</p>
-        {diagnostic?.likelyCause && (
+        <p>{detail}</p>
+        {likelyCause && (
           <p>
-            {t("index.error.likelyCause")} {diagnostic.likelyCause}
+            {t("index.error.likelyCause")} {likelyCause}
           </p>
         )}
         {suggestedFix && (

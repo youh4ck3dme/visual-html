@@ -15,6 +15,8 @@ import {
   type ServerResult,
 } from "@/lib/generate.functions";
 import { createApiError, createSensor } from "@/lib/generation-diagnostics";
+import { messages } from "@/lib/i18n/messages";
+import type { Locale } from "@/lib/locale";
 import type { SavedProject } from "@/types/project";
 import type {
   ApiError,
@@ -23,14 +25,17 @@ import type {
   GenerateHtmlResult,
 } from "@/types/generation";
 
-export const DEFAULT_GENERATION_OPTIONS: GenerationOptions = {
-  outputMode: "static",
-  stylingMode: "vanilla-css",
-  responsiveness: "adaptive",
-  accessibilityLevel: "strict",
-  additionalInstructions:
-    "Recreate the screenshot as closely as possible. Preserve layout, spacing, colors, typography, visible text, buttons, cards, forms, and navigation. Do not invent unrelated content.",
-};
+export function createDefaultGenerationOptions(locale: Locale = "en"): GenerationOptions {
+  return {
+    outputMode: "static",
+    stylingMode: "vanilla-css",
+    responsiveness: "adaptive",
+    accessibilityLevel: "strict",
+    additionalInstructions: messages[locale]["options.defaultInstructions"],
+  };
+}
+
+export const DEFAULT_GENERATION_OPTIONS = createDefaultGenerationOptions("en");
 
 type RetryAction = "generate" | "continue" | "refine";
 
@@ -57,14 +62,16 @@ export type UseGenerationWorkflowResult = {
 };
 
 export function useGenerationWorkflow(projectIdFromUrl?: string): UseGenerationWorkflowResult {
-  const { t } = useT();
+  const { t, locale } = useT();
   const navigate = useNavigate();
   const { getProject, saveFromGeneration } = useProjects();
 
   const [image, setImage] = useState<UploadedImage | null>(null);
   const [loadedProject, setLoadedProject] = useState<SavedProject | null>(null);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
-  const [options, setOptions] = useState<GenerationOptions>(DEFAULT_GENERATION_OPTIONS);
+  const [options, setOptions] = useState<GenerationOptions>(() =>
+    createDefaultGenerationOptions(locale),
+  );
   const [result, setResult] = useState<GenerateHtmlResult | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [sensor, setSensor] = useState<GenerationSensor>(createSensor("validating", "idle"));
@@ -76,6 +83,20 @@ export function useGenerationWorkflow(projectIdFromUrl?: string): UseGenerationW
   const generateFn = useServerFn(generateHtml);
   const continueFn = useServerFn(continueHtml);
   const refineFn = useServerFn(refineHtml);
+
+  useEffect(() => {
+    setOptions((prev) => {
+      const enDefault = messages.en["options.defaultInstructions"];
+      const skDefault = messages.sk["options.defaultInstructions"];
+      if (prev.additionalInstructions === enDefault || prev.additionalInstructions === skDefault) {
+        return {
+          ...prev,
+          additionalInstructions: messages[locale]["options.defaultInstructions"],
+        };
+      }
+      return prev;
+    });
+  }, [locale]);
 
   useEffect(() => {
     if (!projectIdFromUrl) return;
