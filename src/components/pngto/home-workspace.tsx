@@ -13,9 +13,8 @@ const MODES = [
 export function TopCreditBar() {
   return (
     <div className="sticky top-0 z-30 border-b border-[#2a2a31] bg-[#030303]/95 px-6 py-3 backdrop-blur-sm">
-      <p className="text-center text-xs text-[#8b90a0]">
-        Mistral OCR + Pixtral synthesis · Per-IP rate limits apply · Review AI output before
-        shipping
+      <p className="px-2 text-center text-[10px] leading-relaxed text-[#8b90a0] sm:text-xs">
+        Mistral OCR + Pixtral · Rate limits per IP · Review AI output before shipping
       </p>
     </div>
   );
@@ -24,7 +23,7 @@ export function TopCreditBar() {
 export function ModeTabs() {
   return (
     <div
-      className="flex items-center gap-1 border-b border-zinc-200 bg-zinc-100/80 px-3 py-2"
+      className="flex items-center gap-1 overflow-x-auto border-b border-zinc-200 bg-zinc-100/80 px-2 py-2 sm:px-3"
       aria-label="Input mode"
     >
       {MODES.map((mode) => {
