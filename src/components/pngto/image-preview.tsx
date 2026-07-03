@@ -58,15 +58,37 @@ export function ImagePreview({
       <div
         className={cn(
           "rounded-md border px-3 py-2 text-xs",
-          budget.status === "good" && "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
-          budget.status === "warning" && "border-amber-500/30 bg-amber-500/10 text-amber-100",
-          budget.status === "heavy" &&
+          variant === "light" &&
+            budget.status === "good" &&
+            "border-emerald-200 bg-emerald-50 text-emerald-900",
+          variant === "light" &&
+            budget.status === "warning" &&
+            "border-amber-200 bg-amber-50 text-amber-900",
+          variant === "light" &&
+            budget.status === "heavy" &&
+            "border-red-200 bg-red-50 text-red-900",
+          variant === "dark" &&
+            budget.status === "good" &&
+            "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
+          variant === "dark" &&
+            budget.status === "warning" &&
+            "border-amber-500/30 bg-amber-500/10 text-amber-100",
+          variant === "dark" &&
+            budget.status === "heavy" &&
             "border-destructive/40 bg-destructive/10 text-destructive-foreground",
         )}
       >
         <div className="font-medium">{budget.label}</div>
-        <div className="mt-1 text-muted-foreground">{budget.detail}</div>
-        <div className="mt-1 text-muted-foreground">{budget.recommendation}</div>
+        <div
+          className={cn("mt-1", variant === "light" ? "text-current/70" : "text-muted-foreground")}
+        >
+          {budget.detail}
+        </div>
+        <div
+          className={cn("mt-1", variant === "light" ? "text-current/70" : "text-muted-foreground")}
+        >
+          {budget.recommendation}
+        </div>
       </div>
     </div>
   );
