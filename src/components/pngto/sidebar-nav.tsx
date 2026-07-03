@@ -34,23 +34,23 @@ export function VisualSidebar() {
           const active = "active" in item && item.active;
           const disabled = "disabled" in item && item.disabled;
           return (
-          <button
-            key={id}
-            type="button"
-            disabled={disabled && !active}
-            aria-label={label}
-            aria-current={active ? "page" : undefined}
-            className={cn(
-              "group relative flex flex-col items-center gap-1 rounded-lg px-2 py-2.5 text-[10px] font-medium transition-colors",
-              active
-                ? "bg-[#5b35d5] text-white shadow-sm"
-                : "text-[#8b90a0] hover:bg-[#17171a] hover:text-[#c9ccd6]",
-              disabled && !active && "cursor-not-allowed opacity-40 hover:bg-transparent",
-            )}
-          >
-            <Icon className="h-4 w-4" aria-hidden />
-            <span>{label}</span>
-          </button>
+            <button
+              key={id}
+              type="button"
+              disabled={disabled && !active}
+              aria-label={label}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "group relative flex flex-col items-center gap-1 rounded-lg px-2 py-2.5 text-[10px] font-medium transition-colors",
+                active
+                  ? "bg-[#5b35d5] text-white shadow-sm"
+                  : "text-[#8b90a0] hover:bg-[#17171a] hover:text-[#c9ccd6]",
+                disabled && !active && "cursor-not-allowed opacity-40 hover:bg-transparent",
+              )}
+            >
+              <Icon className="h-4 w-4" aria-hidden />
+              <span>{label}</span>
+            </button>
           );
         })}
       </nav>

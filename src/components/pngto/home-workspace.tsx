@@ -25,7 +25,6 @@ export function ModeTabs() {
   return (
     <div
       className="flex items-center gap-1 border-b border-zinc-200 bg-zinc-100/80 px-3 py-2"
-      role="tablist"
       aria-label="Input mode"
     >
       {MODES.map((mode) => {
@@ -33,22 +32,21 @@ export function ModeTabs() {
         const active = "active" in mode && mode.active;
         const disabled = "disabled" in mode && mode.disabled;
         return (
-        <button
-          key={id}
-          type="button"
-          role="tab"
-          aria-selected={active}
-          disabled={disabled}
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-            active
-              ? "bg-white text-zinc-900 shadow-sm"
-              : "text-zinc-500 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-40",
-          )}
-        >
-          <Icon className="h-3.5 w-3.5" aria-hidden />
-          {label}
-        </button>
+          <button
+            key={id}
+            type="button"
+            aria-current={active ? "page" : undefined}
+            disabled={disabled}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+              active
+                ? "bg-white text-zinc-900 shadow-sm"
+                : "text-zinc-500 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-40",
+            )}
+          >
+            <Icon className="h-3.5 w-3.5" aria-hidden />
+            {label}
+          </button>
         );
       })}
     </div>
