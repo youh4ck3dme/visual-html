@@ -33,3 +33,9 @@ dist-ssr
 *.sw?
 .env*
 !.env.local.template
+!.env.example
+
+# Upstash CLI account credentials (Developer API key — not REST runtime tokens)
+.upstash-cli.env
+.upstash-account.env
+.config/upstash/

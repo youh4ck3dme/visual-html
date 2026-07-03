@@ -21,6 +21,9 @@ playwright-report/
 .env
 .env.local
 .env.*.local
+.upstash-cli.env
+.upstash-account.env
+.config/upstash/
 
 # OS
 .DS_Store
