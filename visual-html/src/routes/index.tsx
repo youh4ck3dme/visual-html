@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -68,8 +68,8 @@ const DEFAULT_OPTIONS: GenerationOptions = {
 
 type RetryAction = "generate" | "continue" | "refine";
 
-function Index() {
-  const { project: projectIdFromUrl } = Route.useSearch();
+export function Index() {
+  const { project: projectIdFromUrl } = useSearch({ from: "/", strict: false });
   const navigate = useNavigate();
   const { getProject, saveFromGeneration } = useProjects();
 
@@ -153,8 +153,9 @@ function Index() {
   };
 
   const generateMut = useMutation({
-    mutationFn: async (): Promise<ServerResult> => {
+    mutationFn: async (optionsOverride?: GenerationOptions): Promise<ServerResult> => {
       if (!image) throw new Error("No image");
+      const runOptions = optionsOverride ?? options;
 
       setError(null);
       setLastRetryAction("generate");
@@ -181,7 +182,7 @@ function Index() {
           imageBase64: image.base64,
           mimeType: image.mimeType,
           ocrMarkdown: ocr.ocrMarkdown,
-          options,
+          options: runOptions,
         },
       });
     },
@@ -289,6 +290,12 @@ function Index() {
                 {image ? (
                   <ImagePreview
                     image={image}
+                    options={options}
+                    busy={busy}
+                    onForensicGenerate={(nextOptions) => {
+                      setOptions(nextOptions);
+                      generateMut.mutate(nextOptions);
+                    }}
                     onRemove={() => {
                       setImage(null);
                       resetForNewImage();
@@ -326,7 +333,7 @@ function Index() {
                   disabled={(!image && !result) || busy}
                   onClick={() => {
                     if (result) continueMut.mutate();
-                    else generateMut.mutate();
+                    else generateMut.mutate(undefined);
                   }}
                 >
                   <Sparkles className="h-4 w-4" aria-hidden />
@@ -340,7 +347,7 @@ function Index() {
                       if (lastRetryAction === "continue" && result) continueMut.mutate();
                       else if (lastRetryAction === "refine" && lastRefineInstruction && result)
                         refineMut.mutate(lastRefineInstruction);
-                      else generateMut.mutate();
+                      else generateMut.mutate(undefined);
                     }}
                   />
                 )}

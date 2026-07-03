@@ -24,7 +24,7 @@ export const Route = createFileRoute("/projects")({
   component: ProjectsPage,
 });
 
-function ProjectsPage() {
+export function ProjectsPage() {
   const { projects, storageBytes } = useProjects();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ProjectSort>("updated");

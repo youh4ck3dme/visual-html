@@ -1,7 +1,8 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Pencil, Trash2, Wand2 } from "lucide-react";
+import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
+import { ArrowLeft, Pencil, Trash2, Wand2, ZoomIn } from "lucide-react";
 import { useState } from "react";
 
+import { ImageLightbox } from "@/components/pngto/image-lightbox";
 import { ResultTabs } from "@/components/pngto/result-tabs";
 import { TopCreditBar } from "@/components/pngto/home-workspace";
 import { VisualSidebar } from "@/components/pngto/sidebar-nav";
@@ -9,19 +10,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useProjects } from "@/hooks/use-projects";
 import { formatProjectDate, projectSummaryStats } from "@/lib/projects-store";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/projects/$projectId")({
   component: ProjectDetailPage,
 });
 
-function ProjectDetailPage() {
-  const { projectId } = Route.useParams();
+export function ProjectDetailPage() {
+  const { projectId } = useParams({ from: "/projects/$projectId" });
   const navigate = useNavigate();
   const { getProject, renameProject, deleteProject } = useProjects();
   const project = getProject(projectId);
 
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(project?.name ?? "");
+  const [thumbLightboxOpen, setThumbLightboxOpen] = useState(false);
 
   if (!project) {
     return (
@@ -146,11 +149,37 @@ function ProjectDetailPage() {
 
           <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
             <aside className="shell-card overflow-hidden">
-              <img
-                src={project.thumbnailDataUrl}
-                alt="Screenshot thumbnail"
-                className="aspect-[4/3] w-full object-cover object-top"
-              />
+              <button
+                type="button"
+                onClick={() => setThumbLightboxOpen(true)}
+                title="Click to zoom"
+                aria-label={`Zoom screenshot: ${project.fileName}`}
+                className={cn(
+                  "group/thumb relative block w-full overflow-hidden outline-none",
+                  "transition-transform duration-200 motion-safe:hover:scale-[1.02]",
+                  "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset",
+                )}
+              >
+                <img
+                  src={project.thumbnailDataUrl}
+                  alt="Screenshot thumbnail"
+                  className="aspect-[4/3] w-full object-cover object-top"
+                />
+                <span
+                  className={cn(
+                    "pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 transition-colors",
+                    "motion-safe:group-hover/thumb:bg-black/35",
+                  )}
+                  aria-hidden
+                >
+                  <ZoomIn
+                    className={cn(
+                      "h-8 w-8 text-white opacity-0 drop-shadow-md transition-opacity",
+                      "motion-safe:group-hover/thumb:opacity-100",
+                    )}
+                  />
+                </span>
+              </button>
               <div className="space-y-2 p-4 text-xs text-shell-muted">
                 <p>
                   <span className="font-medium text-foreground">Output:</span>{" "}
@@ -179,6 +208,16 @@ function ProjectDetailPage() {
           </div>
         </main>
       </div>
+
+      <ImageLightbox
+        open={thumbLightboxOpen}
+        onClose={() => setThumbLightboxOpen(false)}
+        src={project.thumbnailDataUrl}
+        alt="Project screenshot full size"
+        fileName={project.fileName}
+        width={project.imageWidth}
+        height={project.imageHeight}
+      />
     </div>
   );
 }
