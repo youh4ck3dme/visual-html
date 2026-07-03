@@ -18,6 +18,14 @@ beforeEach(() => {
   resetServerFnMocks();
   resetForensicsMock();
   vi.stubGlobal("Image", ImageStub);
+
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+    drawImage: vi.fn(),
+  } as unknown as CanvasRenderingContext2D);
+  vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue(
+    "data:image/jpeg;base64,dGVzdA==",
+  );
+
   localStorage.clear();
   localStorage.setItem("pngto-locale", "en");
   sessionStorage.clear();

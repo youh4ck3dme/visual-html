@@ -1,6 +1,7 @@
+import { diagnosticForError } from "@/lib/generation-diagnostics";
 import { messages, type MessageKey } from "@/lib/i18n/messages";
 import type { Locale } from "@/lib/locale";
-import type { ImageBudgetStatus } from "@/lib/image-budget";
+import { imageBudgetReport, type ImageBudgetStatus } from "@/lib/image-budget";
 import type { ForensicPreset, ForensicZone, ForensicZoneType } from "@/lib/image-forensics";
 import type { ApiErrorCode } from "@/types/generation";
 import type { GenerationPhase } from "@/types/generation";
@@ -66,26 +67,103 @@ export function localizedPhaseLabel(locale: Locale, phase: GenerationPhase): str
   return msg(locale, key);
 }
 
-const DIAG_CODES: ApiErrorCode[] = [
-  "INVALID_FILE",
-  "FILE_TOO_LARGE",
-  "UNSUPPORTED_FORMAT",
-  "AI_TIMEOUT",
-  "AI_AUTH_ERROR",
-  "AI_QUOTA_EXHAUSTED",
-  "AI_INVALID_RESPONSE",
-  "BLOB_UPLOAD_FAILED",
-  "JSON_REPAIR_FAILED",
-  "RATE_LIMITED",
-  "SERVER_ERROR",
-  "MISSING_API_KEY",
-  "MISSING_BLOB_TOKEN",
-  "SANITIZE_FAILED",
-];
+const UPLOAD_INTERNAL_ERROR_KEYS: Record<string, MessageKey> = {
+  "Could not read file": "upload.error.couldNotRead",
+  "Could not process image": "upload.error.couldNotProcess",
+  "Invalid image": "upload.error.invalidImage",
+  "Could not optimize image": "upload.error.couldNotOptimize",
+  "Could not prepare image for upload": "upload.error.couldNotPrepare",
+};
 
-export function localizedDiagnosticTitle(locale: Locale, code: ApiErrorCode, fallback: string) {
-  const key = `diagnostic.${code}.title` as MessageKey;
+const DIAGNOSTIC_DETAIL_MESSAGE_KEYS: Record<string, MessageKey> = {
+  "Too many requests. Please slow down and try again shortly.":
+    "diagnostic.message.rateLimitedUser",
+  "Too many requests": "diagnostic.message.rateLimitedShort",
+  "AI request timed out": "diagnostic.message.aiRequestTimedOut",
+  "Unexpected server error": "diagnostic.message.unexpectedServerError",
+  "Failed to upload image for OCR": "diagnostic.message.failedUploadOcr",
+  "Failed to reach AI provider": "diagnostic.message.failedReachAiProvider",
+  "Empty AI response": "diagnostic.message.emptyAiResponse",
+  "OCR provider returned no readable content": "diagnostic.message.ocrNoReadableContent",
+  "Mistral rate limit or quota exceeded": "diagnostic.message.mistralQuotaExceeded",
+  "All configured Mistral API keys are rate-limited or out of quota":
+    "diagnostic.message.allKeysQuotaExhausted",
+  "No Mistral API keys configured (set MISTRAL_API_KEY or role-specific keys)":
+    "diagnostic.message.noMistralKeys",
+  "BLOB_READ_WRITE_TOKEN is not configured": "diagnostic.message.blobTokenNotConfigured",
+};
+
+function diagnosticTitleKey(code: ApiErrorCode, phase?: GenerationPhase): MessageKey {
+  if (phase === "ocr" && (code === "AI_TIMEOUT" || code === "AI_INVALID_RESPONSE")) {
+    return `diagnostic.${code}.titleOcr` as MessageKey;
+  }
+  return `diagnostic.${code}.title` as MessageKey;
+}
+
+export function localizedDiagnosticTitle(
+  locale: Locale,
+  code: ApiErrorCode,
+  fallback: string,
+  phase?: GenerationPhase,
+) {
+  const key = diagnosticTitleKey(code, phase);
   if (messages.en[key]) return msg(locale, key);
+  const genericKey = `diagnostic.${code}.title` as MessageKey;
+  if (messages.en[genericKey]) return msg(locale, genericKey);
+  return fallback;
+}
+
+export function localizedDiagnosticDetail(
+  locale: Locale,
+  code: ApiErrorCode,
+  detail: string,
+  phase?: GenerationPhase,
+): string {
+  const uploadKey = UPLOAD_INTERNAL_ERROR_KEYS[detail];
+  if (uploadKey) return msg(locale, uploadKey);
+
+  const messageKey = DIAGNOSTIC_DETAIL_MESSAGE_KEYS[detail];
+  if (messageKey) return msg(locale, messageKey);
+
+  const authMatch = detail.match(/^AI provider rejected credentials \((\d+)\)$/);
+  if (authMatch) {
+    return msg(locale, "diagnostic.message.aiAuthRejected", { status: authMatch[1] });
+  }
+
+  const providerMatch = detail.match(/^AI provider returned (\d+)$/);
+  if (providerMatch) {
+    return msg(locale, "diagnostic.message.aiProviderReturned", { status: providerMatch[1] });
+  }
+
+  if (detail.startsWith("Automatic JSON repair failed:")) {
+    return msg(locale, "diagnostic.message.automaticJsonRepairFailed");
+  }
+
+  if (detail.startsWith("AI returned malformed JSON")) {
+    return msg(locale, "diagnostic.message.jsonMalformedAfterRepair");
+  }
+
+  const resolvedPhase = phase ?? "failed";
+  const defaultDetail = diagnosticForError(code, "", resolvedPhase).detail;
+  const detailKey = `diagnostic.${code}.detail` as MessageKey;
+  if (messages.en[detailKey] && (!detail || detail === defaultDetail)) {
+    return msg(locale, detailKey);
+  }
+
+  return detail;
+}
+
+export function localizedDiagnosticLikelyCause(
+  locale: Locale,
+  code: ApiErrorCode,
+  fallback: string,
+  phase?: GenerationPhase,
+) {
+  const key = `diagnostic.${code}.likelyCause` as MessageKey;
+  if (messages.en[key]) {
+    const defaultCause = diagnosticForError(code, "", phase ?? "failed").likelyCause;
+    if (!fallback || fallback === defaultCause) return msg(locale, key);
+  }
   return fallback;
 }
 
@@ -107,8 +185,20 @@ export function localizedAspectProfile(locale: Locale, profile: string): string 
   return key ? msg(locale, key) : profile;
 }
 
+const FORENSIC_WARNING_ID_ALIASES: Record<string, string> = {
+  "heavy-file": "heavyFile",
+  "warn-file": "warnFile",
+  "wide-layout": "wideLayout",
+  "low-contrast-risk": "lowContrast",
+  "oversized-dimension": "oversized",
+};
+
+function normalizeForensicWarningId(id: string): string {
+  return FORENSIC_WARNING_ID_ALIASES[id] ?? id;
+}
+
 export function localizedForensicWarningTitle(locale: Locale, id: string, fallback: string) {
-  const key = `forensic.warning.${id}.title` as MessageKey;
+  const key = `forensic.warning.${normalizeForensicWarningId(id)}.title` as MessageKey;
   if (messages.en[key]) return msg(locale, key);
   return fallback;
 }
@@ -119,9 +209,30 @@ export function localizedForensicWarningDetail(
   fallback: string,
   params?: Record<string, string | number>,
 ) {
-  const key = `forensic.warning.${id}.detail` as MessageKey;
+  const key = `forensic.warning.${normalizeForensicWarningId(id)}.detail` as MessageKey;
   if (messages.en[key]) return msg(locale, key, params);
   return fallback;
+}
+
+export function resolveForensicWarningDetail(
+  locale: Locale,
+  warning: { id: string; detail: string },
+  sizeBytes: number,
+  width: number,
+  height: number,
+): string {
+  const budget = imageBudgetReport(sizeBytes, width, height);
+  if (warning.id === "heavy-file") {
+    return localizedForensicWarningDetail(locale, warning.id, warning.detail, {
+      detail: localizedBudget(locale, budget.status).recommendation,
+    });
+  }
+  if (warning.id === "warn-file") {
+    return localizedForensicWarningDetail(locale, warning.id, warning.detail, {
+      detail: localizedBudget(locale, budget.status).detail,
+    });
+  }
+  return localizedForensicWarningDetail(locale, warning.id, warning.detail);
 }
 
 const OCR_HINT_KEYS: Record<string, MessageKey> = {

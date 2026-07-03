@@ -46,10 +46,24 @@ export default tseslint.config(
         "warn",
         {
           allowConstantExport: true,
-          allowExportNames: ["useTheme", "useProjects"],
+          allowExportNames: [
+            "useTheme",
+            "useProjects",
+            "useLocale",
+            "useT",
+            "useGenerationWorkflow",
+            "DEFAULT_GENERATION_OPTIONS",
+            "createDefaultGenerationOptions",
+          ],
         },
       ],
       "@typescript-eslint/no-unused-vars": "off",
+    },
+  },
+  {
+    files: ["src/test/**/*.{ts,tsx}"],
+    rules: {
+      "react-refresh/only-export-components": "off",
     },
   },
   eslintPluginPrettier,
