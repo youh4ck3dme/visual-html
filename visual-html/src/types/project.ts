@@ -1,19 +1,10 @@
+import type { SavedProjectV1 } from "@/lib/projects-schema";
 import type { GenerateHtmlResult, GenerationOptions } from "./generation";
 
-export type ProjectSort = "updated" | "created" | "name";
+export { SAVED_PROJECT_SCHEMA_VERSION } from "@/lib/projects-schema";
+export type SavedProject = SavedProjectV1;
 
-export interface SavedProject {
-  id: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-  fileName: string;
-  imageWidth: number;
-  imageHeight: number;
-  thumbnailDataUrl: string;
-  options: GenerationOptions;
-  result: GenerateHtmlResult;
-}
+export type ProjectSort = "updated" | "created" | "name";
 
 export interface CreateProjectInput {
   name?: string;

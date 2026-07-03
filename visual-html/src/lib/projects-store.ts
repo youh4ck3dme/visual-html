@@ -1,3 +1,7 @@
+import {
+  parseProjectsJson as parseProjectsJsonPayload,
+  SAVED_PROJECT_SCHEMA_VERSION,
+} from "@/lib/projects-schema";
 import type {
   CreateProjectInput,
   ProjectSort,
@@ -5,6 +9,8 @@ import type {
   UpdateProjectInput,
 } from "@/types/project";
 import type { GenerateHtmlResult, GenerationOptions } from "@/types/generation";
+
+export { SAVED_PROJECT_SCHEMA_VERSION };
 
 export const PROJECTS_STORAGE_KEY = "pngto-projects";
 export const MAX_PROJECTS = 40;
@@ -52,6 +58,7 @@ export function createProjectRecord(
 ): SavedProject {
   const now = new Date().toISOString();
   return {
+    schemaVersion: SAVED_PROJECT_SCHEMA_VERSION,
     id,
     name: input.name?.trim() || deriveProjectName(input.fileName),
     createdAt: now,
@@ -85,35 +92,15 @@ export function trimProjectsToLimit(
 }
 
 export function parseProjectsJson(raw: string | null): SavedProject[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(isSavedProject);
-  } catch {
-    return [];
+  return parseProjectsJsonPayload(raw).projects;
+}
+
+export function loadProjectsFromStorage(storage: Storage = localStorage): SavedProject[] {
+  const { projects, migrated } = parseProjectsJsonPayload(storage.getItem(PROJECTS_STORAGE_KEY));
+  if (migrated) {
+    saveProjectsToStorage(projects, storage);
   }
-}
-
-function isSavedProject(value: unknown): value is SavedProject {
-  if (!value || typeof value !== "object") return false;
-  const p = value as Partial<SavedProject>;
-  return (
-    typeof p.id === "string" &&
-    typeof p.name === "string" &&
-    typeof p.createdAt === "string" &&
-    typeof p.updatedAt === "string" &&
-    typeof p.fileName === "string" &&
-    typeof p.thumbnailDataUrl === "string" &&
-    !!p.result &&
-    typeof p.result.html === "string"
-  );
-}
-
-export function loadProjectsFromStorage(
-  storage: Pick<Storage, "getItem"> = localStorage,
-): SavedProject[] {
-  return parseProjectsJson(storage.getItem(PROJECTS_STORAGE_KEY));
+  return projects;
 }
 
 export function saveProjectsToStorage(

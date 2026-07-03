@@ -1,11 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
+import { SAVED_PROJECT_SCHEMA_VERSION } from "@/lib/projects-schema";
 import {
   createProjectRecord,
   deleteProjectById,
   deriveProjectName,
   filterProjects,
+  loadProjectsFromStorage,
   parseProjectsJson,
+  PROJECTS_STORAGE_KEY,
   renameProjectById,
   sortProjects,
   trimProjectsToLimit,
@@ -26,6 +29,7 @@ const SAMPLE_RESULT = {
 
 function makeProject(overrides: Partial<SavedProject> = {}): SavedProject {
   return {
+    schemaVersion: SAVED_PROJECT_SCHEMA_VERSION,
     id: overrides.id ?? "p1",
     name: overrides.name ?? "Landing page",
     createdAt: overrides.createdAt ?? "2026-07-01T10:00:00.000Z",
@@ -72,6 +76,7 @@ describe("projects-store", () => {
     });
     expect(created).toHaveLength(1);
     expect(created[0].name).toBe("hero");
+    expect(created[0].schemaVersion).toBe(SAVED_PROJECT_SCHEMA_VERSION);
 
     const updated = upsertProject(
       created,
@@ -113,5 +118,32 @@ describe("projects-store", () => {
     expect(parseProjectsJson(valid)).toHaveLength(1);
     expect(parseProjectsJson(JSON.stringify([{ id: "x" }]))).toHaveLength(0);
     expect(parseProjectsJson("not-json")).toHaveLength(0);
+  });
+
+  it("migrates unversioned storage on load and rewrites with schemaVersion", () => {
+    const legacy = {
+      id: "legacy-1",
+      name: "Old landing",
+      createdAt: "2026-06-01T10:00:00.000Z",
+      updatedAt: "2026-06-02T10:00:00.000Z",
+      fileName: "old.png",
+      thumbnailDataUrl: "data:image/jpeg;base64,abc",
+      result: { html: "<main>Legacy</main>" },
+    };
+    const storage = {
+      getItem: (key: string) => (key === PROJECTS_STORAGE_KEY ? JSON.stringify([legacy]) : null),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+      key: vi.fn(),
+      length: 0,
+    } satisfies Storage;
+
+    const loaded = loadProjectsFromStorage(storage);
+    expect(loaded).toHaveLength(1);
+    expect(loaded[0].schemaVersion).toBe(SAVED_PROJECT_SCHEMA_VERSION);
+    expect(loaded[0].imageWidth).toBe(1);
+    expect(loaded[0].options.outputMode).toBe("static");
+    expect(storage.setItem).toHaveBeenCalled();
   });
 });

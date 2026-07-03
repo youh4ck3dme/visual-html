@@ -1,9 +1,11 @@
+import { SAVED_PROJECT_SCHEMA_VERSION } from "@/lib/projects-schema";
 import { PROJECTS_STORAGE_KEY, saveProjectsToStorage } from "@/lib/projects-store";
 import type { SavedProject } from "@/types/project";
 import { SAMPLE_GENERATE_RESULT, SAMPLE_GENERATION_OPTIONS } from "@/test/mocks/sample-image";
 
 export function makeSavedProject(overrides: Partial<SavedProject> = {}): SavedProject {
   return {
+    schemaVersion: overrides.schemaVersion ?? SAVED_PROJECT_SCHEMA_VERSION,
     id: overrides.id ?? "proj-test-1",
     name: overrides.name ?? "Landing page",
     createdAt: overrides.createdAt ?? "2026-07-01T10:00:00.000Z",
