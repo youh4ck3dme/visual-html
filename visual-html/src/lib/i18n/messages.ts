@@ -291,6 +291,9 @@ export const messages = {
     "projects.subtitle": "Your saved screenshot-to-HTML generations in this browser.",
     "projects.storage": "{count} projects · {size} stored locally",
     "projects.storageOne": "1 project · {size} stored locally",
+    "projects.migrationPersistFailed.title": "Could not upgrade saved projects",
+    "projects.migrationPersistFailed.description":
+      "Your projects were loaded in memory, but writing the upgraded format to browser storage failed. This often happens when local storage is full — try removing old projects.",
     "projects.newProject": "New project",
     "projects.empty.title": "No projects yet",
     "projects.empty.description":
@@ -817,6 +820,9 @@ export const messages = {
     "projects.subtitle": "Vaše uložené generovania screenshot→HTML v tomto prehliadači.",
     "projects.storage": "{count} projektov · {size} uložených lokálne",
     "projects.storageOne": "1 projekt · {size} uložený lokálne",
+    "projects.migrationPersistFailed.title": "Nepodarilo sa aktualizovať uložené projekty",
+    "projects.migrationPersistFailed.description":
+      "Projekty sa načítali do pamäte, ale zápis aktualizovaného formátu do úložiska prehliadača zlyhal. Často to spôsobí plné lokálne úložisko — skúste odstrániť staré projekty.",
     "projects.newProject": "Nový projekt",
     "projects.empty.title": "Zatiaľ žiadne projekty",
     "projects.empty.description":

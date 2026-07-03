@@ -7,6 +7,7 @@ import {
   deriveProjectName,
   filterProjects,
   loadProjectsFromStorage,
+  loadProjectsFromStorageWithMeta,
   parseProjectsJson,
   PROJECTS_STORAGE_KEY,
   renameProjectById,
@@ -145,5 +146,34 @@ describe("projects-store", () => {
     expect(loaded[0].imageWidth).toBe(1);
     expect(loaded[0].options.outputMode).toBe("static");
     expect(storage.setItem).toHaveBeenCalled();
+  });
+
+  it("loads migrated legacy projects when write-back fails without throwing", () => {
+    const legacy = {
+      id: "legacy-2",
+      name: "Old dashboard",
+      createdAt: "2026-06-01T10:00:00.000Z",
+      updatedAt: "2026-06-02T10:00:00.000Z",
+      fileName: "dashboard.png",
+      thumbnailDataUrl: "data:image/jpeg;base64,abc",
+      result: { html: "<main>Legacy dashboard</main>" },
+    };
+    const storage = {
+      getItem: (key: string) => (key === PROJECTS_STORAGE_KEY ? JSON.stringify([legacy]) : null),
+      setItem: vi.fn(() => {
+        throw new DOMException("QuotaExceededError", "QuotaExceededError");
+      }),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+      key: vi.fn(),
+      length: 0,
+    } satisfies Storage;
+
+    const { projects, migrationPersistFailed } = loadProjectsFromStorageWithMeta(storage);
+    expect(projects).toHaveLength(1);
+    expect(projects[0].schemaVersion).toBe(SAVED_PROJECT_SCHEMA_VERSION);
+    expect(projects[0].result.html).toContain("Legacy dashboard");
+    expect(migrationPersistFailed).toBe(true);
+    expect(loadProjectsFromStorage(storage)).toHaveLength(1);
   });
 });

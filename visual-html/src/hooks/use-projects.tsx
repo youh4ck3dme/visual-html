@@ -7,12 +7,14 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { toast } from "sonner";
 
+import { useT } from "@/hooks/use-t";
 import {
   createThumbnailDataUrl,
   deleteProjectById,
   estimateProjectsBytes,
-  loadProjectsFromStorage,
+  loadProjectsFromStorageWithMeta,
   renameProjectById,
   saveProjectsToStorage,
   upsertProject,
@@ -43,11 +45,19 @@ type ProjectsContextValue = {
 const ProjectsContext = createContext<ProjectsContextValue | null>(null);
 
 export function ProjectsProvider({ children }: { children: ReactNode }) {
+  const { t } = useT();
   const [projects, setProjects] = useState<SavedProject[]>([]);
 
   const refresh = useCallback(() => {
-    setProjects(loadProjectsFromStorage());
-  }, []);
+    const { projects: loaded, migrationPersistFailed } = loadProjectsFromStorageWithMeta();
+    setProjects(loaded);
+    if (migrationPersistFailed) {
+      toast.warning(t("projects.migrationPersistFailed.title"), {
+        description: t("projects.migrationPersistFailed.description"),
+        duration: 8000,
+      });
+    }
+  }, [t]);
 
   useEffect(() => {
     refresh();

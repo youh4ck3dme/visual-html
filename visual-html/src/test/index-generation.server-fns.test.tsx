@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import userEvent from "@testing-library/user-event";
 import { screen, waitFor } from "@testing-library/react";
 
 import { createApiError } from "@/lib/generation-diagnostics";
+import { PROJECTS_STORAGE_KEY } from "@/lib/projects-store";
 import { renderPageAt } from "@/test/page-router";
 import { getServerFnMocks } from "@/test/mocks/server-fns";
 import { SAMPLE_GENERATE_RESULT } from "@/test/mocks/sample-image";
@@ -49,6 +50,7 @@ describe("index route › server function mocks", () => {
       expect(screen.getByRole("button", { name: /Continue code generation/i })).toBeInTheDocument(),
     );
     expect(screen.getByRole("heading", { name: /Generated output/i })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/Saved to Projects/i)).toBeInTheDocument());
   });
 
   it("can simulate OCR success while generateHtml fails", async () => {
@@ -97,6 +99,28 @@ describe("index route › server function mocks", () => {
     expect(alert).toHaveTextContent(/Image upload failed/i);
     expect(alert).toHaveTextContent(/Phase:/i);
     expect(alert).toHaveTextContent(/Image upload/i);
+  });
+
+  it("shows save failure toast when localStorage write fails but keeps generated output", async () => {
+    const originalSetItem = Storage.prototype.setItem;
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key, value) {
+      if (key === PROJECTS_STORAGE_KEY) {
+        throw new DOMException("QuotaExceededError", "QuotaExceededError");
+      }
+      return originalSetItem.call(this, key, value);
+    });
+
+    const user = await uploadImageOnIndex();
+    await user.click(screen.getByRole("button", { name: /Generate HTML/i }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { name: /Generated output/i })).toBeInTheDocument(),
+    );
+    await waitFor(() =>
+      expect(screen.getByText(/Could not save to Projects/i)).toBeInTheDocument(),
+    );
+    expect(screen.getByText(/browser storage failed/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Saved to Projects/i)).not.toBeInTheDocument();
   });
 
   it("does not satisfy PNG generation when only builderChat mock would succeed", async () => {

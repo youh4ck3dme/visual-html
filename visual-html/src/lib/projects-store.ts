@@ -95,12 +95,23 @@ export function parseProjectsJson(raw: string | null): SavedProject[] {
   return parseProjectsJsonPayload(raw).projects;
 }
 
-export function loadProjectsFromStorage(storage: Storage = localStorage): SavedProject[] {
+export type LoadProjectsResult = {
+  projects: SavedProject[];
+  migrationPersistFailed: boolean;
+};
+
+export function loadProjectsFromStorageWithMeta(
+  storage: Storage = localStorage,
+): LoadProjectsResult {
   const { projects, migrated } = parseProjectsJsonPayload(storage.getItem(PROJECTS_STORAGE_KEY));
-  if (migrated) {
-    saveProjectsToStorage(projects, storage);
+  if (!migrated) {
+    return { projects, migrationPersistFailed: false };
   }
-  return projects;
+  return { projects, migrationPersistFailed: !saveProjectsToStorage(projects, storage) };
+}
+
+export function loadProjectsFromStorage(storage: Storage = localStorage): SavedProject[] {
+  return loadProjectsFromStorageWithMeta(storage).projects;
 }
 
 export function saveProjectsToStorage(
