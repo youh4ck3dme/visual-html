@@ -1,4 +1,3 @@
-
 # PNGtoHTMLapp — Focused v1
 
 Upload a UI screenshot → Mistral vision model → clean semantic HTML/CSS/JS, previewed safely and copy/downloadable. TanStack Start (this project), no PWA/history/settings/tests yet.
@@ -6,6 +5,7 @@ Upload a UI screenshot → Mistral vision model → clean semantic HTML/CSS/JS, 
 ## Scope (v1)
 
 Included:
+
 - Single main route `/` with upload → options → generate → tabs (Preview / HTML / CSS / JS / Notes) → copy + download `.html` → refinement box.
 - Server function calling Mistral vision (`pixtral-large-latest`) with strict JSON output, Zod validation, one JSON-repair retry.
 - Sandboxed iframe preview (`srcDoc`, `sandbox=""` by default; opt-in `allow-scripts` toggle with warning).
@@ -31,6 +31,7 @@ Backend boundary — TanStack `createServerFn` (POST), not a server route, becau
 - `src/types/generation.ts` — shared types.
 
 Frontend:
+
 - `src/routes/index.tsx` — layout shell, wires components, manages state via `useState` + `useMutation` (TanStack Query already present).
 - `src/components/pngto/upload-dropzone.tsx` — drag/drop + click, client-side MIME + size + dimension probe, base64 encode.
 - `src/components/pngto/image-preview.tsx` — thumbnail, name/size/dims, remove.

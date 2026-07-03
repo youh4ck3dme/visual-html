@@ -8,11 +8,11 @@ Business and monetization strategy is documented in [docs/business/README.md](do
 
 One TanStack Start application (`visual-html/`) with a shared sidebar, theme switcher, and design tokens:
 
-| Route | Purpose |
-| ----- | ------- |
-| `/` | **New** — upload a UI screenshot and generate HTML (Mistral OCR + synthesis) |
-| `/projects` | **Projects** — browse and reopen saved screenshot generations (localStorage) |
-| `/builder` | **VibeCraft** — prompt-to-HTML app builder with offline templates, AI generation, sandboxed preview, and revision history |
+| Route       | Purpose                                                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `/`         | **New** — upload a UI screenshot and generate HTML (Mistral OCR + synthesis)                                              |
+| `/projects` | **Projects** — browse and reopen saved screenshot generations (localStorage)                                              |
+| `/builder`  | **VibeCraft** — prompt-to-HTML app builder with offline templates, AI generation, sandboxed preview, and revision history |
 
 From the monorepo root:
 
@@ -481,11 +481,11 @@ Large uploads are automatically optimized in the browser to reduce production ti
 
 For `/builder`, you can add personal Mistral keys in the in-app **Settings** dialog (gear icon). They are stored in `localStorage`, not in `.env.local`:
 
-| localStorage key | Purpose |
-| ---------------- | ------- |
-| `builder_mistral_api_key_1` | Primary BYOK key |
-| `builder_mistral_api_key_2` | Failover BYOK key |
-| `builder_mistral_model` | Model override (default `mistral-large-latest`) |
+| localStorage key            | Purpose                                         |
+| --------------------------- | ----------------------------------------------- |
+| `builder_mistral_api_key_1` | Primary BYOK key                                |
+| `builder_mistral_api_key_2` | Failover BYOK key                               |
+| `builder_mistral_model`     | Model override (default `mistral-large-latest`) |
 
 Without BYOK keys, the builder uses server `MISTRAL_API_KEY` when configured; otherwise it runs in **Demo Mode** (offline templates only).
 
@@ -537,7 +537,7 @@ npm run format
 | `MISTRAL_CHAT_API_KEYS`         | No                  | Comma-separated synthesis/refine/continue-only key pool                                               |
 | `MISTRAL_OCR_MODEL`             | No                  | OCR model for uploaded screenshots; default is `mistral-ocr-latest`                                   |
 | `MISTRAL_MODEL`                 | No                  | Chat/synthesis model for HTML generation and refine; default is `pixtral-large-latest`                |
-| `MISTRAL_BUILDER_MODEL`         | No                  | Model for `/builder` server AI; default falls back to `MISTRAL_MODEL`, then `mistral-large-latest`   |
+| `MISTRAL_BUILDER_MODEL`         | No                  | Model for `/builder` server AI; default falls back to `MISTRAL_MODEL`, then `mistral-large-latest`    |
 | `BLOB_READ_WRITE_TOKEN`         | Yes for OCR uploads | Vercel Blob token used to stage uploaded images so the OCR API can fetch them by URL                  |
 | `MISTRAL_MAX_TOKENS`            | No                  | Caps completion size; default is `3000` to reduce truncated JSON responses                            |
 | `MISTRAL_TIMEOUT_MS`            | No                  | Abort timeout for the Mistral request; default is `55000`, capped below the Vercel 60s function limit |
