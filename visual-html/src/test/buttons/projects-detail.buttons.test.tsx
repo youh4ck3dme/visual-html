@@ -10,7 +10,9 @@ import {
   seedProjectsStorage,
 } from "@/test/mocks/sample-project";
 
-async function openProjectDetail(project = makeSavedProject({ id: "detail-1", name: "Invoice UI" })) {
+async function openProjectDetail(
+  project = makeSavedProject({ id: "detail-1", name: "Invoice UI" }),
+) {
   seedProjectsStorage([project]);
   const ctx = await renderPageAt("/projects");
   await userEvent.setup().click(screen.getByRole("link", { name: new RegExp(project.name) }));
@@ -52,7 +54,9 @@ describe("buttons › projects detail", () => {
     await user.type(input, "Bank statement v2");
     await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() =>
-      expect(screen.getByRole("heading", { level: 1, name: "Bank statement v2" })).toBeInTheDocument(),
+      expect(
+        screen.getByRole("heading", { level: 1, name: "Bank statement v2" }),
+      ).toBeInTheDocument(),
     );
     const stored = JSON.parse(localStorage.getItem(PROJECTS_STORAGE_KEY) || "[]") as Array<{
       name: string;

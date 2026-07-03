@@ -1,19 +1,27 @@
 import { Link } from "@tanstack/react-router";
 import { FolderKanban, HelpCircle, Plus, Settings, Sparkles, UserRound, Wand2 } from "lucide-react";
 
+import { useT } from "@/hooks/use-t";
 import { cn } from "@/lib/utils";
+import type { MessageKey } from "@/lib/i18n/messages";
+import { LocaleSwitcher } from "./locale-switcher";
 import { ThemeSwitcher } from "./theme-switcher";
 
 const NAV_ITEMS = [
-  { id: "projects", label: "Projects", icon: FolderKanban, to: "/projects" as const },
-  { id: "new", label: "New", icon: Plus, to: "/" as const },
-  { id: "builder", label: "VibeCraft", icon: Wand2, to: "/builder" as const },
+  {
+    id: "projects",
+    labelKey: "nav.projects" as MessageKey,
+    icon: FolderKanban,
+    to: "/projects" as const,
+  },
+  { id: "new", labelKey: "nav.new" as MessageKey, icon: Plus, to: "/" as const },
+  { id: "builder", labelKey: "nav.builder" as MessageKey, icon: Wand2, to: "/builder" as const },
 ] as const;
 
 const BOTTOM_ITEMS = [
-  { id: "support", label: "Support", icon: HelpCircle, disabled: true },
-  { id: "settings", label: "Settings", icon: Settings, disabled: true },
-  { id: "account", label: "Account", icon: UserRound, disabled: true },
+  { id: "support", labelKey: "nav.support" as MessageKey, icon: HelpCircle, disabled: true },
+  { id: "settings", labelKey: "nav.settings" as MessageKey, icon: Settings, disabled: true },
+  { id: "account", labelKey: "nav.account" as MessageKey, icon: UserRound, disabled: true },
 ] as const;
 
 type NavTo = "/" | "/projects" | "/builder";
@@ -32,11 +40,13 @@ function navButtonClass(active: boolean, disabled: boolean, compact?: boolean) {
 }
 
 function NavLink({
+  id,
   label,
   icon: Icon,
   to,
   compact = false,
 }: {
+  id: string;
   label: string;
   icon: typeof Plus;
   to: NavTo;
@@ -46,6 +56,7 @@ function NavLink({
     <Link
       to={to}
       aria-label={label}
+      data-testid={`nav-${id}`}
       className={navButtonClass(false, false, compact)}
       activeProps={{
         className: navButtonClass(true, false, compact),
@@ -62,11 +73,13 @@ function NavLink({
 }
 
 function NavButton({
+  id,
   label,
   icon: Icon,
   disabled = false,
   compact = false,
 }: {
+  id: string;
   label: string;
   icon: typeof Plus;
   disabled?: boolean;
@@ -77,6 +90,7 @@ function NavButton({
       type="button"
       disabled={disabled}
       aria-label={label}
+      data-testid={`nav-${id}`}
       className={navButtonClass(false, disabled, compact)}
     >
       <Icon className="h-4 w-4 shrink-0" aria-hidden />
@@ -86,20 +100,23 @@ function NavButton({
 }
 
 export function VisualSidebar() {
+  const { t } = useT();
+
   return (
     <>
       <aside
         className="shell-sidebar-panel fixed inset-y-0 left-0 z-40 hidden w-16 flex-col border-r md:flex"
-        aria-label="Application navigation"
+        aria-label={t("nav.appAria")}
       >
         <Link
           to="/"
           className="flex h-16 items-center justify-center border-b border-shell-border"
-          aria-label="PNGtoHTML home"
+          aria-label={t("nav.homeAria")}
+          data-testid="nav-home"
         >
           <div
             className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm"
-            title="PNGtoHTML"
+            title={t("nav.homeTitle")}
           >
             <Sparkles className="h-4 w-4" aria-hidden />
           </div>
@@ -107,32 +124,54 @@ export function VisualSidebar() {
 
         <nav className="flex flex-1 flex-col gap-1 px-2 py-4">
           {NAV_ITEMS.map((item) => (
-            <NavLink key={item.id} label={item.label} icon={item.icon} to={item.to} />
+            <NavLink
+              key={item.id}
+              id={item.id}
+              label={t(item.labelKey)}
+              icon={item.icon}
+              to={item.to}
+            />
           ))}
         </nav>
 
         <div className="flex flex-col items-center gap-2 border-t border-shell-border px-2 py-4">
+          <LocaleSwitcher compact />
           <ThemeSwitcher compact />
           {BOTTOM_ITEMS.map((item) => (
-            <NavButton key={item.id} label={item.label} icon={item.icon} disabled={item.disabled} />
+            <NavButton
+              key={item.id}
+              id={item.id}
+              label={t(item.labelKey)}
+              icon={item.icon}
+              disabled={item.disabled}
+            />
           ))}
         </div>
       </aside>
 
       <nav
         className="shell-sidebar-panel fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t bg-shell-sidebar/95 px-2 py-2 backdrop-blur-md md:hidden"
-        aria-label="Mobile navigation"
+        aria-label={t("nav.mobileAria")}
       >
         <Link
           to="/"
           className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground"
-          aria-label="PNGtoHTML home"
+          aria-label={t("nav.homeAria")}
+          data-testid="nav-home-mobile"
         >
           <Sparkles className="h-4 w-4" aria-hidden />
         </Link>
         {NAV_ITEMS.map((item) => (
-          <NavLink key={item.id} label={item.label} icon={item.icon} to={item.to} compact />
+          <NavLink
+            key={item.id}
+            id={`${item.id}-mobile`}
+            label={t(item.labelKey)}
+            icon={item.icon}
+            to={item.to}
+            compact
+          />
         ))}
+        <LocaleSwitcher compact />
         <ThemeSwitcher compact />
       </nav>
     </>

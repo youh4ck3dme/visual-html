@@ -1,43 +1,60 @@
 import { Code2, FileText, Sparkles, Wand2 } from "lucide-react";
 
+import { useT } from "@/hooks/use-t";
+import type { MessageKey } from "@/lib/i18n/messages";
+
 const CAPABILITIES = [
   {
+    id: "screenshot",
     icon: Code2,
-    title: "Screenshot to HTML",
-    description: "Drop a UI screenshot and get clean, editable HTML and CSS.",
+    titleKey: "capability.screenshot.title" as MessageKey,
+    descriptionKey: "capability.screenshot.description" as MessageKey,
   },
   {
+    id: "document",
     icon: FileText,
-    title: "Document to HTML",
-    description: "Recreate invoices, statements, forms, and A4 layouts.",
+    titleKey: "capability.document.title" as MessageKey,
+    descriptionKey: "capability.document.description" as MessageKey,
   },
   {
+    id: "refine",
     icon: Wand2,
-    title: "Refine with AI",
-    description: "Improve fidelity, spacing, semantics, and print styles by instruction.",
+    titleKey: "capability.refine.title" as MessageKey,
+    descriptionKey: "capability.refine.description" as MessageKey,
   },
   {
+    id: "export",
     icon: Sparkles,
-    title: "Export Anywhere",
-    description: "Download standalone HTML, copy code, or continue in your stack.",
+    titleKey: "capability.export.title" as MessageKey,
+    descriptionKey: "capability.export.description" as MessageKey,
   },
 ] as const;
 
-const TRUST_LABELS = ["Product teams", "Agencies", "Indie builders", "Design engineers"];
+const TRUST_LABEL_KEYS = [
+  "trust.productTeams",
+  "trust.agencies",
+  "trust.indieBuilders",
+  "trust.designEngineers",
+] as const satisfies readonly MessageKey[];
 
 export function CapabilityCards() {
+  const { t } = useT();
+
   return (
-    <section className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Capabilities">
-      {CAPABILITIES.map(({ icon: Icon, title, description }) => (
+    <section
+      className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+      aria-label={t("capability.aria")}
+    >
+      {CAPABILITIES.map(({ id, icon: Icon, titleKey, descriptionKey }) => (
         <article
-          key={title}
+          key={id}
           className="shell-card p-4 transition-[border-color,box-shadow] duration-300 hover:border-info/40 hover:shadow-md"
         >
           <div className="mb-3 grid h-8 w-8 place-items-center rounded-md bg-info/15 text-info">
             <Icon className="h-4 w-4" aria-hidden />
           </div>
-          <h3 className="text-sm font-medium text-foreground">{title}</h3>
-          <p className="mt-1.5 text-xs leading-relaxed text-shell-muted">{description}</p>
+          <h3 className="text-sm font-medium text-foreground">{t(titleKey)}</h3>
+          <p className="mt-1.5 text-xs leading-relaxed text-shell-muted">{t(descriptionKey)}</p>
         </article>
       ))}
     </section>
@@ -45,16 +62,18 @@ export function CapabilityCards() {
 }
 
 export function TrustStrip() {
+  const { t } = useT();
+
   return (
-    <section className="mt-12 border-t border-shell-border pt-8" aria-label="Trusted by">
-      <p className="text-center text-xs text-shell-muted">Trusted by engineers and designers at</p>
+    <section className="mt-12 border-t border-shell-border pt-8" aria-label={t("trust.aria")}>
+      <p className="text-center text-xs text-shell-muted">{t("trust.heading")}</p>
       <div className="mt-4 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-        {TRUST_LABELS.map((label) => (
+        {TRUST_LABEL_KEYS.map((labelKey) => (
           <span
-            key={label}
+            key={labelKey}
             className="text-sm font-medium tracking-wide text-shell-subtle uppercase"
           >
-            {label}
+            {t(labelKey)}
           </span>
         ))}
       </div>

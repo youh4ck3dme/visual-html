@@ -84,7 +84,10 @@ describe("buttons › builder-workspace", () => {
   it("Send prompt — enabled with text and submits", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BuilderWorkspace />);
-    await user.type(screen.getByPlaceholderText(/Build, refine, fix, or explain/i), "Build a todo app");
+    await user.type(
+      screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
+      "Build a todo app",
+    );
     const input = screen.getByPlaceholderText(/Build, refine, fix, or explain/i);
     const submit = within(input.closest("form")!).getAllByRole("button").at(-1)!;
     expect(submit).toBeEnabled();

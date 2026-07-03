@@ -10,26 +10,30 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import { useT } from "../hooks/use-t";
+import { LocaleProvider } from "../hooks/use-locale";
 import { ProjectsProvider } from "../hooks/use-projects";
 import { ThemeProvider } from "../hooks/use-theme";
 import { themeInitScript } from "../lib/theme";
+import { Toaster } from "../components/ui/sonner";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
+  const { t } = useT();
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
+        <h1 className="text-7xl font-bold text-foreground">{t("error404.title")}</h1>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">{t("error404.heading")}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">{t("error404.description")}</p>
         <div className="mt-6">
           <Link
             to="/"
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            data-testid="error404-go-home"
           >
-            Go home
+            {t("error404.goHome")}
           </Link>
         </div>
       </div>
@@ -38,7 +42,7 @@ function NotFoundComponent() {
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
+  const { t } = useT();
   const router = useRouter();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
@@ -48,11 +52,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+          {t("errorPage.heading")}
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">{t("errorPage.description")}</p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
@@ -60,14 +62,16 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
               reset();
             }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            data-testid="error-page-retry"
           >
-            Try again
+            {t("errorPage.tryAgain")}
           </button>
           <a
             href="/"
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            data-testid="error-page-go-home"
           >
-            Go home
+            {t("errorPage.goHome")}
           </a>
         </div>
       </div>
@@ -133,13 +137,16 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
-    <ThemeProvider>
-      <ProjectsProvider>
-        <QueryClientProvider client={queryClient}>
-          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-          <Outlet />
-        </QueryClientProvider>
-      </ProjectsProvider>
-    </ThemeProvider>
+    <LocaleProvider>
+      <ThemeProvider>
+        <ProjectsProvider>
+          <QueryClientProvider client={queryClient}>
+            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+            <Outlet />
+            <Toaster />
+          </QueryClientProvider>
+        </ProjectsProvider>
+      </ThemeProvider>
+    </LocaleProvider>
   );
 }

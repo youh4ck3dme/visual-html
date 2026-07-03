@@ -10,7 +10,8 @@ export function makeUploadedImage(overrides?: Partial<UploadedImage>): UploadedI
   return {
     file,
     dataUrl: SAMPLE_PNG_DATA_URL,
-    base64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+    base64:
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
     mimeType: "image/png",
     width: 1200,
     height: 800,

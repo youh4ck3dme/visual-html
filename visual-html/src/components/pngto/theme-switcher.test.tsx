@@ -1,8 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
+import { LocaleProvider } from "@/hooks/use-locale";
 import { ThemeProvider } from "@/hooks/use-theme";
+import { messages } from "@/lib/i18n/messages";
 import { ThemeSwitcher } from "./theme-switcher";
+
+function wrap(ui: React.ReactNode) {
+  return (
+    <LocaleProvider>
+      <ThemeProvider>{ui}</ThemeProvider>
+    </LocaleProvider>
+  );
+}
 
 describe("ThemeSwitcher", () => {
   beforeEach(() => {
@@ -16,28 +26,22 @@ describe("ThemeSwitcher", () => {
       })),
     );
     localStorage.clear();
+    localStorage.setItem("pngto-locale", "en");
   });
-  it("renders segmented control with three theme options", () => {
-    const html = renderToStaticMarkup(
-      <ThemeProvider>
-        <ThemeSwitcher />
-      </ThemeProvider>,
-    );
 
-    expect(html).toContain('aria-label="Color theme"');
-    expect(html).toContain('aria-label="Light"');
-    expect(html).toContain('aria-label="Dark"');
-    expect(html).toContain('aria-label="System');
+  it("renders segmented control with three theme options", () => {
+    const html = renderToStaticMarkup(wrap(<ThemeSwitcher />));
+
+    expect(html).toContain(`aria-label="${messages.en["theme.groupAria"]}"`);
+    expect(html).toContain(`aria-label="${messages.en["theme.light"]}"`);
+    expect(html).toContain(`aria-label="${messages.en["theme.dark"]}"`);
+    expect(html).toContain(messages.en["theme.system"]);
   });
 
   it("renders compact cycle button with accessible label", () => {
-    const html = renderToStaticMarkup(
-      <ThemeProvider>
-        <ThemeSwitcher compact />
-      </ThemeProvider>,
-    );
+    const html = renderToStaticMarkup(wrap(<ThemeSwitcher compact />));
 
     expect(html).toContain("Theme:");
-    expect(html).not.toContain('aria-label="Color theme"');
+    expect(html).not.toContain(`aria-label="${messages.en["theme.groupAria"]}"`);
   });
 });

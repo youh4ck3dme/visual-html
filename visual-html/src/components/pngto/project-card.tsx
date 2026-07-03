@@ -1,11 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { AlertTriangle, Code2, FileImage } from "lucide-react";
 
+import { useT } from "@/hooks/use-t";
 import { formatProjectDate, projectSummaryStats } from "@/lib/projects-store";
 import { formatBytes } from "@/lib/utils/download";
 import type { SavedProject } from "@/types/project";
 
 export function ProjectCard({ project }: { project: SavedProject }) {
+  const { t } = useT();
   const stats = projectSummaryStats(project.result);
 
   return (
@@ -13,6 +15,7 @@ export function ProjectCard({ project }: { project: SavedProject }) {
       to="/projects/$projectId"
       params={{ projectId: project.id }}
       className="shell-card group flex flex-col overflow-hidden transition-[border-color,box-shadow] duration-300 hover:border-info/40 hover:shadow-md"
+      data-testid={`project-card-${project.id}`}
     >
       <div className="relative aspect-[16/10] overflow-hidden border-b border-shell-border bg-shell">
         {project.thumbnailDataUrl ? (
@@ -41,7 +44,7 @@ export function ProjectCard({ project }: { project: SavedProject }) {
           <span aria-hidden>·</span>
           <span className="inline-flex items-center gap-1">
             <Code2 className="h-3 w-3" aria-hidden />
-            {stats.htmlLines} HTML · {stats.cssLines} CSS
+            {t("projectCard.lines", { htmlLines: stats.htmlLines, cssLines: stats.cssLines })}
           </span>
           {stats.warnings > 0 && (
             <>
@@ -55,7 +58,7 @@ export function ProjectCard({ project }: { project: SavedProject }) {
         </div>
 
         <p className="mt-auto text-[10px] text-shell-subtle">
-          Updated {formatProjectDate(project.updatedAt)}
+          {t("projectCard.updated", { date: formatProjectDate(project.updatedAt) })}
         </p>
       </div>
     </Link>
@@ -63,9 +66,13 @@ export function ProjectCard({ project }: { project: SavedProject }) {
 }
 
 export function ProjectsStorageHint({ count, bytes }: { count: number; bytes: number }) {
+  const { t } = useT();
+
   return (
     <p className="text-xs text-shell-muted">
-      {count} {count === 1 ? "project" : "projects"} · {formatBytes(bytes)} stored locally
+      {count === 1
+        ? t("projects.storageOne", { size: formatBytes(bytes) })
+        : t("projects.storage", { count, size: formatBytes(bytes) })}
     </p>
   );
 }

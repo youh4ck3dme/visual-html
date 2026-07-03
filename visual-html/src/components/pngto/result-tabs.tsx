@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CodeBlock } from "./code-block";
 import { PreviewFrame } from "./preview-frame";
+import { useT } from "@/hooks/use-t";
 import { buildSingleFileHtml } from "@/lib/utils/build-single-file-html";
 import { downloadTextFile } from "@/lib/utils/download";
 import type { GenerateHtmlResult } from "@/types/generation";
 
 export function ResultTabs({ result }: { result: GenerateHtmlResult }) {
+  const { t } = useT();
   const [allowJs, setAllowJs] = useState(false);
   const hasJs = result.javascript.trim().length > 0;
 
@@ -29,11 +31,11 @@ export function ResultTabs({ result }: { result: GenerateHtmlResult }) {
       <Tabs defaultValue="preview" className="w-full">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <TabsList>
-            <TabsTrigger value="preview">Preview</TabsTrigger>
-            <TabsTrigger value="html">HTML</TabsTrigger>
-            <TabsTrigger value="css">CSS</TabsTrigger>
-            <TabsTrigger value="js">JS</TabsTrigger>
-            <TabsTrigger value="notes">Notes</TabsTrigger>
+            <TabsTrigger value="preview">{t("result.tab.preview")}</TabsTrigger>
+            <TabsTrigger value="html">{t("result.tab.html")}</TabsTrigger>
+            <TabsTrigger value="css">{t("result.tab.css")}</TabsTrigger>
+            <TabsTrigger value="js">{t("result.tab.js")}</TabsTrigger>
+            <TabsTrigger value="notes">{t("result.tab.notes")}</TabsTrigger>
           </TabsList>
           <div className="flex items-center gap-2">
             {hasJs && (
@@ -49,11 +51,11 @@ export function ResultTabs({ result }: { result: GenerateHtmlResult }) {
                   onChange={(e) => setAllowJs(e.target.checked)}
                   className="h-3.5 w-3.5 accent-primary"
                 />
-                Run JS in preview
+                {t("result.runJsInPreview")}
               </label>
             )}
-            <Button size="sm" variant="outline" onClick={downloadHtml}>
-              <Download className="h-4 w-4" aria-hidden /> .html
+            <Button size="sm" variant="outline" onClick={downloadHtml} data-testid="download-html">
+              <Download className="h-4 w-4" aria-hidden /> {t("result.downloadHtml")}
             </Button>
           </div>
         </div>
@@ -79,25 +81,27 @@ export function ResultTabs({ result }: { result: GenerateHtmlResult }) {
 }
 
 function NotesPanel({ result }: { result: GenerateHtmlResult }) {
+  const { t } = useT();
+
   return (
     <div className="glass-inset space-y-4 p-4 text-sm">
       {result.explanation && (
-        <Section title="Explanation">
+        <Section title={t("result.notes.explanation")}>
           <p className="text-muted-foreground">{result.explanation}</p>
         </Section>
       )}
       {result.accessibilityNotes && (
-        <Section title="Accessibility">
+        <Section title={t("result.notes.accessibility")}>
           <p className="text-muted-foreground">{result.accessibilityNotes}</p>
         </Section>
       )}
       {result.responsiveNotes && (
-        <Section title="Responsive">
+        <Section title={t("result.notes.responsive")}>
           <p className="text-muted-foreground">{result.responsiveNotes}</p>
         </Section>
       )}
       {result.assumptions.length > 0 && (
-        <Section title="Assumptions">
+        <Section title={t("result.notes.assumptions")}>
           <ul className="list-inside list-disc space-y-1 text-muted-foreground">
             {result.assumptions.map((a, i) => (
               <li key={i}>{a}</li>
@@ -106,7 +110,7 @@ function NotesPanel({ result }: { result: GenerateHtmlResult }) {
         </Section>
       )}
       {result.warnings.length > 0 && (
-        <Section title="Warnings">
+        <Section title={t("result.notes.warnings")}>
           <ul className="list-inside list-disc space-y-1 text-destructive/90">
             {result.warnings.map((w, i) => (
               <li key={i}>{w}</li>

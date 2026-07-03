@@ -1,7 +1,35 @@
-import { vi } from "vitest";
+import { vi, type Mock } from "vitest";
 
-const analyzeImageForensicsMock = vi.hoisted(() =>
-  vi.fn().mockResolvedValue({
+import { builderChat } from "@/lib/builder.functions";
+import { continueHtml, generateHtml, refineHtml, runOcr } from "@/lib/generate.functions";
+import { applyDefaultServerFnMocks } from "@/test/mocks/server-fns";
+
+type ServerFnMockBag = {
+  runOcr: Mock;
+  generateHtml: Mock;
+  refineHtml: Mock;
+  continueHtml: Mock;
+  builderChat: Mock;
+};
+
+declare global {
+  var __PNGTO_TEST_SERVER_FN_MOCKS__: ServerFnMockBag | undefined;
+  var __PNGTO_TEST_SERVER_FN_REGISTRY__: Map<unknown, Mock> | undefined;
+  var __PNGTO_FORENSICS_MOCK__: Mock | undefined;
+}
+
+vi.hoisted(() => {
+  const mocks: ServerFnMockBag = {
+    runOcr: vi.fn(),
+    generateHtml: vi.fn(),
+    refineHtml: vi.fn(),
+    continueHtml: vi.fn(),
+    builderChat: vi.fn(),
+  };
+
+  globalThis.__PNGTO_TEST_SERVER_FN_MOCKS__ = mocks;
+
+  globalThis.__PNGTO_FORENSICS_MOCK__ = vi.fn().mockResolvedValue({
     aspectProfile: "Landscape UI · 16:9 profile",
     densityMap: Array.from({ length: 64 }, (_, i) => (i < 16 ? 0.85 : i < 40 ? 0.45 : 0.12)),
     ocrHints: ["Header navigation detected"],
@@ -33,21 +61,38 @@ const analyzeImageForensicsMock = vi.hoisted(() =>
         detail: "Bottom bar",
       },
     ],
-  }),
-);
+  });
+});
 
-const builderChatMock = vi.hoisted(() =>
-  vi.fn().mockResolvedValue({
-    ok: true,
-    content: "<!DOCTYPE html><html><body>AI</body></html>",
-  }),
-);
+applyDefaultServerFnMocks(globalThis.__PNGTO_TEST_SERVER_FN_MOCKS__!);
+
+function ensureServerFnRegistry(): Map<unknown, Mock> {
+  if (globalThis.__PNGTO_TEST_SERVER_FN_REGISTRY__) {
+    return globalThis.__PNGTO_TEST_SERVER_FN_REGISTRY__;
+  }
+
+  const mocks = globalThis.__PNGTO_TEST_SERVER_FN_MOCKS__;
+  if (!mocks) {
+    throw new Error("Server function mocks are not initialized.");
+  }
+
+  const registry = new Map<unknown, Mock>([
+    [runOcr, mocks.runOcr],
+    [generateHtml, mocks.generateHtml],
+    [refineHtml, mocks.refineHtml],
+    [continueHtml, mocks.continueHtml],
+    [builderChat, mocks.builderChat],
+  ]);
+
+  globalThis.__PNGTO_TEST_SERVER_FN_REGISTRY__ = registry;
+  return registry;
+}
 
 vi.mock("@/lib/image-forensics", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/image-forensics")>();
   return {
     ...actual,
-    analyzeImageForensics: analyzeImageForensicsMock,
+    analyzeImageForensics: (...args: unknown[]) => globalThis.__PNGTO_FORENSICS_MOCK__!(...args),
   };
 });
 
@@ -55,6 +100,16 @@ vi.mock("@tanstack/react-start", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@tanstack/react-start")>();
   return {
     ...actual,
-    useServerFn: () => builderChatMock,
+    useServerFn: (serverFn: unknown) => {
+      const mock = ensureServerFnRegistry().get(serverFn);
+      if (!mock) {
+        const name =
+          typeof serverFn === "function" && serverFn.name ? serverFn.name : String(serverFn);
+        throw new Error(
+          `useServerFn mock: unregistered server function "${name}". Register it in src/test/setup-mocks.ts.`,
+        );
+      }
+      return (...args: unknown[]) => mock(...args);
+    },
   };
 });

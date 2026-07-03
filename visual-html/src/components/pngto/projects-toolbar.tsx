@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useT } from "@/hooks/use-t";
 
 export function ProjectsToolbar({
   query,
@@ -21,6 +22,8 @@ export function ProjectsToolbar({
   onQueryChange: (value: string) => void;
   onSortChange: (value: ProjectSort) => void;
 }) {
+  const { t } = useT();
+
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
       <div className="relative flex-1">
@@ -31,19 +34,19 @@ export function ProjectsToolbar({
         <Input
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          placeholder="Search projects…"
+          placeholder={t("projects.toolbar.searchPlaceholder")}
           className="bg-shell-elevated pl-9"
-          aria-label="Search projects"
+          aria-label={t("projects.toolbar.searchAria")}
         />
       </div>
       <Select value={sort} onValueChange={(v) => onSortChange(v as ProjectSort)}>
-        <SelectTrigger className="w-full sm:w-44" aria-label="Sort projects">
+        <SelectTrigger className="w-full sm:w-44" aria-label={t("projects.toolbar.sortAria")}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="updated">Recently updated</SelectItem>
-          <SelectItem value="created">Recently created</SelectItem>
-          <SelectItem value="name">Name A–Z</SelectItem>
+          <SelectItem value="updated">{t("projects.toolbar.sort.updated")}</SelectItem>
+          <SelectItem value="created">{t("projects.toolbar.sort.created")}</SelectItem>
+          <SelectItem value="name">{t("projects.toolbar.sort.name")}</SelectItem>
         </SelectContent>
       </Select>
     </div>

@@ -3,6 +3,8 @@ import { ZoomIn, X } from "lucide-react";
 
 import type { UploadedImage } from "./upload-dropzone";
 import { ForensicLightbox } from "./forensic-lightbox";
+import { useT } from "@/hooks/use-t";
+import { localizedBudget } from "@/lib/i18n/helpers";
 import { imageBudgetReport } from "@/lib/image-budget";
 import { cn } from "@/lib/utils";
 import { formatBytes } from "@/lib/utils/download";
@@ -29,8 +31,10 @@ export function ImagePreview({
   busy?: boolean;
   onForensicGenerate: (nextOptions: GenerationOptions) => void;
 }) {
+  const { t, locale } = useT();
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const budget = imageBudgetReport(image.file.size, image.width, image.height);
+  const budgetStatus = imageBudgetReport(image.file.size, image.width, image.height);
+  const budget = localizedBudget(locale, budgetStatus.status);
 
   return (
     <>
@@ -39,18 +43,19 @@ export function ImagePreview({
           <button
             type="button"
             onClick={() => setLightboxOpen(true)}
-            title="Open forensic scan"
-            aria-label={`Forensic scan: ${image.file.name}`}
+            title={t("imagePreview.forensicTitle")}
+            aria-label={t("imagePreview.forensicAria", { fileName: image.file.name })}
             className={cn(
               "group/thumb relative shrink-0 overflow-hidden rounded-md outline-none",
               "transition-transform duration-200 motion-safe:hover:scale-[1.03]",
               "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-workspace-panel",
               "motion-safe:hover:ring-2 motion-safe:hover:ring-primary/40",
             )}
+            data-testid="image-preview-forensic"
           >
             <img
               src={image.dataUrl}
-              alt="Uploaded UI screenshot preview"
+              alt={t("imagePreview.altThumb")}
               className="h-16 w-16 object-cover"
             />
             <span
@@ -75,18 +80,21 @@ export function ImagePreview({
             <p className="text-xs text-workspace-muted">
               {image.width}×{image.height} · {formatBytes(image.file.size)}
             </p>
-            <p className="text-[10px] text-primary">Click thumbnail for forensic scan</p>
+            <p className="text-[10px] text-primary">{t("imagePreview.forensicHint")}</p>
           </div>
           <button
             type="button"
             onClick={onRemove}
-            aria-label="Remove image"
+            aria-label={t("imagePreview.removeAria")}
             className="grid h-8 w-8 place-items-center rounded-md text-workspace-muted hover:bg-workspace-tabs hover:text-workspace-foreground"
+            data-testid="image-preview-remove"
           >
             <X className="h-4 w-4" aria-hidden />
           </button>
         </div>
-        <div className={cn("rounded-md border px-3 py-2 text-xs", BUDGET_STYLES[budget.status])}>
+        <div
+          className={cn("rounded-md border px-3 py-2 text-xs", BUDGET_STYLES[budgetStatus.status])}
+        >
           <div className="font-medium">{budget.label}</div>
           <div className="mt-1 text-current/70">{budget.detail}</div>
           <div className="mt-1 text-current/70">{budget.recommendation}</div>
@@ -97,7 +105,7 @@ export function ImagePreview({
         open={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
         src={image.dataUrl}
-        alt="Uploaded UI screenshot full size"
+        alt={t("imagePreview.altFull")}
         fileName={image.file.name}
         width={image.width}
         height={image.height}

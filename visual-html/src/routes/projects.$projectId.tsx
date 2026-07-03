@@ -9,14 +9,32 @@ import { VisualSidebar } from "@/components/pngto/sidebar-nav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useProjects } from "@/hooks/use-projects";
+import { useT } from "@/hooks/use-t";
+import type { MessageKey } from "@/lib/i18n/messages";
 import { formatProjectDate, projectSummaryStats } from "@/lib/projects-store";
 import { cn } from "@/lib/utils";
+import type { GenerationOptions } from "@/types/generation";
+
+const OUTPUT_LABEL_KEYS: Record<GenerationOptions["outputMode"], MessageKey> = {
+  static: "options.output.static",
+  "single-file": "options.output.singleFile",
+  tailwind: "options.output.tailwind",
+  component: "options.output.component",
+};
+
+const STYLING_LABEL_KEYS: Record<GenerationOptions["stylingMode"], MessageKey> = {
+  "vanilla-css": "options.styling.vanillaCss",
+  "css-modules": "options.styling.cssModules",
+  tailwind: "options.styling.tailwind",
+  "inline-css": "options.styling.inlineCss",
+};
 
 export const Route = createFileRoute("/projects/$projectId")({
   component: ProjectDetailPage,
 });
 
 export function ProjectDetailPage() {
+  const { t } = useT();
   const { projectId } = useParams({ from: "/projects/$projectId" });
   const navigate = useNavigate();
   const { getProject, renameProject, deleteProject } = useProjects();
@@ -34,12 +52,16 @@ export function ProjectDetailPage() {
           <TopCreditBar />
           <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
             <section className="shell-card p-8 text-center">
-              <h1 className="text-lg font-semibold text-foreground">Project not found</h1>
+              <h1 className="text-lg font-semibold text-foreground">
+                {t("projectDetail.notFound.title")}
+              </h1>
               <p className="mt-2 text-sm text-shell-muted">
-                It may have been deleted or never saved to this browser.
+                {t("projectDetail.notFound.description")}
               </p>
               <Button asChild className="mt-6" variant="outline">
-                <Link to="/projects">Back to projects</Link>
+                <Link to="/projects" data-testid="back-to-projects">
+                  {t("projectDetail.backToProjects")}
+                </Link>
               </Button>
             </section>
           </main>
@@ -57,10 +79,13 @@ export function ProjectDetailPage() {
   };
 
   const handleDelete = () => {
-    if (!window.confirm(`Delete “${project.name}”? This cannot be undone.`)) return;
+    if (!window.confirm(t("projectDetail.deleteConfirm", { name: project.name }))) return;
     deleteProject(project.id);
     void navigate({ to: "/projects" });
   };
+
+  const outputLabel = t(OUTPUT_LABEL_KEYS[project.options.outputMode]);
+  const stylingLabel = t(STYLING_LABEL_KEYS[project.options.stylingMode]);
 
   return (
     <div className="visual-shell min-h-dvh">
@@ -77,7 +102,7 @@ export function ProjectDetailPage() {
                 className="mb-3 inline-flex items-center gap-1.5 text-xs text-shell-muted hover:text-foreground"
               >
                 <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-                All projects
+                {t("projectDetail.allProjects")}
               </Link>
 
               {editingName ? (
@@ -92,11 +117,11 @@ export function ProjectDetailPage() {
                     value={nameDraft}
                     onChange={(e) => setNameDraft(e.target.value)}
                     autoFocus
-                    aria-label="Project name"
+                    aria-label={t("projectDetail.nameAria")}
                     className="h-9"
                   />
-                  <Button type="submit" size="sm">
-                    Save
+                  <Button type="submit" size="sm" data-testid="rename-save">
+                    {t("projectDetail.save")}
                   </Button>
                   <Button
                     type="button"
@@ -106,8 +131,9 @@ export function ProjectDetailPage() {
                       setNameDraft(project.name);
                       setEditingName(false);
                     }}
+                    data-testid="rename-cancel"
                   >
-                    Cancel
+                    {t("projectDetail.cancel")}
                   </Button>
                 </form>
               ) : (
@@ -120,7 +146,8 @@ export function ProjectDetailPage() {
                       setEditingName(true);
                     }}
                     className="grid h-8 w-8 place-items-center rounded-md text-shell-muted hover:bg-shell-hover hover:text-foreground"
-                    aria-label="Rename project"
+                    aria-label={t("projectDetail.renameAria")}
+                    data-testid="rename-project"
                   >
                     <Pencil className="h-3.5 w-3.5" aria-hidden />
                   </button>
@@ -128,21 +155,25 @@ export function ProjectDetailPage() {
               )}
 
               <p className="mt-1 text-sm text-shell-muted">
-                {project.fileName} · {project.imageWidth}×{project.imageHeight} · Updated{" "}
-                {formatProjectDate(project.updatedAt)}
+                {t("projectDetail.meta", {
+                  fileName: project.fileName,
+                  width: project.imageWidth,
+                  height: project.imageHeight,
+                  date: formatProjectDate(project.updatedAt),
+                })}
               </p>
             </div>
 
             <div className="flex flex-wrap gap-2">
               <Button asChild className="bg-primary text-primary-foreground hover:bg-primary-hover">
-                <Link to="/" search={{ project: project.id }}>
+                <Link to="/" search={{ project: project.id }} data-testid="open-in-editor">
                   <Wand2 className="h-4 w-4" aria-hidden />
-                  Open in editor
+                  {t("projectDetail.openInEditor")}
                 </Link>
               </Button>
-              <Button variant="outline" onClick={handleDelete}>
+              <Button variant="outline" onClick={handleDelete} data-testid="delete-project">
                 <Trash2 className="h-4 w-4" aria-hidden />
-                Delete
+                {t("projectDetail.delete")}
               </Button>
             </div>
           </div>
@@ -152,8 +183,8 @@ export function ProjectDetailPage() {
               <button
                 type="button"
                 onClick={() => setThumbLightboxOpen(true)}
-                title="Click to zoom"
-                aria-label={`Zoom screenshot: ${project.fileName}`}
+                title={t("projectDetail.zoomTitle")}
+                aria-label={t("projectDetail.zoomAria", { fileName: project.fileName })}
                 className={cn(
                   "group/thumb relative block w-full overflow-hidden outline-none",
                   "transition-transform duration-200 motion-safe:hover:scale-[1.02]",
@@ -162,7 +193,7 @@ export function ProjectDetailPage() {
               >
                 <img
                   src={project.thumbnailDataUrl}
-                  alt="Screenshot thumbnail"
+                  alt={t("projectDetail.thumbAlt")}
                   className="aspect-[4/3] w-full object-cover object-top"
                 />
                 <span
@@ -182,27 +213,37 @@ export function ProjectDetailPage() {
               </button>
               <div className="space-y-2 p-4 text-xs text-shell-muted">
                 <p>
-                  <span className="font-medium text-foreground">Output:</span>{" "}
-                  {project.options.outputMode}
+                  <span className="font-medium text-foreground">{t("projectDetail.output")}</span>{" "}
+                  {outputLabel}
                 </p>
                 <p>
-                  <span className="font-medium text-foreground">Styling:</span>{" "}
-                  {project.options.stylingMode}
+                  <span className="font-medium text-foreground">{t("projectDetail.styling")}</span>{" "}
+                  {stylingLabel}
                 </p>
                 <p>
-                  <span className="font-medium text-foreground">Lines:</span> {stats.htmlLines} HTML
-                  · {stats.cssLines} CSS
-                  {stats.jsLines > 0 ? ` · ${stats.jsLines} JS` : ""}
+                  <span className="font-medium text-foreground">{t("projectDetail.lines")}</span>{" "}
+                  {stats.jsLines > 0
+                    ? t("projectDetail.linesWithJs", {
+                        htmlLines: stats.htmlLines,
+                        cssLines: stats.cssLines,
+                        jsLines: stats.jsLines,
+                      })
+                    : t("projectDetail.linesDetail", {
+                        htmlLines: stats.htmlLines,
+                        cssLines: stats.cssLines,
+                      })}
                 </p>
                 <p>
-                  <span className="font-medium text-foreground">Created:</span>{" "}
+                  <span className="font-medium text-foreground">{t("projectDetail.created")}</span>{" "}
                   {formatProjectDate(project.createdAt)}
                 </p>
               </div>
             </aside>
 
             <section className="shell-card p-5">
-              <h2 className="mb-4 text-sm font-medium text-foreground">Generated output</h2>
+              <h2 className="mb-4 text-sm font-medium text-foreground">
+                {t("projectDetail.generatedOutput")}
+              </h2>
               <ResultTabs result={project.result} />
             </section>
           </div>
@@ -213,7 +254,7 @@ export function ProjectDetailPage() {
         open={thumbLightboxOpen}
         onClose={() => setThumbLightboxOpen(false)}
         src={project.thumbnailDataUrl}
-        alt="Project screenshot full size"
+        alt={t("projectDetail.lightboxAlt")}
         fileName={project.fileName}
         width={project.imageWidth}
         height={project.imageHeight}

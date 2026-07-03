@@ -13,6 +13,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
+import { useT } from "@/hooks/use-t";
+import {
+  localizedAspectProfile,
+  localizedForensicWarningDetail,
+  localizedForensicWarningTitle,
+  localizedOcrHint,
+  localizedPresetHint,
+  localizedPresetLabel,
+  localizedZoneDetail,
+  localizedZoneLabel,
+} from "@/lib/i18n/helpers";
 import {
   analyzeImageForensics,
   buildForensicOptions,
@@ -24,6 +35,7 @@ import {
 } from "@/lib/image-forensics";
 import { cn } from "@/lib/utils";
 import { formatBytes } from "@/lib/utils/download";
+import type { Locale } from "@/lib/locale";
 import type { GenerationOptions } from "@/types/generation";
 
 export type ForensicLightboxProps = {
@@ -59,6 +71,7 @@ export function ForensicLightbox({
   busy = false,
   onGenerate,
 }: ForensicLightboxProps) {
+  const { t, locale } = useT();
   const [report, setReport] = useState<ForensicsReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
@@ -91,6 +104,13 @@ export function ForensicLightbox({
     [selectedPresetId],
   );
 
+  const fidelityLabel =
+    fidelity >= 85
+      ? t("forensic.fidelityPixelPerfect")
+      : fidelity >= 55
+        ? t("forensic.fidelityBalanced")
+        : t("forensic.fidelitySimplified");
+
   const triggerGenerate = (mode: "full" | "region") => {
     const zone = mode === "region" ? selectedZone : null;
     const next = buildForensicOptions(options, fidelity, zone, selectedPreset);
@@ -107,13 +127,13 @@ export function ForensicLightbox({
           "[&>button.absolute]:hidden",
         )}
       >
-        <DialogTitle className="sr-only">Forensic screenshot analysis</DialogTitle>
+        <DialogTitle className="sr-only">{t("forensic.dialogTitle")}</DialogTitle>
 
         <header className="flex items-center justify-between border-b border-shell-border px-4 py-3">
           <div className="flex items-center gap-2">
             <FileSearch className="h-4 w-4 text-primary" aria-hidden />
             <div>
-              <p className="text-sm font-semibold text-foreground">Forensic scan</p>
+              <p className="text-sm font-semibold text-foreground">{t("forensic.title")}</p>
               <p className="text-[11px] text-shell-muted">
                 {fileName} · {width}×{height}
                 {fileSize != null ? ` · ${formatBytes(fileSize)}` : ""}
@@ -124,7 +144,8 @@ export function ForensicLightbox({
             type="button"
             onClick={onClose}
             className="grid h-8 w-8 place-items-center rounded-md text-shell-muted hover:bg-shell-hover"
-            aria-label="Close forensic view"
+            aria-label={t("forensic.closeAria")}
+            data-testid="forensic-close"
           >
             <X className="h-4 w-4" />
           </button>
@@ -135,58 +156,56 @@ export function ForensicLightbox({
           <aside className="flex min-h-0 flex-col border-b border-shell-border md:border-b-0 md:border-r">
             <div className="border-b border-shell-border px-3 py-2">
               <p className="text-[10px] font-bold uppercase tracking-wide text-shell-muted">
-                Left · Structure
+                {t("forensic.leftPanel")}
               </p>
             </div>
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
               {loading && (
                 <div className="flex items-center gap-2 text-xs text-shell-muted">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Scanning pixels…
+                  {t("forensic.scanning")}
                 </div>
               )}
 
               {report && (
                 <>
-                  <p className="text-xs text-shell-muted">{report.aspectProfile}</p>
+                  <p className="text-xs text-shell-muted">
+                    {localizedAspectProfile(locale, report.aspectProfile)}
+                  </p>
 
                   <div className="space-y-1.5">
-                    <p className="text-[10px] font-bold uppercase text-shell-muted">UI zones</p>
+                    <p className="text-[10px] font-bold uppercase text-shell-muted">
+                      {t("forensic.zonesHeading")}
+                    </p>
                     {report.zones.map((zone) => (
-                      <button
+                      <ZoneButton
                         key={zone.id}
-                        type="button"
-                        onClick={() => setSelectedZoneId(zone.id)}
-                        className={cn(
-                          "w-full rounded-lg border px-2.5 py-2 text-left text-xs transition-colors",
-                          selectedZoneId === zone.id
-                            ? "border-primary bg-primary/10 text-foreground"
-                            : "border-shell-border bg-shell-elevated hover:border-primary/40",
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-semibold">{zone.label}</span>
-                          <span className="text-[10px] text-shell-muted">{zone.confidence}%</span>
-                        </div>
-                        <p className="mt-0.5 text-[10px] text-shell-muted">{zone.detail}</p>
-                      </button>
+                        zone={zone}
+                        locale={locale}
+                        selected={selectedZoneId === zone.id}
+                        onSelect={() => setSelectedZoneId(zone.id)}
+                      />
                     ))}
                   </div>
 
                   <div className="space-y-1.5">
-                    <p className="text-[10px] font-bold uppercase text-shell-muted">OCR hints</p>
+                    <p className="text-[10px] font-bold uppercase text-shell-muted">
+                      {t("forensic.ocrHintsHeading")}
+                    </p>
                     {report.ocrHints.map((hint) => (
                       <p key={hint} className="text-[11px] text-shell-muted">
-                        · {hint}
+                        · {localizedOcrHint(locale, hint)}
                       </p>
                     ))}
                   </div>
 
                   <div className="space-y-1.5">
-                    <p className="text-[10px] font-bold uppercase text-shell-muted">Warnings</p>
+                    <p className="text-[10px] font-bold uppercase text-shell-muted">
+                      {t("forensic.warningsHeading")}
+                    </p>
                     {report.warnings.length === 0 && (
                       <p className="text-[11px] text-emerald-600 dark:text-emerald-300">
-                        No blockers detected.
+                        {t("forensic.noBlockers")}
                       </p>
                     )}
                     {report.warnings.map((w) => (
@@ -199,9 +218,13 @@ export function ForensicLightbox({
                       >
                         <div className="flex items-center gap-1 font-semibold">
                           <AlertTriangle className="h-3 w-3 shrink-0" />
-                          {w.title}
+                          {localizedForensicWarningTitle(locale, w.id, w.title)}
                         </div>
-                        <p className="mt-0.5 opacity-80">{w.detail}</p>
+                        <p className="mt-0.5 opacity-80">
+                          {localizedForensicWarningDetail(locale, w.id, w.detail, {
+                            detail: w.detail,
+                          })}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -241,7 +264,9 @@ export function ForensicLightbox({
                   key={zone.id}
                   type="button"
                   onClick={() => setSelectedZoneId(zone.id)}
-                  aria-label={`Select zone: ${zone.label}`}
+                  aria-label={t("forensic.selectZoneAria", {
+                    label: localizedZoneLabel(locale, zone),
+                  })}
                   className={cn(
                     "absolute border-2 transition-all motion-safe:duration-200",
                     selectedZoneId === zone.id
@@ -264,7 +289,7 @@ export function ForensicLightbox({
               className="absolute bottom-3 left-3 rounded-md border border-white/20 bg-black/60 px-2 py-1 text-[10px] text-white hover:bg-black/80"
             >
               <Scan className="mr-1 inline h-3 w-3" />
-              Heatmap {showHeatmap ? "on" : "off"}
+              {showHeatmap ? t("forensic.heatmapOn") : t("forensic.heatmapOff")}
             </button>
           </main>
 
@@ -272,17 +297,20 @@ export function ForensicLightbox({
           <aside className="flex min-h-0 flex-col border-t border-shell-border md:border-l md:border-t-0">
             <div className="border-b border-shell-border px-3 py-2">
               <p className="text-[10px] font-bold uppercase tracking-wide text-shell-muted">
-                Right · Actions
+                {t("forensic.rightPanel")}
               </p>
             </div>
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-3">
               <div className="space-y-2">
-                <p className="text-[10px] font-bold uppercase text-shell-muted">1-click presets</p>
+                <p className="text-[10px] font-bold uppercase text-shell-muted">
+                  {t("forensic.presetsHeading")}
+                </p>
                 <div className="grid grid-cols-2 gap-1.5">
                   {FORENSIC_PRESETS.map((preset) => (
                     <PresetButton
                       key={preset.id}
                       preset={preset}
+                      locale={locale}
                       active={selectedPresetId === preset.id}
                       onClick={() =>
                         setSelectedPresetId((id) => (id === preset.id ? null : preset.id))
@@ -291,13 +319,15 @@ export function ForensicLightbox({
                   ))}
                 </div>
                 {selectedPreset && (
-                  <p className="text-[10px] text-shell-muted">{selectedPreset.focusHint}</p>
+                  <p className="text-[10px] text-shell-muted">
+                    {localizedPresetHint(locale, selectedPreset)}
+                  </p>
                 )}
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-[10px] font-bold uppercase text-shell-muted">
-                  <span>Fidelity</span>
+                  <span>{t("forensic.fidelity")}</span>
                   <span>{fidelity}%</span>
                 </div>
                 <Slider
@@ -306,23 +336,23 @@ export function ForensicLightbox({
                   max={100}
                   step={1}
                   onValueChange={([v]) => setFidelity(v)}
-                  aria-label="Generation fidelity"
+                  aria-label={t("forensic.fidelityAria")}
                 />
-                <p className="text-[10px] text-shell-muted">
-                  {fidelity >= 85 ? "Pixel-perfect" : fidelity >= 55 ? "Balanced" : "Simplified"}
-                </p>
+                <p className="text-[10px] text-shell-muted">{fidelityLabel}</p>
               </div>
 
               {report && (
                 <div className="rounded-lg border border-shell-border bg-shell-elevated px-3 py-2 text-[11px] text-shell-muted">
                   <p>
-                    Est. tokens:{" "}
+                    {t("forensic.estTokens")}{" "}
                     <span className="font-semibold text-foreground">
                       {report.tokenEstimate.min.toLocaleString()}–
                       {report.tokenEstimate.max.toLocaleString()}
                     </span>
                   </p>
-                  <p className="mt-0.5">Est. time: ~{report.tokenEstimate.seconds}s</p>
+                  <p className="mt-0.5">
+                    {t("forensic.estTime", { seconds: report.tokenEstimate.seconds })}
+                  </p>
                 </div>
               )}
 
@@ -330,11 +360,9 @@ export function ForensicLightbox({
                 <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
                   <p className="flex items-center gap-1 text-xs font-semibold text-primary">
                     <Target className="h-3.5 w-3.5" />
-                    Target: {selectedZone.label}
+                    {t("forensic.target", { label: localizedZoneLabel(locale, selectedZone) })}
                   </p>
-                  <p className="mt-1 text-[10px] text-shell-muted">
-                    Right panel locked to region-only generation.
-                  </p>
+                  <p className="mt-1 text-[10px] text-shell-muted">{t("forensic.regionLocked")}</p>
                 </div>
               )}
 
@@ -343,18 +371,20 @@ export function ForensicLightbox({
                   className="w-full"
                   disabled={busy || loading || !selectedZone}
                   onClick={() => triggerGenerate("region")}
+                  data-testid="forensic-generate-section"
                 >
                   <Crosshair className="h-4 w-4" />
-                  Generate this section
+                  {t("forensic.generateSection")}
                 </Button>
                 <Button
                   variant="outline"
                   className="w-full"
                   disabled={busy || loading}
                   onClick={() => triggerGenerate("full")}
+                  data-testid="forensic-generate-full"
                 >
                   <Sparkles className="h-4 w-4" />
-                  Generate full page
+                  {t("forensic.generateFull")}
                 </Button>
               </div>
             </div>
@@ -365,12 +395,45 @@ export function ForensicLightbox({
   );
 }
 
+function ZoneButton({
+  zone,
+  locale,
+  selected,
+  onSelect,
+}: {
+  zone: ForensicZone;
+  locale: Locale;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        "w-full rounded-lg border px-2.5 py-2 text-left text-xs transition-colors",
+        selected
+          ? "border-primary bg-primary/10 text-foreground"
+          : "border-shell-border bg-shell-elevated hover:border-primary/40",
+      )}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-semibold">{localizedZoneLabel(locale, zone)}</span>
+        <span className="text-[10px] text-shell-muted">{zone.confidence}%</span>
+      </div>
+      <p className="mt-0.5 text-[10px] text-shell-muted">{localizedZoneDetail(locale, zone)}</p>
+    </button>
+  );
+}
+
 function PresetButton({
   preset,
+  locale,
   active,
   onClick,
 }: {
   preset: ForensicPreset;
+  locale: Locale;
   active: boolean;
   onClick: () => void;
 }) {
@@ -386,7 +449,7 @@ function PresetButton({
       )}
     >
       <span className="mr-1">{preset.icon}</span>
-      {preset.label}
+      {localizedPresetLabel(locale, preset)}
     </button>
   );
 }

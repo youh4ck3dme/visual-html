@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { Upload } from "lucide-react";
 
+import { useT } from "@/hooks/use-t";
 import {
   HARD_AI_IMAGE_BYTES,
   IDEAL_AI_IMAGE_BYTES,
@@ -8,6 +9,7 @@ import {
 } from "@/lib/image-budget";
 import { ALLOWED_MIME, MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from "@/lib/validation/generation";
 import { cn } from "@/lib/utils";
+import type { MessageKey } from "@/lib/i18n/messages";
 
 export interface UploadedImage {
   file: File;
@@ -21,6 +23,14 @@ export interface UploadedImage {
 const ALLOWED = ALLOWED_MIME as readonly string[];
 const TARGET_UPLOAD_BYTES = IDEAL_AI_IMAGE_BYTES;
 const WEBP_QUALITIES = [0.88, 0.78, 0.68, 0.58, 0.48] as const;
+
+const ERROR_MESSAGE_KEYS: Record<string, MessageKey> = {
+  "Could not read file": "upload.error.couldNotRead",
+  "Could not process image": "upload.error.couldNotProcess",
+  "Invalid image": "upload.error.invalidImage",
+  "Could not optimize image": "upload.error.couldNotOptimize",
+  "Could not prepare image for upload": "upload.error.couldNotPrepare",
+};
 
 async function readAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -143,31 +153,40 @@ export function UploadDropzone({
   onError: (msg: string) => void;
   className?: string;
 }) {
+  const { t } = useT();
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const localizeError = useCallback(
+    (message: string) => {
+      const key = ERROR_MESSAGE_KEYS[message];
+      return key ? t(key) : message;
+    },
+    [t],
+  );
 
   const handle = useCallback(
     async (file: File | undefined) => {
       if (!file) return;
       if (!ALLOWED.includes(file.type)) {
-        onError("Unsupported format. Use PNG, JPG, or WebP.");
+        onError(t("upload.error.unsupportedFormat"));
         return;
       }
       if (file.size === 0) {
-        onError("File is empty.");
+        onError(t("upload.error.emptyFile"));
         return;
       }
       if (file.size > MAX_UPLOAD_BYTES) {
-        onError(`File exceeds ${MAX_UPLOAD_MB} MB.`);
+        onError(t("upload.error.fileTooLarge", { maxMb: MAX_UPLOAD_MB }));
         return;
       }
       try {
         onFile(await optimizeUpload(file));
       } catch (e) {
-        onError((e as Error).message);
+        onError(localizeError((e as Error).message));
       }
     },
-    [onError, onFile],
+    [localizeError, onError, onFile, t],
   );
 
   return (
@@ -192,15 +211,18 @@ export function UploadDropzone({
         <Upload className="h-5 w-5" aria-hidden />
       </div>
       <div className="space-y-1">
-        <p className="text-sm font-medium text-workspace-foreground">Drop a UI screenshot here</p>
-        <p className="text-xs text-workspace-muted">PNG, JPG, or WebP · up to {MAX_UPLOAD_MB} MB</p>
+        <p className="text-sm font-medium text-workspace-foreground">{t("upload.dropTitle")}</p>
+        <p className="text-xs text-workspace-muted">
+          {t("upload.dropHint", { maxMb: MAX_UPLOAD_MB })}
+        </p>
       </div>
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
         className="mt-2 inline-flex items-center rounded-md border border-workspace-border bg-workspace-surface px-3 py-1.5 text-xs font-medium text-workspace-foreground hover:bg-workspace-tabs"
+        data-testid="upload-choose-file"
       >
-        Choose file
+        {t("upload.chooseFile")}
       </button>
       <input
         id="upload-image-file"
@@ -209,7 +231,7 @@ export function UploadDropzone({
         type="file"
         accept={ALLOWED.join(",")}
         className="hidden"
-        aria-label="Upload image file"
+        aria-label={t("upload.inputAria")}
         onChange={(e) => {
           void handle(e.target.files?.[0]);
           e.target.value = "";

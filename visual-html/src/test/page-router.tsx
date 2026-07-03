@@ -9,6 +9,8 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render } from "@testing-library/react";
 
+import { Toaster } from "@/components/ui/sonner";
+import { LocaleProvider } from "@/hooks/use-locale";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ProjectsProvider } from "@/hooks/use-projects";
 import { Index } from "@/routes/index";
@@ -61,11 +63,14 @@ export async function renderPageAt(path: string) {
 
   const view = render(
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <ProjectsProvider>
-          <RouterProvider router={router} />
-        </ProjectsProvider>
-      </ThemeProvider>
+      <LocaleProvider>
+        <ThemeProvider>
+          <ProjectsProvider>
+            <RouterProvider router={router} />
+            <Toaster />
+          </ProjectsProvider>
+        </ThemeProvider>
+      </LocaleProvider>
     </QueryClientProvider>,
   );
 

@@ -8,6 +8,39 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useT } from "@/hooks/use-t";
+import type { MessageKey } from "@/lib/i18n/messages";
+
+const OUTPUT_OPTIONS: { value: GenerationOptions["outputMode"]; labelKey: MessageKey }[] = [
+  { value: "static", labelKey: "options.output.static" },
+  { value: "single-file", labelKey: "options.output.singleFile" },
+  { value: "tailwind", labelKey: "options.output.tailwind" },
+  { value: "component", labelKey: "options.output.component" },
+];
+
+const STYLING_OPTIONS: { value: GenerationOptions["stylingMode"]; labelKey: MessageKey }[] = [
+  { value: "vanilla-css", labelKey: "options.styling.vanillaCss" },
+  { value: "css-modules", labelKey: "options.styling.cssModules" },
+  { value: "tailwind", labelKey: "options.styling.tailwind" },
+  { value: "inline-css", labelKey: "options.styling.inlineCss" },
+];
+
+const RESPONSIVENESS_OPTIONS: {
+  value: GenerationOptions["responsiveness"];
+  labelKey: MessageKey;
+}[] = [
+  { value: "mobile-first", labelKey: "options.responsiveness.mobileFirst" },
+  { value: "desktop-first", labelKey: "options.responsiveness.desktopFirst" },
+  { value: "adaptive", labelKey: "options.responsiveness.adaptive" },
+];
+
+const ACCESSIBILITY_OPTIONS: {
+  value: GenerationOptions["accessibilityLevel"];
+  labelKey: MessageKey;
+}[] = [
+  { value: "standard", labelKey: "options.accessibility.standard" },
+  { value: "strict", labelKey: "options.accessibility.strict" },
+];
 
 export function GenerationOptionsPanel({
   value,
@@ -18,6 +51,7 @@ export function GenerationOptionsPanel({
   onChange: (v: GenerationOptions) => void;
   disabled?: boolean;
 }) {
+  const { t } = useT();
   const set = <K extends keyof GenerationOptions>(k: K, v: GenerationOptions[K]) =>
     onChange({ ...value, [k]: v });
 
@@ -26,7 +60,7 @@ export function GenerationOptionsPanel({
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="generation-output-mode" className="text-xs text-muted-foreground">
-            Output
+            {t("options.output.label")}
           </Label>
           <Select
             name="outputMode"
@@ -38,17 +72,18 @@ export function GenerationOptionsPanel({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="static">Static HTML + CSS</SelectItem>
-              <SelectItem value="single-file">Single-file HTML</SelectItem>
-              <SelectItem value="tailwind">Tailwind</SelectItem>
-              <SelectItem value="component">Component-style</SelectItem>
+              {OUTPUT_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {t(opt.labelKey)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="generation-styling-mode" className="text-xs text-muted-foreground">
-            Styling
+            {t("options.styling.label")}
           </Label>
           <Select
             name="stylingMode"
@@ -60,17 +95,18 @@ export function GenerationOptionsPanel({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="vanilla-css">Vanilla CSS</SelectItem>
-              <SelectItem value="css-modules">CSS Modules</SelectItem>
-              <SelectItem value="tailwind">Tailwind classes</SelectItem>
-              <SelectItem value="inline-css">Inline styles</SelectItem>
+              {STYLING_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {t(opt.labelKey)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="generation-responsiveness" className="text-xs text-muted-foreground">
-            Responsiveness
+            {t("options.responsiveness.label")}
           </Label>
           <Select
             name="responsiveness"
@@ -82,16 +118,18 @@ export function GenerationOptionsPanel({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="mobile-first">Mobile-first</SelectItem>
-              <SelectItem value="desktop-first">Desktop-first</SelectItem>
-              <SelectItem value="adaptive">Adaptive</SelectItem>
+              {RESPONSIVENESS_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {t(opt.labelKey)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="generation-accessibility-level" className="text-xs text-muted-foreground">
-            Accessibility
+            {t("options.accessibility.label")}
           </Label>
           <Select
             name="accessibilityLevel"
@@ -105,8 +143,11 @@ export function GenerationOptionsPanel({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="standard">Standard</SelectItem>
-              <SelectItem value="strict">Strict (WCAG AA)</SelectItem>
+              {ACCESSIBILITY_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {t(opt.labelKey)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -114,7 +155,7 @@ export function GenerationOptionsPanel({
 
       <div className="space-y-1.5">
         <Label htmlFor="generation-extra-instructions" className="text-xs text-muted-foreground">
-          Extra instructions (optional)
+          {t("options.extraInstructions.label")}
         </Label>
         <Textarea
           id="generation-extra-instructions"
@@ -124,7 +165,7 @@ export function GenerationOptionsPanel({
           rows={3}
           value={value.additionalInstructions ?? ""}
           onChange={(e) => set("additionalInstructions", e.target.value)}
-          placeholder="Customize the generation behavior…"
+          placeholder={t("options.extraInstructions.placeholder")}
         />
       </div>
     </div>

@@ -1,35 +1,25 @@
-import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { AlertTriangle, RotateCcw, Sparkles } from "lucide-react";
 
+import { useT } from "@/hooks/use-t";
+import { useGenerationWorkflow } from "@/hooks/use-generation-workflow";
 import {
-  continueHtml,
-  generateHtml,
-  refineHtml,
-  runOcr,
-  type ServerResult,
-} from "@/lib/generate.functions";
-import { createApiError, createSensor, PHASE_LABELS } from "@/lib/generation-diagnostics";
+  localizedDiagnosticFix,
+  localizedDiagnosticTitle,
+  localizedPhaseLabel,
+} from "@/lib/i18n/helpers";
 import { CapabilityCards, TrustStrip } from "@/components/pngto/capability-cards";
 import { AdvancedSettings, AppWindow, TopCreditBar } from "@/components/pngto/home-workspace";
 import { VisualSidebar } from "@/components/pngto/sidebar-nav";
-import { UploadDropzone, type UploadedImage } from "@/components/pngto/upload-dropzone";
+import { UploadDropzone } from "@/components/pngto/upload-dropzone";
 import { ImagePreview } from "@/components/pngto/image-preview";
 import { GenerationOptionsPanel } from "@/components/pngto/generation-options";
 import { ResultTabs } from "@/components/pngto/result-tabs";
 import { RefinementBox } from "@/components/pngto/refinement-box";
 import { LoadingSteps } from "@/components/pngto/loading-steps";
 import { Button } from "@/components/ui/button";
-import { useProjects } from "@/hooks/use-projects";
 import type { SavedProject } from "@/types/project";
-import type {
-  ApiError,
-  GenerationOptions,
-  GenerationSensor,
-  GenerateHtmlResult,
-} from "@/types/generation";
+import type { ApiError } from "@/types/generation";
 
 type IndexSearch = {
   project?: string;
@@ -57,224 +47,32 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const DEFAULT_OPTIONS: GenerationOptions = {
-  outputMode: "static",
-  stylingMode: "vanilla-css",
-  responsiveness: "adaptive",
-  accessibilityLevel: "strict",
-  additionalInstructions:
-    "Recreate the screenshot as closely as possible. Preserve layout, spacing, colors, typography, visible text, buttons, cards, forms, and navigation. Do not invent unrelated content.",
-};
-
-type RetryAction = "generate" | "continue" | "refine";
-
 export function Index() {
-  const { project: projectIdFromUrl } = useSearch({ from: "/", strict: false });
-  const navigate = useNavigate();
-  const { getProject, saveFromGeneration } = useProjects();
+  const { t } = useT();
+  const { project: projectIdFromUrl } = Route.useSearch();
+  const workflow = useGenerationWorkflow(projectIdFromUrl);
 
-  const [image, setImage] = useState<UploadedImage | null>(null);
-  const [loadedProject, setLoadedProject] = useState<SavedProject | null>(null);
-  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
-  const [options, setOptions] = useState<GenerationOptions>(DEFAULT_OPTIONS);
-  const [result, setResult] = useState<GenerateHtmlResult | null>(null);
-  const [error, setError] = useState<ApiError | null>(null);
-  const [sensor, setSensor] = useState<GenerationSensor>(createSensor("validating", "idle"));
-  const [lastRefineInstruction, setLastRefineInstruction] = useState<string | null>(null);
-  const [lastRetryAction, setLastRetryAction] = useState<RetryAction>("generate");
-  const [saveNotice, setSaveNotice] = useState<string | null>(null);
-
-  const ocrFn = useServerFn(runOcr);
-  const generateFn = useServerFn(generateHtml);
-  const continueFn = useServerFn(continueHtml);
-  const refineFn = useServerFn(refineHtml);
-
-  useEffect(() => {
-    if (!projectIdFromUrl) return;
-    const project = getProject(projectIdFromUrl);
-    if (!project) return;
-    setLoadedProject(project);
-    setActiveProjectId(project.id);
-    setOptions(project.options);
-    setResult(project.result);
-    setImage(null);
-    setError(null);
-    setSensor(createSensor("done", "success"));
-  }, [projectIdFromUrl, getProject]);
-
-  const persistResult = useCallback(
-    async (data: GenerateHtmlResult) => {
-      const source = image;
-      const fallback = loadedProject ?? (activeProjectId ? getProject(activeProjectId) : null);
-
-      if (!source && !fallback) return;
-
-      const savedId = await saveFromGeneration({
-        fileName: source?.file.name ?? fallback!.fileName,
-        imageWidth: source?.width ?? fallback!.imageWidth,
-        imageHeight: source?.height ?? fallback!.imageHeight,
-        imageDataUrl: source?.dataUrl ?? fallback!.thumbnailDataUrl,
-        options,
-        result: data,
-        projectId: activeProjectId ?? fallback?.id,
-      });
-
-      if (savedId) {
-        setActiveProjectId(savedId);
-        setSaveNotice("Saved to Projects");
-        window.setTimeout(() => setSaveNotice(null), 3000);
-      }
-    },
-    [activeProjectId, getProject, image, loadedProject, options, saveFromGeneration],
-  );
-
-  const handleResult = (res: ServerResult) => {
-    if (res.ok) {
-      setResult(res.data);
-      setError(null);
-      setSensor(createSensor("done", "success"));
-      void persistResult(res.data);
-    } else {
-      setError(res.error);
-      setSensor(createSensor(res.error.phase ?? "failed", "failed", res.error.diagnostic));
-    }
-  };
-
-  const resetForNewImage = () => {
-    setResult(null);
-    setError(null);
-    setLoadedProject(null);
-    setActiveProjectId(null);
-    setSaveNotice(null);
-    setLastRetryAction("generate");
-    setLastRefineInstruction(null);
-    setSensor(createSensor("validating", "idle"));
-    void navigate({ to: "/", search: {} });
-  };
-
-  const generateMut = useMutation({
-    mutationFn: async (optionsOverride?: GenerationOptions): Promise<ServerResult> => {
-      if (!image) throw new Error("No image");
-      const runOptions = optionsOverride ?? options;
-
-      setError(null);
-      setLastRetryAction("generate");
-      setLastRefineInstruction(null);
-      setSensor(createSensor("validating"));
-      setSensor(createSensor("rate_limited_check"));
-      setSensor({
-        ...createSensor("uploading_to_blob"),
-        progress: 10,
-        message: "Preparing image for OCR...",
-      });
-      const ocr = await ocrFn({
-        data: { imageBase64: image.base64, mimeType: image.mimeType },
-      });
-      if (!ocr.ok) return { ok: false, error: ocr.error };
-
-      setSensor(createSensor("ocr"));
-      setSensor({
-        ...createSensor("synthesizing"),
-        progress: 45,
-      });
-      return generateFn({
-        data: {
-          imageBase64: image.base64,
-          mimeType: image.mimeType,
-          ocrMarkdown: ocr.ocrMarkdown,
-          options: runOptions,
-        },
-      });
-    },
-    onSuccess: handleResult,
-    onError: (e) => {
-      const apiError = createApiError(
-        "SERVER_ERROR",
-        (e as Error).message ?? "Unexpected error",
-        "failed",
-      );
-      setError(apiError);
-      setSensor(createSensor("failed", "failed", apiError.diagnostic));
-    },
-  });
-
-  const continueMut = useMutation({
-    mutationFn: async (): Promise<ServerResult> => {
-      if (!result) throw new Error("No prior result");
-
-      setError(null);
-      setLastRetryAction("continue");
-      setSensor({
-        ...createSensor("synthesizing"),
-        progress: 75,
-        message: "Continuing code generation...",
-      });
-      return continueFn({
-        data: {
-          prior: {
-            html: result.html,
-            css: result.css,
-            javascript: result.javascript,
-          },
-          options,
-        },
-      });
-    },
-    onSuccess: handleResult,
-    onError: (e) => {
-      const apiError = createApiError(
-        "SERVER_ERROR",
-        (e as Error).message ?? "Unexpected error",
-        "failed",
-      );
-      setError(apiError);
-      setSensor(createSensor("failed", "failed", apiError.diagnostic));
-    },
-  });
-
-  const refineMut = useMutation({
-    mutationFn: async (instruction: string) => {
-      if (!result) throw new Error("No prior result");
-      setLastRetryAction("refine");
-      setLastRefineInstruction(instruction);
-      setError(null);
-      setSensor({
-        ...createSensor("synthesizing"),
-        progress: 10,
-        message: "Applying your refinement...",
-      });
-      return refineFn({
-        data: {
-          prior: {
-            html: result.html,
-            css: result.css,
-            javascript: result.javascript,
-          },
-          instruction,
-          options,
-        },
-      });
-    },
-    onSuccess: handleResult,
-    onError: (e) => {
-      const apiError = createApiError(
-        "SERVER_ERROR",
-        (e as Error).message ?? "Unexpected error",
-        "failed",
-      );
-      setError(apiError);
-      setSensor(createSensor("failed", "failed", apiError.diagnostic));
-    },
-  });
-
-  const busy = generateMut.isPending || continueMut.isPending || refineMut.isPending;
-  const primaryButtonLabel = continueMut.isPending
-    ? "Continuing..."
-    : busy
-      ? "Generating..."
-      : result
-        ? "Continue code generation"
-        : "Generate HTML";
+  const {
+    image,
+    loadedProject,
+    activeProjectId,
+    options,
+    setOptions,
+    result,
+    error,
+    sensor,
+    saveNotice,
+    busy,
+    primaryButtonLabel,
+    onFileUploaded,
+    onUploadError,
+    onForensicGenerate,
+    onRemoveImage,
+    resetForNewImage,
+    onPrimaryAction,
+    onRetry,
+    onRefine,
+  } = workflow;
 
   return (
     <div className="visual-shell min-h-dvh">
@@ -292,35 +90,13 @@ export function Index() {
                     image={image}
                     options={options}
                     busy={busy}
-                    onForensicGenerate={(nextOptions) => {
-                      setOptions(nextOptions);
-                      generateMut.mutate(nextOptions);
-                    }}
-                    onRemove={() => {
-                      setImage(null);
-                      resetForNewImage();
-                    }}
+                    onForensicGenerate={onForensicGenerate}
+                    onRemove={onRemoveImage}
                   />
                 ) : loadedProject ? (
                   <LoadedProjectBanner project={loadedProject} onClear={resetForNewImage} />
                 ) : (
-                  <UploadDropzone
-                    onFile={(img) => {
-                      setImage(img);
-                      setLoadedProject(null);
-                      setActiveProjectId(null);
-                      setResult(null);
-                      setError(null);
-                      setSaveNotice(null);
-                      setLastRetryAction("generate");
-                      setLastRefineInstruction(null);
-                      setSensor(createSensor("validating", "idle"));
-                      void navigate({ to: "/", search: {} });
-                    }}
-                    onError={(message) =>
-                      setError(createApiError("INVALID_FILE", message, "validating"))
-                    }
-                  />
+                  <UploadDropzone onFile={onFileUploaded} onError={onUploadError} />
                 )}
 
                 <AdvancedSettings>
@@ -331,26 +107,14 @@ export function Index() {
                   className="h-11 w-full bg-primary text-primary-foreground hover:bg-primary-hover"
                   size="lg"
                   disabled={(!image && !result) || busy}
-                  onClick={() => {
-                    if (result) continueMut.mutate();
-                    else generateMut.mutate(undefined);
-                  }}
+                  data-testid="generate-html"
+                  onClick={onPrimaryAction}
                 >
                   <Sparkles className="h-4 w-4" aria-hidden />
                   {primaryButtonLabel}
                 </Button>
 
-                {error && (
-                  <DiagnosticErrorPanel
-                    error={error}
-                    onRetry={() => {
-                      if (lastRetryAction === "continue" && result) continueMut.mutate();
-                      else if (lastRetryAction === "refine" && lastRefineInstruction && result)
-                        refineMut.mutate(lastRefineInstruction);
-                      else generateMut.mutate(undefined);
-                    }}
-                  />
-                )}
+                {error && <DiagnosticErrorPanel error={error} onRetry={onRetry} />}
 
                 {busy && <LoadingSteps sensor={sensor} />}
               </div>
@@ -361,7 +125,9 @@ export function Index() {
             <section className="mt-8 space-y-4 rounded-xl border border-shell-border bg-shell-elevated p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-sm font-medium text-foreground">Generated output</h2>
+                  <h2 className="text-sm font-medium text-foreground">
+                    {t("index.generatedOutput")}
+                  </h2>
                   {saveNotice && (
                     <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-200">
                       {saveNotice}
@@ -375,7 +141,7 @@ export function Index() {
                       params={{ projectId: activeProjectId }}
                       className="text-xs text-info hover:underline"
                     >
-                      View in Projects
+                      {t("index.viewInProjects")}
                     </Link>
                   )}
                   <button
@@ -383,13 +149,13 @@ export function Index() {
                     onClick={resetForNewImage}
                     className="text-xs text-shell-muted hover:text-foreground"
                   >
-                    New upload
+                    {t("index.newUpload")}
                   </button>
                 </div>
               </div>
               <ResultTabs result={result} />
               <div className="border-t border-shell-border pt-4">
-                <RefinementBox onSubmit={(i) => refineMut.mutate(i)} disabled={busy} />
+                <RefinementBox onSubmit={onRefine} disabled={busy} />
               </div>
             </section>
           )}
@@ -403,30 +169,41 @@ export function Index() {
 }
 
 function LoadedProjectBanner({ project, onClear }: { project: SavedProject; onClear: () => void }) {
+  const { t } = useT();
+
   return (
     <div className="workspace-panel flex items-center gap-3 p-3">
       <img src={project.thumbnailDataUrl} alt="" className="h-16 w-16 rounded-md object-cover" />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-workspace-foreground">{project.name}</p>
         <p className="text-xs text-workspace-muted">
-          Opened from Projects · {project.fileName} · continue refining or generate from a new
-          screenshot
+          {t("index.loadedProject.hint", { fileName: project.fileName })}
         </p>
       </div>
       <button
         type="button"
         onClick={onClear}
         className="shrink-0 text-xs text-workspace-muted hover:text-workspace-foreground"
+        data-testid="clear-loaded-project"
       >
-        Clear
+        {t("index.loadedProject.clear")}
       </button>
     </div>
   );
 }
 
 function DiagnosticErrorPanel({ error, onRetry }: { error: ApiError; onRetry: () => void }) {
+  const { t, locale } = useT();
   const diagnostic = error.diagnostic;
   const phase = error.phase ?? "failed";
+  const title =
+    diagnostic && error.code
+      ? localizedDiagnosticTitle(locale, error.code, diagnostic.title)
+      : (diagnostic?.title ?? error.message);
+  const suggestedFix =
+    diagnostic && error.code
+      ? localizedDiagnosticFix(locale, error.code, diagnostic.suggestedFix)
+      : diagnostic?.suggestedFix;
 
   return (
     <div
@@ -436,15 +213,25 @@ function DiagnosticErrorPanel({ error, onRetry }: { error: ApiError; onRetry: ()
       <div className="flex items-start gap-2">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
         <div className="min-w-0 space-y-1">
-          <div className="text-sm font-medium">{diagnostic?.title ?? error.message}</div>
-          <div className="text-destructive/80">Phase: {PHASE_LABELS[phase]}</div>
+          <div className="text-sm font-medium">{title}</div>
+          <div className="text-destructive/80">
+            {t("index.error.phase")} {localizedPhaseLabel(locale, phase)}
+          </div>
         </div>
       </div>
 
       <div className="space-y-2 text-destructive/90">
         <p>{diagnostic?.detail ?? error.message}</p>
-        {diagnostic && <p>Likely cause: {diagnostic.likelyCause}</p>}
-        {diagnostic && <p>Suggested fix: {diagnostic.suggestedFix}</p>}
+        {diagnostic?.likelyCause && (
+          <p>
+            {t("index.error.likelyCause")} {diagnostic.likelyCause}
+          </p>
+        )}
+        {suggestedFix && (
+          <p>
+            {t("index.error.suggestedFix")} {suggestedFix}
+          </p>
+        )}
       </div>
 
       {diagnostic?.retryable && (
@@ -453,9 +240,10 @@ function DiagnosticErrorPanel({ error, onRetry }: { error: ApiError; onRetry: ()
           variant="outline"
           className="h-8 border-destructive/30 bg-workspace-surface text-destructive hover:bg-destructive/10"
           onClick={onRetry}
+          data-testid="error-retry"
         >
           <RotateCcw className="h-3.5 w-3.5" aria-hidden />
-          Try again
+          {t("index.error.tryAgain")}
         </Button>
       )}
     </div>

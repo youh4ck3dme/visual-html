@@ -8,9 +8,9 @@ import {
 import { render, type RenderOptions } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
 
+import { LocaleProvider } from "@/hooks/use-locale";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ProjectsProvider } from "@/hooks/use-projects";
-
 
 function createTestQueryClient() {
   return new QueryClient({
@@ -48,17 +48,16 @@ function AllProviders({
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <RouterContextProvider router={router}>{inner}</RouterContextProvider>
-      </ThemeProvider>
+      <LocaleProvider>
+        <ThemeProvider>
+          <RouterContextProvider router={router}>{inner}</RouterContextProvider>
+        </ThemeProvider>
+      </LocaleProvider>
     </QueryClientProvider>
   );
 }
 
-export function renderWithProviders(
-  ui: ReactElement,
-  options?: RenderOptions & WrapperOptions,
-) {
+export function renderWithProviders(ui: ReactElement, options?: RenderOptions & WrapperOptions) {
   const { initialPath, withProjects, ...renderOptions } = options ?? {};
   return render(ui, {
     wrapper: ({ children }) => (
@@ -69,4 +68,3 @@ export function renderWithProviders(
     ...renderOptions,
   });
 }
-

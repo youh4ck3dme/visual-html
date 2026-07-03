@@ -1,18 +1,18 @@
 import { Monitor, Moon, Sun } from "lucide-react";
 
-import {
-  compactSwitcherIcon,
-  compactSwitcherLabel,
-  nextThemeInCycle,
-  type Theme,
-} from "@/lib/theme";
+import { useT } from "@/hooks/use-t";
+import { compactSwitcherIcon, nextThemeInCycle, type Theme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/use-theme";
 
-const OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: Moon },
-  { value: "system", label: "System", icon: Monitor },
+const OPTIONS: {
+  value: Theme;
+  labelKey: "theme.light" | "theme.dark" | "theme.system";
+  icon: typeof Sun;
+}[] = [
+  { value: "light", labelKey: "theme.light", icon: Sun },
+  { value: "dark", labelKey: "theme.dark", icon: Moon },
+  { value: "system", labelKey: "theme.system", icon: Monitor },
 ];
 
 const ICONS = { sun: Sun, moon: Moon, monitor: Monitor } as const;
@@ -20,20 +20,26 @@ const ICONS = { sun: Sun, moon: Moon, monitor: Monitor } as const;
 const ACTIVE_INDEX: Record<Theme, number> = { light: 0, dark: 1, system: 2 };
 
 export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
+  const { t } = useT();
   const { theme, resolvedTheme, hydrated, setTheme } = useTheme();
   const displayTheme = hydrated ? theme : "dark";
   const displayResolved = hydrated ? resolvedTheme : "dark";
 
+  const resolvedLabel = t(`theme.${displayResolved}`);
+
   if (compact) {
     const iconKey = compactSwitcherIcon(displayTheme);
     const Icon = ICONS[iconKey];
-    const label = compactSwitcherLabel(displayTheme, displayResolved);
+    const label =
+      displayTheme === "system"
+        ? t("theme.systemResolved", { resolved: resolvedLabel })
+        : t(`theme.${displayTheme}`);
 
     return (
       <button
         type="button"
         onClick={() => setTheme(nextThemeInCycle(theme))}
-        aria-label={`Theme: ${label}. Click to switch.`}
+        aria-label={t("theme.compactAria", { label })}
         title={label}
         className={cn(
           "grid h-11 min-w-11 place-items-center rounded-lg text-shell-muted transition-colors duration-300",
@@ -50,7 +56,7 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
   return (
     <div
       role="group"
-      aria-label="Color theme"
+      aria-label={t("theme.groupAria")}
       className="relative flex items-center gap-0.5 rounded-lg border border-shell-border bg-shell-elevated p-0.5 shadow-sm"
     >
       <span
@@ -61,9 +67,10 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
           transform: `translateX(calc(${activeIndex} * 100%))`,
         }}
       />
-      {OPTIONS.map(({ value, label, icon: Icon }) => {
+      {OPTIONS.map(({ value, labelKey, icon: Icon }) => {
         const active = displayTheme === value;
-        const resolvedHint = value === "system" ? ` (${displayResolved})` : "";
+        const label = t(labelKey);
+        const resolvedHint = value === "system" ? ` (${resolvedLabel})` : "";
         return (
           <button
             key={value}

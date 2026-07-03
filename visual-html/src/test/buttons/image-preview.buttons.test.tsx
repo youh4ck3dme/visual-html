@@ -3,17 +3,14 @@ import userEvent from "@testing-library/user-event";
 import { screen } from "@testing-library/react";
 
 import { ImagePreview } from "@/components/pngto/image-preview";
-import { analyzeImageForensics } from "@/lib/image-forensics";
 import { renderWithProviders } from "@/test/test-utils";
-import {
-  makeUploadedImage,
-  SAMPLE_GENERATION_OPTIONS,
-} from "@/test/mocks/sample-image";
 import { MOCK_FORENSIC_REPORT } from "@/test/mocks/forensic-report";
+import { getForensicsMock } from "@/test/mocks/server-fns";
+import { makeUploadedImage, SAMPLE_GENERATION_OPTIONS } from "@/test/mocks/sample-image";
 
 describe("buttons › image-preview", () => {
   beforeEach(() => {
-    vi.mocked(analyzeImageForensics).mockResolvedValue(MOCK_FORENSIC_REPORT);
+    getForensicsMock().mockResolvedValue(MOCK_FORENSIC_REPORT);
   });
 
   it("Forensic thumbnail — opens forensic lightbox", async () => {
@@ -29,7 +26,7 @@ describe("buttons › image-preview", () => {
 
     await user.click(screen.getByLabelText(/Forensic scan:/));
     expect(await screen.findByText("Forensic scan")).toBeInTheDocument();
-    expect(analyzeImageForensics).toHaveBeenCalled();
+    expect(getForensicsMock()).toHaveBeenCalled();
   });
 
   it("Remove image — calls onRemove", async () => {

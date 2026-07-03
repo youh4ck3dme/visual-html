@@ -15,9 +15,7 @@ describe("buttons › generation-options", () => {
     );
     await user.click(screen.getByLabelText("Output"));
     await user.click(screen.getByRole("option", { name: /Tailwind/i }));
-    expect(onChange).toHaveBeenCalledWith(
-      expect.objectContaining({ outputMode: "tailwind" }),
-    );
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ outputMode: "tailwind" }));
   });
 
   it("Styling select — opens and changes value", async () => {
@@ -28,18 +26,12 @@ describe("buttons › generation-options", () => {
     );
     await user.click(screen.getByLabelText("Styling"));
     await user.click(screen.getByRole("option", { name: /Inline styles/i }));
-    expect(onChange).toHaveBeenCalledWith(
-      expect.objectContaining({ stylingMode: "inline-css" }),
-    );
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ stylingMode: "inline-css" }));
   });
 
   it("Responsiveness select — disabled when panel disabled", () => {
     renderWithProviders(
-      <GenerationOptionsPanel
-        value={SAMPLE_GENERATION_OPTIONS}
-        onChange={vi.fn()}
-        disabled
-      />,
+      <GenerationOptionsPanel value={SAMPLE_GENERATION_OPTIONS} onChange={vi.fn()} disabled />,
     );
     expect(screen.getByLabelText("Responsiveness")).toBeDisabled();
   });

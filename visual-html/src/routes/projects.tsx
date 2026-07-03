@@ -8,6 +8,7 @@ import { TopCreditBar } from "@/components/pngto/home-workspace";
 import { VisualSidebar } from "@/components/pngto/sidebar-nav";
 import { Button } from "@/components/ui/button";
 import { useProjects } from "@/hooks/use-projects";
+import { useT } from "@/hooks/use-t";
 import { filterProjects, sortProjects } from "@/lib/projects-store";
 import type { ProjectSort } from "@/types/project";
 
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/projects")({
 });
 
 export function ProjectsPage() {
+  const { t } = useT();
   const { projects, storageBytes } = useProjects();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ProjectSort>("updated");
@@ -44,20 +46,22 @@ export function ProjectsPage() {
         <main className="mx-auto max-w-5xl px-4 py-6 pb-8 sm:px-6 sm:py-10 sm:pb-16">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h1 className="text-lg font-semibold text-foreground">Projects</h1>
-              <p className="mt-1 text-sm text-shell-muted">
-                Your saved screenshot-to-HTML generations in this browser.
-              </p>
+              <h1 className="text-lg font-semibold text-foreground">{t("projects.title")}</h1>
+              <p className="mt-1 text-sm text-shell-muted">{t("projects.subtitle")}</p>
               {projects.length > 0 && (
                 <div className="mt-2">
                   <ProjectsStorageHint count={projects.length} bytes={storageBytes} />
                 </div>
               )}
             </div>
-            <Button asChild className="bg-primary text-primary-foreground hover:bg-primary-hover">
+            <Button
+              asChild
+              className="bg-primary text-primary-foreground hover:bg-primary-hover"
+              data-testid="new-project"
+            >
               <Link to="/">
                 <Plus className="h-4 w-4" aria-hidden />
-                New project
+                {t("projects.newProject")}
               </Link>
             </Button>
           </div>
@@ -78,18 +82,17 @@ export function ProjectsPage() {
               <div className="mb-4 grid h-12 w-12 place-items-center rounded-xl bg-info/15 text-info">
                 <FolderKanban className="h-6 w-6" aria-hidden />
               </div>
-              <h2 className="text-sm font-medium text-foreground">No projects yet</h2>
+              <h2 className="text-sm font-medium text-foreground">{t("projects.empty.title")}</h2>
               <p className="mt-2 max-w-sm text-xs leading-relaxed text-shell-muted">
-                Upload a screenshot on New and generate HTML — each successful run is saved here
-                automatically.
+                {t("projects.empty.description")}
               </p>
-              <Button asChild variant="outline" className="mt-6">
-                <Link to="/">Create first project</Link>
+              <Button asChild variant="outline" className="mt-6" data-testid="create-first-project">
+                <Link to="/">{t("projects.empty.cta")}</Link>
               </Button>
             </section>
           ) : visible.length === 0 ? (
             <section className="shell-card px-6 py-12 text-center">
-              <p className="text-sm text-shell-muted">No projects match “{query}”.</p>
+              <p className="text-sm text-shell-muted">{t("projects.noMatch", { query })}</p>
             </section>
           ) : (
             <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

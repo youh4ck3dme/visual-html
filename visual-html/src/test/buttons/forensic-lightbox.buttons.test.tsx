@@ -3,10 +3,17 @@ import userEvent from "@testing-library/user-event";
 import { screen, waitFor } from "@testing-library/react";
 
 import { ForensicLightbox } from "@/components/pngto/forensic-lightbox";
-import { analyzeImageForensics, FORENSIC_PRESETS } from "@/lib/image-forensics";
+import { FORENSIC_PRESETS } from "@/lib/image-forensics";
 import { renderWithProviders } from "@/test/test-utils";
 import { MOCK_FORENSIC_REPORT } from "@/test/mocks/forensic-report";
+import { getForensicsMock } from "@/test/mocks/server-fns";
 import { SAMPLE_GENERATION_OPTIONS } from "@/test/mocks/sample-image";
+
+const ZONE_UI_LABELS: Record<string, string> = {
+  header: "Header / top bar",
+  content: "Main content",
+  footer: "Footer",
+};
 
 function renderOpen(props?: Partial<Parameters<typeof ForensicLightbox>[0]>) {
   const onClose = vi.fn();
@@ -31,18 +38,18 @@ function renderOpen(props?: Partial<Parameters<typeof ForensicLightbox>[0]>) {
 
 describe("buttons › forensic-lightbox", () => {
   beforeEach(() => {
-    vi.mocked(analyzeImageForensics).mockResolvedValue(MOCK_FORENSIC_REPORT);
+    getForensicsMock().mockResolvedValue(MOCK_FORENSIC_REPORT);
   });
 
   it("Close forensic view — calls onClose", async () => {
     const user = userEvent.setup();
     const { onClose } = renderOpen();
-    await waitFor(() => expect(screen.getByText("Header")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(ZONE_UI_LABELS.header)).toBeInTheDocument());
     await user.click(screen.getByLabelText("Close forensic view"));
     expect(onClose).toHaveBeenCalled();
   });
 
-  it.each(MOCK_FORENSIC_REPORT.zones.map((z) => [z.label, z.id] as const))(
+  it.each(MOCK_FORENSIC_REPORT.zones.map((z) => [ZONE_UI_LABELS[z.id] ?? z.label, z.id] as const))(
     "zone list %s — selects zone",
     async (label) => {
       const user = userEvent.setup();
@@ -104,7 +111,7 @@ describe("buttons › forensic-lightbox", () => {
   });
 
   it("Generate this section — disabled while loading", () => {
-    vi.mocked(analyzeImageForensics).mockImplementationOnce(() => new Promise(() => undefined));
+    getForensicsMock().mockImplementationOnce(() => new Promise(() => undefined));
     renderOpen();
     expect(screen.getByRole("button", { name: /Generate this section/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Generate full page/i })).toBeDisabled();

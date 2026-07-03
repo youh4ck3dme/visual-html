@@ -2,8 +2,24 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, vi } from "vitest";
 
+import { resetForensicsMock, resetServerFnMocks } from "@/test/mocks/server-fns";
+
+class ImageStub {
+  naturalWidth = 1;
+  naturalHeight = 1;
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  set src(_value: string) {
+    queueMicrotask(() => this.onload?.());
+  }
+}
+
 beforeEach(() => {
+  resetServerFnMocks();
+  resetForensicsMock();
+  vi.stubGlobal("Image", ImageStub);
   localStorage.clear();
+  localStorage.setItem("pngto-locale", "en");
   sessionStorage.clear();
 
   vi.stubGlobal(
