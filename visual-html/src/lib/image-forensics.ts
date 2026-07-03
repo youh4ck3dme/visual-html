@@ -2,14 +2,7 @@ import { imageBudgetReport } from "@/lib/image-budget";
 import type { GenerationOptions } from "@/types/generation";
 
 export type ForensicZoneType =
-  | "header"
-  | "sidebar"
-  | "content"
-  | "footer"
-  | "table"
-  | "cards"
-  | "cta"
-  | "navigation";
+  "header" | "sidebar" | "content" | "footer" | "table" | "cards" | "cta" | "navigation";
 
 export interface ForensicZone {
   id: string;

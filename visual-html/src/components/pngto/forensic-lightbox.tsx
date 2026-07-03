@@ -16,8 +16,8 @@ import { Slider } from "@/components/ui/slider";
 import { useT } from "@/hooks/use-t";
 import {
   localizedAspectProfile,
-  localizedForensicWarningDetail,
   localizedForensicWarningTitle,
+  resolveForensicWarningDetail,
   localizedOcrHint,
   localizedPresetHint,
   localizedPresetLabel,
@@ -221,9 +221,7 @@ export function ForensicLightbox({
                           {localizedForensicWarningTitle(locale, w.id, w.title)}
                         </div>
                         <p className="mt-0.5 opacity-80">
-                          {localizedForensicWarningDetail(locale, w.id, w.detail, {
-                            detail: w.detail,
-                          })}
+                          {resolveForensicWarningDetail(locale, w, fileSize ?? 0, width, height)}
                         </p>
                       </div>
                     ))}

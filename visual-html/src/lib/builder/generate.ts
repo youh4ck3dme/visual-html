@@ -2,8 +2,7 @@ import { getPromptMock } from "@/lib/builder/prompt-library";
 import type { GenerationMode } from "@/types/builder";
 
 export type BuilderGenerateResult =
-  | { type: "code"; content: string }
-  | { type: "explanation"; content: string };
+  { type: "code"; content: string } | { type: "explanation"; content: string };
 
 const BUILDER_MISTRAL_KEY_1 = "builder_mistral_api_key_1";
 const BUILDER_MISTRAL_KEY_2 = "builder_mistral_api_key_2";

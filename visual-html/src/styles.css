@@ -239,7 +239,8 @@
   html.theme-animate *,
   html.theme-animate *::before,
   html.theme-animate *::after {
-    transition-property: background-color, border-color, color, fill, stroke, box-shadow, outline-color;
+    transition-property:
+      background-color, border-color, color, fill, stroke, box-shadow, outline-color;
     transition-duration: var(--theme-duration);
     transition-timing-function: var(--theme-ease);
   }
