@@ -40,7 +40,7 @@ export function RefinementBox({
             type="button"
             disabled={disabled}
             onClick={() => onSubmit(q.instruction)}
-            className="rounded-full border border-border bg-white/5 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-white/10 hover:text-foreground disabled:opacity-50"
+            className="rounded-full border border-shell-border bg-surface px-2.5 py-1 text-[11px] text-shell-muted hover:bg-surface-strong hover:text-foreground disabled:opacity-50"
           >
             {q.label}
           </button>

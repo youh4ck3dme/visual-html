@@ -76,15 +76,29 @@ if (artifactOk) {
     const genFile = existsSync(ssrDir)
       ? readdirSync(ssrDir).find((name) => name.startsWith("generate.functions-"))
       : null;
-    const hasServerFns = Boolean(
+    const builderFile = existsSync(ssrDir)
+      ? readdirSync(ssrDir).find((name) => name.startsWith("builder.functions-"))
+      : null;
+    const hasGenerateFn = Boolean(
       genFile && readFileSync(join(ssrDir, genFile), "utf8").includes("runOcr"),
     );
+    const hasBuilderFn = Boolean(
+      builderFile && readFileSync(join(ssrDir, builderFile), "utf8").includes("builderChat"),
+    );
+    const hasServerFns = hasGenerateFn && hasBuilderFn;
     results.push({
       name: "build artifacts",
       ok: hasServerFns,
       ms: 0,
-      stdout: `favicon/manifest OK; server fns ${hasServerFns ? "OK" : "MISSING"}`,
-      stderr: hasServerFns ? "" : "generate.functions bundle missing runOcr",
+      stdout: `favicon/manifest OK; generate ${hasGenerateFn ? "OK" : "MISSING"}; builder ${hasBuilderFn ? "OK" : "MISSING"}`,
+      stderr: hasServerFns
+        ? ""
+        : [
+            !hasGenerateFn && "generate.functions bundle missing runOcr",
+            !hasBuilderFn && "builder.functions bundle missing builderChat",
+          ]
+            .filter(Boolean)
+            .join("; "),
     });
   }
 } else {

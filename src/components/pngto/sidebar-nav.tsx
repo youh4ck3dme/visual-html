@@ -1,10 +1,13 @@
-import { FolderKanban, HelpCircle, Plus, Settings, Sparkles, UserRound } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { FolderKanban, HelpCircle, Plus, Settings, Sparkles, UserRound, Wand2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { ThemeSwitcher } from "./theme-switcher";
 
 const NAV_ITEMS = [
-  { id: "projects", label: "Projects", icon: FolderKanban, disabled: true },
-  { id: "new", label: "New", icon: Plus, active: true },
+  { id: "projects", label: "Projects", icon: FolderKanban, to: "/projects" as const },
+  { id: "new", label: "New", icon: Plus, to: "/" as const },
+  { id: "builder", label: "VibeCraft", icon: Wand2, to: "/builder" as const },
 ] as const;
 
 const BOTTOM_ITEMS = [
@@ -13,6 +16,8 @@ const BOTTOM_ITEMS = [
   { id: "account", label: "Account", icon: UserRound, disabled: true },
 ] as const;
 
+type NavTo = "/" | "/projects" | "/builder";
+
 function navButtonClass(active: boolean, disabled: boolean, compact?: boolean) {
   return cn(
     "group relative flex items-center justify-center rounded-lg font-medium transition-colors",
@@ -20,35 +25,59 @@ function navButtonClass(active: boolean, disabled: boolean, compact?: boolean) {
       ? "h-11 min-w-11 flex-col gap-0.5 px-2 text-[9px]"
       : "flex-col gap-1 px-2 py-2.5 text-[10px]",
     active
-      ? "bg-[#5b35d5] text-white shadow-sm"
-      : "text-[#8b90a0] hover:bg-[#17171a] hover:text-[#c9ccd6]",
+      ? "bg-primary text-primary-foreground shadow-sm"
+      : "text-shell-muted hover:bg-shell-hover hover:text-foreground",
     disabled && !active && "cursor-not-allowed opacity-40 hover:bg-transparent",
   );
 }
 
-function NavButton({
-  id,
+function NavLink({
   label,
   icon: Icon,
-  active = false,
+  to,
+  compact = false,
+}: {
+  label: string;
+  icon: typeof Plus;
+  to: NavTo;
+  compact?: boolean;
+}) {
+  return (
+    <Link
+      to={to}
+      aria-label={label}
+      className={navButtonClass(false, false, compact)}
+      activeProps={{
+        className: navButtonClass(true, false, compact),
+        "aria-current": "page",
+      }}
+      inactiveProps={{
+        className: navButtonClass(false, false, compact),
+      }}
+    >
+      <Icon className="h-4 w-4 shrink-0" aria-hidden />
+      {!compact && <span>{label}</span>}
+    </Link>
+  );
+}
+
+function NavButton({
+  label,
+  icon: Icon,
   disabled = false,
   compact = false,
 }: {
-  id: string;
   label: string;
   icon: typeof Plus;
-  active?: boolean;
   disabled?: boolean;
   compact?: boolean;
 }) {
   return (
     <button
-      key={id}
       type="button"
-      disabled={disabled && !active}
+      disabled={disabled}
       aria-label={label}
-      aria-current={active ? "page" : undefined}
-      className={navButtonClass(active, disabled, compact)}
+      className={navButtonClass(false, disabled, compact)}
     >
       <Icon className="h-4 w-4 shrink-0" aria-hidden />
       {!compact && <span>{label}</span>}
@@ -60,74 +89,51 @@ export function VisualSidebar() {
   return (
     <>
       <aside
-        className="fixed inset-y-0 left-0 z-40 hidden w-16 flex-col border-r border-[#2a2a31] bg-[#09090b] md:flex"
+        className="shell-sidebar-panel fixed inset-y-0 left-0 z-40 hidden w-16 flex-col border-r md:flex"
         aria-label="Application navigation"
       >
-        <div className="flex h-16 items-center justify-center border-b border-[#2a2a31]">
+        <Link
+          to="/"
+          className="flex h-16 items-center justify-center border-b border-shell-border"
+          aria-label="PNGtoHTML home"
+        >
           <div
-            className="grid h-9 w-9 place-items-center rounded-lg bg-[#5b35d5] text-white shadow-sm"
-            title="Visual HTML"
+            className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm"
+            title="PNGtoHTML"
           >
             <Sparkles className="h-4 w-4" aria-hidden />
           </div>
-        </div>
+        </Link>
 
         <nav className="flex flex-1 flex-col gap-1 px-2 py-4">
-          {NAV_ITEMS.map((item) => {
-            const active = "active" in item && item.active;
-            const disabled = "disabled" in item && item.disabled;
-            return (
-              <NavButton
-                key={item.id}
-                id={item.id}
-                label={item.label}
-                icon={item.icon}
-                active={active}
-                disabled={disabled}
-              />
-            );
-          })}
+          {NAV_ITEMS.map((item) => (
+            <NavLink key={item.id} label={item.label} icon={item.icon} to={item.to} />
+          ))}
         </nav>
 
-        <div className="flex flex-col gap-1 border-t border-[#2a2a31] px-2 py-4">
+        <div className="flex flex-col items-center gap-2 border-t border-shell-border px-2 py-4">
+          <ThemeSwitcher compact />
           {BOTTOM_ITEMS.map((item) => (
-            <NavButton
-              key={item.id}
-              id={item.id}
-              label={item.label}
-              icon={item.icon}
-              disabled={item.disabled}
-            />
+            <NavButton key={item.id} label={item.label} icon={item.icon} disabled={item.disabled} />
           ))}
         </div>
       </aside>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-[#2a2a31] bg-[#09090b]/95 px-2 py-2 backdrop-blur-sm md:hidden"
+        className="shell-sidebar-panel fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t bg-shell-sidebar/95 px-2 py-2 backdrop-blur-md md:hidden"
         aria-label="Mobile navigation"
       >
-        <div
-          className="grid h-9 w-9 place-items-center rounded-lg bg-[#5b35d5] text-white"
-          aria-hidden
+        <Link
+          to="/"
+          className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground"
+          aria-label="PNGtoHTML home"
         >
-          <Sparkles className="h-4 w-4" />
-        </div>
-        {NAV_ITEMS.map((item) => {
-          const active = "active" in item && item.active;
-          const disabled = "disabled" in item && item.disabled;
-          return (
-            <NavButton
-              key={item.id}
-              id={item.id}
-              label={item.label}
-              icon={item.icon}
-              active={active}
-              disabled={disabled}
-              compact
-            />
-          );
-        })}
-        <NavButton id="settings" label="Settings" icon={Settings} disabled compact />
+          <Sparkles className="h-4 w-4" aria-hidden />
+        </Link>
+        {NAV_ITEMS.map((item) => (
+          <NavLink key={item.id} label={item.label} icon={item.icon} to={item.to} compact />
+        ))}
+        <ThemeSwitcher compact />
       </nav>
     </>
   );

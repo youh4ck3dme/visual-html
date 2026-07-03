@@ -31,13 +31,13 @@ export function CapabilityCards() {
       {CAPABILITIES.map(({ icon: Icon, title, description }) => (
         <article
           key={title}
-          className="rounded-lg border border-[#2a2a31] bg-[#17171a] p-4 transition-colors hover:border-[#3b82f6]/40"
+          className="shell-card p-4 transition-[border-color,box-shadow] duration-300 hover:border-info/40 hover:shadow-md"
         >
-          <div className="mb-3 grid h-8 w-8 place-items-center rounded-md bg-[#3b82f6]/15 text-[#3b82f6]">
+          <div className="mb-3 grid h-8 w-8 place-items-center rounded-md bg-info/15 text-info">
             <Icon className="h-4 w-4" aria-hidden />
           </div>
-          <h3 className="text-sm font-medium text-white">{title}</h3>
-          <p className="mt-1.5 text-xs leading-relaxed text-[#8b90a0]">{description}</p>
+          <h3 className="text-sm font-medium text-foreground">{title}</h3>
+          <p className="mt-1.5 text-xs leading-relaxed text-shell-muted">{description}</p>
         </article>
       ))}
     </section>
@@ -46,11 +46,14 @@ export function CapabilityCards() {
 
 export function TrustStrip() {
   return (
-    <section className="mt-12 border-t border-[#2a2a31] pt-8" aria-label="Trusted by">
-      <p className="text-center text-xs text-[#8b90a0]">Trusted by engineers and designers at</p>
+    <section className="mt-12 border-t border-shell-border pt-8" aria-label="Trusted by">
+      <p className="text-center text-xs text-shell-muted">Trusted by engineers and designers at</p>
       <div className="mt-4 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
         {TRUST_LABELS.map((label) => (
-          <span key={label} className="text-sm font-medium tracking-wide text-[#4a4f5c] uppercase">
+          <span
+            key={label}
+            className="text-sm font-medium tracking-wide text-shell-subtle uppercase"
+          >
             {label}
           </span>
         ))}

@@ -1,8 +1,28 @@
 # PNGtoHTMLapp
 
-AI web app for turning UI screenshots into clean, semantic HTML with a live preview and refinement loop.
+AI web app for turning UI screenshots into clean, semantic HTML with a live preview and refinement loop. Includes an integrated **VibeCraft** prompt-to-HTML builder and a local **Projects** library.
 
 Business and monetization strategy is documented in [docs/business/README.md](docs/business/README.md).
+
+## Unified app
+
+One TanStack Start application (`visual-html/`) with a shared sidebar, theme switcher, and design tokens:
+
+| Route | Purpose |
+| ----- | ------- |
+| `/` | **New** — upload a UI screenshot and generate HTML (Mistral OCR + synthesis) |
+| `/projects` | **Projects** — browse and reopen saved screenshot generations (localStorage) |
+| `/builder` | **VibeCraft** — prompt-to-HTML app builder with offline templates, AI generation, sandboxed preview, and revision history |
+
+From the monorepo root:
+
+```bash
+cd PNGtoHTMLapp
+npm run dev      # starts visual-html on http://localhost:8080 (or next free port)
+npm run build
+npm run test
+npm run lint
+```
 
 ## Top competition
 
@@ -24,6 +44,8 @@ Strategicka pozicia Visual HTML:
 
 ## Features
 
+### Screenshot → HTML (`/`)
+
 - Upload PNG, JPG, or WebP UI screenshots
 - Automatically downscale and compress large screenshots before sending them to Mistral
 - Upload screenshots to Vercel Blob for OCR preprocessing
@@ -32,6 +54,19 @@ Strategicka pozicia Visual HTML:
 - Preview generated output in a sandboxed frame
 - Copy or download generated code
 - Tune generation via output, styling, responsiveness, and accessibility options
+- Auto-save successful generations to **Projects**
+
+### Projects (`/projects`)
+
+- Local project library (name, thumbnail, generation options, HTML output)
+- Open, rename, duplicate, and delete saved projects
+
+### VibeCraft builder (`/builder`)
+
+- Starter templates (games, dashboards, portfolios, landing pages)
+- AI build / refine / fix / explain modes (server Mistral or browser BYOK keys)
+- Sandboxed live preview, code view, risk scanner, version history
+- Demo mode without API keys (offline templates only)
 
 ## Ako nastavit generovanie
 
@@ -409,40 +444,66 @@ Inline styles pouzivaj len vynimocne. Pri vacsich screenshotoch bude vystup mene
 
 ## Local setup
 
+From the monorepo root or from `visual-html/`:
+
 ```bash
+cd visual-html
 npm install
-cp .env.example .env.local
-```
-
-For a minimal and safer local env, you can start from:
-
-```bash
 cp .env.local.template .env.local
 ```
 
-Set your API key in `.env.local`:
+Set server-side keys in `.env.local`:
 
 ```env
+# Screenshot → HTML pipeline
 MISTRAL_API_KEY=your_real_mistral_api_key
 MISTRAL_OCR_MODEL=mistral-ocr-latest
 MISTRAL_MODEL=pixtral-large-latest
 BLOB_READ_WRITE_TOKEN=your_vercel_blob_rw_token
-MISTRAL_MAX_TOKENS=3000
-MISTRAL_TIMEOUT_MS=55000
+
+# VibeCraft builder (/builder) — server-side AI when no browser BYOK keys
+MISTRAL_BUILDER_MODEL=mistral-large-latest
+
+# Production rate limiting
 UPSTASH_REDIS_REST_URL=your_upstash_redis_rest_url
 UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_rest_token
+
+# Optional tuning
+MISTRAL_MAX_TOKENS=3000
+MISTRAL_TIMEOUT_MS=55000
 ```
 
 `mistral-ocr-latest` handles OCR extraction and `pixtral-large-latest` handles HTML synthesis/refinement.
+`MISTRAL_BUILDER_MODEL` controls the `/builder` server function; it falls back to `MISTRAL_MODEL`.
 Large uploads are automatically optimized in the browser to reduce production timeouts.
 
+### Builder BYOK (browser only)
+
+For `/builder`, you can add personal Mistral keys in the in-app **Settings** dialog (gear icon). They are stored in `localStorage`, not in `.env.local`:
+
+| localStorage key | Purpose |
+| ---------------- | ------- |
+| `builder_mistral_api_key_1` | Primary BYOK key |
+| `builder_mistral_api_key_2` | Failover BYOK key |
+| `builder_mistral_model` | Model override (default `mistral-large-latest`) |
+
+Without BYOK keys, the builder uses server `MISTRAL_API_KEY` when configured; otherwise it runs in **Demo Mode** (offline templates only).
+
 ## Run locally
+
+From the monorepo root:
 
 ```bash
 npm run dev
 ```
 
-Open the local URL printed by Vite.
+Or from `visual-html/`:
+
+```bash
+npm run dev
+```
+
+Open the local URL printed by Vite (`/`, `/projects`, `/builder`).
 
 ## Build
 
@@ -476,6 +537,7 @@ npm run format
 | `MISTRAL_CHAT_API_KEYS`         | No                  | Comma-separated synthesis/refine/continue-only key pool                                               |
 | `MISTRAL_OCR_MODEL`             | No                  | OCR model for uploaded screenshots; default is `mistral-ocr-latest`                                   |
 | `MISTRAL_MODEL`                 | No                  | Chat/synthesis model for HTML generation and refine; default is `pixtral-large-latest`                |
+| `MISTRAL_BUILDER_MODEL`         | No                  | Model for `/builder` server AI; default falls back to `MISTRAL_MODEL`, then `mistral-large-latest`   |
 | `BLOB_READ_WRITE_TOKEN`         | Yes for OCR uploads | Vercel Blob token used to stage uploaded images so the OCR API can fetch them by URL                  |
 | `MISTRAL_MAX_TOKENS`            | No                  | Caps completion size; default is `3000` to reduce truncated JSON responses                            |
 | `MISTRAL_TIMEOUT_MS`            | No                  | Abort timeout for the Mistral request; default is `55000`, capped below the Vercel 60s function limit |
@@ -539,4 +601,10 @@ The script prints a rotation playbook and performs a quick `.env.local` audit fo
 
 ## Deployment
 
-Production builds generate Nitro output configured for Cloudflare module deployment.
+Production builds use the Vercel Nitro preset (`NITRO_PRESET=vercel` in `vercel.json`). Deploy from `visual-html/`:
+
+```bash
+NITRO_PRESET=vercel npm run build
+```
+
+Verify routes after deploy: `/`, `/projects`, `/builder`.

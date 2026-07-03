@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="sk">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Výpis z Účtu - Business účet S</title>
+    <style>
+      :root {
+        --page-width: 297mm;
+        --page-min-height: 210mm;
+        --page-bg: #eef1f4;
+        --paper: #ffffff;
+        --ink: #1f2933;
+        --muted: #596575;
+        --line: #aab4c0;
+        --line-strong: #6f7b88;
+        --accent: #1c4f8f;
+        --accent-soft: #e8f0fb;
+        --danger: #9f1d1d;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: var(--page-bg);
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 11px;
+        line-height: 1.28;
+        background: var(--page-bg);
+        min-width: min(var(--page-width), 100%);
+      }
+
+      .skip-link {
+        position: absolute;
+        left: -999px;
+        top: 0;
+      }
+
+      .skip-link:focus {
+        left: 16px;
+        z-index: 10;
+        background: var(--paper);
+        border: 2px solid var(--accent);
+        padding: 8px 10px;
+      }
+
+      .header,
+      .main {
+        width: min(var(--page-width), calc(100vw - 24px));
+        min-width: 210mm;
+        margin: 0 auto;
+        background: var(--paper);
+      }
+
+      .header {
+        margin-top: 18px;
+        padding: 14mm 14mm 8mm;
+        border-radius: 2px 2px 0 0;
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+      }
+
+      .main {
+        min-height: var(--page-min-height);
+        margin-bottom: 18px;
+        padding: 0 14mm 14mm;
+        border-radius: 0 0 2px 2px;
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+      }
+
+      .header__logo-section {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 16px;
+        align-items: start;
+        border-bottom: 2px solid var(--accent);
+        padding-bottom: 8px;
+      }
+
+      .logo {
+        display: inline-grid;
+        gap: 0;
+        color: var(--accent);
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+
+      .logo__text {
+        font-size: 18px;
+        line-height: 1;
+      }
+
+      .logo__subtext {
+        color: #263849;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0;
+        text-transform: none;
+      }
+
+      .header__meta {
+        color: var(--muted);
+        font-size: 10px;
+        text-align: right;
+      }
+
+      .header__info {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+        gap: 24px;
+        padding-top: 10px;
+      }
+
+      address {
+        margin: 0;
+        font-style: normal;
+      }
+
+      address p {
+        margin: 0 0 2px;
+      }
+
+      .client-info {
+        border-left: 3px solid var(--line);
+        padding-left: 12px;
+      }
+
+      .main__title {
+        margin: 0 0 10px;
+        border-bottom: 1px solid var(--line-strong);
+        padding: 9px 0 7px;
+        color: #111827;
+        font-size: 16px;
+        font-weight: 800;
+      }
+
+      h2 {
+        margin: 0 0 6px;
+        color: #111827;
+        font-size: 12px;
+        text-transform: uppercase;
+      }
+
+      .account-summary {
+        border: 1px solid var(--line);
+        margin-bottom: 10px;
+      }
+
+      .account-summary h2 {
+        background: var(--accent-soft);
+        border-bottom: 1px solid var(--line);
+        margin: 0;
+        padding: 5px 7px;
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .summary-list {
+        margin: 0;
+        padding: 0;
+      }
+
+      .summary-list + .summary-list {
+        border-left: 1px solid var(--line);
+      }
+
+      .summary-item {
+        display: grid;
+        grid-template-columns: minmax(120px, 0.9fr) minmax(120px, 1fr);
+        min-height: 24px;
+        border-bottom: 1px solid #d7dde4;
+      }
+
+      .summary-item:last-child {
+        border-bottom: 0;
+      }
+
+      .summary-item__label,
+      .summary-item__value {
+        margin: 0;
+        padding: 4px 7px;
+      }
+
+      .summary-item__label {
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .summary-item__value {
+        border-left: 1px solid #d7dde4;
+        font-weight: 700;
+        text-align: right;
+      }
+
+      .transaction-fee {
+        margin: 8px 0 12px;
+        border: 1px solid var(--line-strong);
+        background: #f8fafc;
+      }
+
+      .transaction-fee__content {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 6px 8px;
+        font-weight: 800;
+      }
+
+      .transactions h2 {
+        border-bottom: 1px solid var(--line-strong);
+        padding-bottom: 5px;
+      }
+
+      .table-container {
+        overflow-x: auto;
+      }
+
+      .transactions-table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 1px solid var(--line-strong);
+        table-layout: fixed;
+      }
+
+      .transactions-table th,
+      .transactions-table td {
+        border: 1px solid var(--line);
+        padding: 4px 5px;
+        vertical-align: top;
+      }
+
+      .transactions-table th {
+        background: #eef3f8;
+        color: #1f2933;
+        font-size: 10px;
+        font-weight: 800;
+        text-align: left;
+      }
+
+      .transactions-table th:nth-child(1),
+      .transactions-table th:nth-child(2),
+      .transactions-table td:nth-child(1),
+      .transactions-table td:nth-child(2) {
+        width: 92px;
+        white-space: nowrap;
+      }
+
+      .transactions-table th:nth-child(3),
+      .transactions-table td:nth-child(3) {
+        width: auto;
+      }
+
+      .transactions-table th:nth-child(4),
+      .transactions-table th:nth-child(5),
+      .transactions-table td:nth-child(4),
+      .transactions-table td:nth-child(5) {
+        width: 108px;
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      .transactions-table tbody tr:nth-child(even) {
+        background: #fbfdff;
+      }
+
+      .negative {
+        color: var(--danger);
+        font-weight: 800;
+      }
+
+      .uncertain {
+        display: inline-block;
+        border: 1px dashed var(--warn, #b45309);
+        background: #fff8e6;
+        color: #7c4a03;
+        padding: 0 3px;
+        font-weight: 800;
+      }
+
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+      }
+
+      @media (max-width: 760px) {
+        .header,
+        .main {
+          width: 100%;
+          min-width: 0;
+          margin: 0;
+          padding-left: 14px;
+          padding-right: 14px;
+          border-radius: 0;
+        }
+
+        .header__info,
+        .summary-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .summary-list + .summary-list,
+        .client-info {
+          border-left: 0;
+        }
+      }
+
+      @media print {
+        @page {
+          size: A4 landscape;
+          margin: 10mm;
+        }
+
+        html,
+        body {
+          background: #fff;
+        }
+
+        .header,
+        .main {
+          width: 277mm;
+          min-width: 0;
+          margin: 0;
+          padding: 0;
+          box-shadow: none;
+        }
+
+        .skip-link {
+          display: none;
+        }
+
+        .transactions-table {
+          page-break-inside: auto;
+        }
+
+        .transactions-table tr {
+          page-break-inside: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Preskočiť na hlavný obsah</a>
+    <header class="header" role="banner">
+      <div class="header__logo-section">
+        <div class="logo" role="img" aria-label="Slovenská sporiteľňa">
+          <span class="logo__text">SLOVENSKÁ</span>
+          <span class="logo__subtext">sporiteľňa</span>
+        </div>
+        <div class="header__meta">
+          <span>6.4/2026 - Strana 1/2</span>
+        </div>
+      </div>
+      <div class="header__info">
+        <address class="bank-info">
+          <p>Slovenská sporiteľňa, a.s.</p>
+          <p>Tomášikova 48, 832 37 Bratislava</p>
+          <p>IČO 00 151 653, zapísaná v Obchodnom registri</p>
+          <p>Mestského súdu Bratislava III., oddiel Sa, vložka č. 601/B</p>
+        </address>
+        <address class="client-info">
+          <p><strong>kolomanov mlyn s. r. o.</strong></p>
+          <p>Jenisejská 2441/45A</p>
+          <p>Košice - mestská časť Nad jazerom 040 12</p>
+        </address>
+      </div>
+    </header>
+
+    <main id="main-content" class="main" role="main">
+      <h1 class="main__title">Výpis z Účtu: Business účet S</h1>
+
+      <section class="account-summary" aria-labelledby="account-summary-heading">
+        <h2 id="account-summary-heading">Súhrn účtu</h2>
+        <div class="summary-grid">
+          <dl class="summary-list">
+            <div class="summary-item">
+              <dt class="summary-item__label">Názov Účtu</dt>
+              <dd class="summary-item__value">kolomanov mlyn s. r. o.</dd>
+            </div>
+            <div class="summary-item">
+              <dt class="summary-item__label">Číslo Účtu</dt>
+              <dd class="summary-item__value">SK31 0200 0000 0052 3913 5356</dd>
+            </div>
+            <div class="summary-item">
+              <dt class="summary-item__label">BIC</dt>
+              <dd class="summary-item__value">GIBASKBX</dd>
+            </div>
+            <div class="summary-item">
+              <dt class="summary-item__label">Mena</dt>
+              <dd class="summary-item__value">EUR</dd>
+            </div>
+            <div class="summary-item">
+              <dt class="summary-item__label">Dátum vyhotovenia výpisu</dt>
+              <dd class="summary-item__value">30. 04. 2026</dd>
+            </div>
+          </dl>
+          <dl class="summary-list">
+            <div class="summary-item">
+              <dt class="summary-item__label">Účtovné obdobie</dt>
+              <dd class="summary-item__value">01. 04. 2026 - 30. 04. 2026</dd>
+            </div>
+            <div class="summary-item">
+              <dt class="summary-item__label">Počiatočný stav Účtu</dt>
+              <dd class="summary-item__value">36 411,12</dd>
+            </div>
+            <div class="summary-item">
+              <dt class="summary-item__label">Vklady spolu</dt>
+              <dd class="summary-item__value">100 142,81</dd>
+            </div>
+            <div class="summary-item">
+              <dt class="summary-item__label">Výbery spolu</dt>
+              <dd class="summary-item__value">29 812,09</dd>
+            </div>
+            <div class="summary-item">
+              <dt class="summary-item__label">Konečný stav Účtu</dt>
+              <dd class="summary-item__value">50 330,72</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <section class="transaction-fee" aria-labelledby="transaction-fee-heading">
+        <h2 id="transaction-fee-heading" class="visually-hidden">Transakčná daň</h2>
+        <div class="transaction-fee__content">
+          <span>■ Transakčná daň spolu:</span>
+          <span aria-label="Mínus osemdesiat eur">- 80,00 EUR</span>
+        </div>
+      </section>
+
+      <section class="transactions" aria-labelledby="transactions-heading">
+        <h2 id="transactions-heading">Transakcie</h2>
+        <div class="table-container">
+          <table class="transactions-table">
+            <thead>
+              <tr>
+                <th scope="col">Dátum valuty</th>
+                <th scope="col">Dátum zúčtovania</th>
+                <th scope="col">Popis transakcie</th>
+                <th scope="col">Suma transakcie</th>
+                <th scope="col">Suma poplatku</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>02.04.2026</td>
+                <td>02.04.2026</td>
+                <td>
+                  <strong>Prijatá SEPA platba</strong><br />
+                  SK31 0200 0000 0052 3913 5356 BIC: GIBASKBX<br />
+                  Názov protiúčtu: Firma
+                </td>
+                <td>18 760,00</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>03.04.2026</td>
+                <td>03.04.2026</td>
+                <td>
+                  <strong>Prijatá SEPA platba</strong><br />
+                  SK31 0200 0000 0052 3913 5356 BIC: GIBASKBX<br />
+                  Názov protiúčtu: Firma
+                </td>
+                <td>3 802,40</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>06.04.2026</td>
+                <td>06.04.2026</td>
+                <td>
+                  <strong>Okamžitá platba (elektronicky)</strong><br />
+                  SK82 1100 0000 0021 8456 1201 BIC: TATRSKBX<br />
+                  Názov protiúčtu: Marius Pedersen Slovensko<br />
+                  QR 5829138471 45/918274635/102
+                </td>
+                <td class="negative">- 8 010,00</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>07.04.2026</td>
+                <td>07.04.2026</td>
+                <td>
+                  <strong>Prijatá SEPA platba</strong><br />
+                  SK31 0200 0000 0052 3913 5356 BIC: GIBASKBX<br />
+                  Názov protiúčtu: Firma
+                </td>
+                <td>1 900,73</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>08.04.2026</td>
+                <td>08.04.2026</td>
+                <td>
+                  <strong>Okamžitá platba (elektronicky)</strong><br />
+                  SK54 0900 0000 0058 2719 4403 BIC: GIBASKBX<br />
+                  Názov protiúčtu: Group Solutions s.r.o.<br />
+                  QR 5829138471 45/918274635/102
+                </td>
+                <td class="negative">- 7 810,93</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>10.04.2026</td>
+                <td>10.04.2026</td>
+                <td>
+                  <strong>Transakčná daň</strong><br />
+                  Daň. základ:
+                  <span class="uncertain" title="Neistý OCR údaj - overiť v zdroji"
+                    >nečitateľné</span
+                  >
+                  10.04.2026 0 000,00 EUR
+                </td>
+                <td class="negative">- 40,00</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>17.04.2026</td>
+                <td>17.04.2026</td>
+                <td>
+                  <strong>Okamžitá platba (elektronicky)</strong><br />
+                  SK53 0900 0000 0083 1749 5620 BIC: GIBASKBX<br />
+                  Názov protiúčtu: HGM Žilina s.r.o.<br />
+                  QR 1928475630 62/875193024/451
+                </td>
+                <td class="negative">- 3 974,16</td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

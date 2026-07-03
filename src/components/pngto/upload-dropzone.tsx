@@ -137,12 +137,10 @@ async function optimizeUpload(file: File): Promise<UploadedImage> {
 export function UploadDropzone({
   onFile,
   onError,
-  variant = "dark",
   className,
 }: {
   onFile: (img: UploadedImage) => void;
   onError: (msg: string) => void;
-  variant?: "dark" | "light";
   className?: string;
 }) {
   const [dragging, setDragging] = useState(false);
@@ -185,44 +183,22 @@ export function UploadDropzone({
         void handle(e.dataTransfer.files?.[0]);
       }}
       className={cn(
-        "flex flex-col items-center justify-center gap-3 px-4 py-10 text-center transition-colors sm:px-6 sm:py-12",
-        variant === "light"
-          ? "rounded-lg border-2 border-dashed border-zinc-300 bg-white hover:border-[#3b82f6]/50"
-          : "glass-inset",
-        dragging &&
-          (variant === "light"
-            ? "border-[#3b82f6] bg-blue-50/50"
-            : "border-primary/70 bg-primary/5"),
+        "flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-workspace-border bg-workspace-surface px-4 py-10 text-center transition-colors hover:border-info/50 sm:px-6 sm:py-12",
+        dragging && "border-info bg-info/5",
         className,
       )}
     >
-      <div
-        className={cn(
-          "grid h-12 w-12 place-items-center rounded-full",
-          variant === "light" ? "bg-[#3b82f6]/10 text-[#3b82f6]" : "bg-primary/15 text-primary",
-        )}
-      >
+      <div className="grid h-12 w-12 place-items-center rounded-full bg-info/10 text-info">
         <Upload className="h-5 w-5" aria-hidden />
       </div>
       <div className="space-y-1">
-        <p className={cn("text-sm font-medium", variant === "light" && "text-zinc-900")}>
-          Drop a UI screenshot here
-        </p>
-        <p
-          className={cn("text-xs", variant === "light" ? "text-zinc-500" : "text-muted-foreground")}
-        >
-          PNG, JPG, or WebP · up to {MAX_UPLOAD_MB} MB
-        </p>
+        <p className="text-sm font-medium text-workspace-foreground">Drop a UI screenshot here</p>
+        <p className="text-xs text-workspace-muted">PNG, JPG, or WebP · up to {MAX_UPLOAD_MB} MB</p>
       </div>
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className={cn(
-          "mt-2 inline-flex items-center rounded-md border px-3 py-1.5 text-xs font-medium",
-          variant === "light"
-            ? "border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-50"
-            : "border-border bg-white/5 hover:bg-white/10",
-        )}
+        className="mt-2 inline-flex items-center rounded-md border border-workspace-border bg-workspace-surface px-3 py-1.5 text-xs font-medium text-workspace-foreground hover:bg-workspace-tabs"
       >
         Choose file
       </button>

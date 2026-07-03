@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, RotateCcw, Sparkles } from "lucide-react";
 
@@ -22,6 +22,8 @@ import { ResultTabs } from "@/components/pngto/result-tabs";
 import { RefinementBox } from "@/components/pngto/refinement-box";
 import { LoadingSteps } from "@/components/pngto/loading-steps";
 import { Button } from "@/components/ui/button";
+import { useProjects } from "@/hooks/use-projects";
+import type { SavedProject } from "@/types/project";
 import type {
   ApiError,
   GenerationOptions,
@@ -29,7 +31,14 @@ import type {
   GenerateHtmlResult,
 } from "@/types/generation";
 
+type IndexSearch = {
+  project?: string;
+};
+
 export const Route = createFileRoute("/")({
+  validateSearch: (search: Record<string, unknown>): IndexSearch => ({
+    project: typeof search.project === "string" ? search.project : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "PNGtoHTMLapp — Screenshot to clean HTML" },
@@ -60,24 +69,71 @@ const DEFAULT_OPTIONS: GenerationOptions = {
 type RetryAction = "generate" | "continue" | "refine";
 
 function Index() {
+  const { project: projectIdFromUrl } = Route.useSearch();
+  const navigate = useNavigate();
+  const { getProject, saveFromGeneration } = useProjects();
+
   const [image, setImage] = useState<UploadedImage | null>(null);
+  const [loadedProject, setLoadedProject] = useState<SavedProject | null>(null);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [options, setOptions] = useState<GenerationOptions>(DEFAULT_OPTIONS);
   const [result, setResult] = useState<GenerateHtmlResult | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [sensor, setSensor] = useState<GenerationSensor>(createSensor("validating", "idle"));
   const [lastRefineInstruction, setLastRefineInstruction] = useState<string | null>(null);
   const [lastRetryAction, setLastRetryAction] = useState<RetryAction>("generate");
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
 
   const ocrFn = useServerFn(runOcr);
   const generateFn = useServerFn(generateHtml);
   const continueFn = useServerFn(continueHtml);
   const refineFn = useServerFn(refineHtml);
 
+  useEffect(() => {
+    if (!projectIdFromUrl) return;
+    const project = getProject(projectIdFromUrl);
+    if (!project) return;
+    setLoadedProject(project);
+    setActiveProjectId(project.id);
+    setOptions(project.options);
+    setResult(project.result);
+    setImage(null);
+    setError(null);
+    setSensor(createSensor("done", "success"));
+  }, [projectIdFromUrl, getProject]);
+
+  const persistResult = useCallback(
+    async (data: GenerateHtmlResult) => {
+      const source = image;
+      const fallback = loadedProject ?? (activeProjectId ? getProject(activeProjectId) : null);
+
+      if (!source && !fallback) return;
+
+      const savedId = await saveFromGeneration({
+        fileName: source?.file.name ?? fallback!.fileName,
+        imageWidth: source?.width ?? fallback!.imageWidth,
+        imageHeight: source?.height ?? fallback!.imageHeight,
+        imageDataUrl: source?.dataUrl ?? fallback!.thumbnailDataUrl,
+        options,
+        result: data,
+        projectId: activeProjectId ?? fallback?.id,
+      });
+
+      if (savedId) {
+        setActiveProjectId(savedId);
+        setSaveNotice("Saved to Projects");
+        window.setTimeout(() => setSaveNotice(null), 3000);
+      }
+    },
+    [activeProjectId, getProject, image, loadedProject, options, saveFromGeneration],
+  );
+
   const handleResult = (res: ServerResult) => {
     if (res.ok) {
       setResult(res.data);
       setError(null);
       setSensor(createSensor("done", "success"));
+      void persistResult(res.data);
     } else {
       setError(res.error);
       setSensor(createSensor(res.error.phase ?? "failed", "failed", res.error.diagnostic));
@@ -87,9 +143,13 @@ function Index() {
   const resetForNewImage = () => {
     setResult(null);
     setError(null);
+    setLoadedProject(null);
+    setActiveProjectId(null);
+    setSaveNotice(null);
     setLastRetryAction("generate");
     setLastRefineInstruction(null);
     setSensor(createSensor("validating", "idle"));
+    void navigate({ to: "/", search: {} });
   };
 
   const generateMut = useMutation({
@@ -233,14 +293,22 @@ function Index() {
                       setImage(null);
                       resetForNewImage();
                     }}
-                    variant="light"
                   />
+                ) : loadedProject ? (
+                  <LoadedProjectBanner project={loadedProject} onClear={resetForNewImage} />
                 ) : (
                   <UploadDropzone
-                    variant="light"
                     onFile={(img) => {
                       setImage(img);
-                      resetForNewImage();
+                      setLoadedProject(null);
+                      setActiveProjectId(null);
+                      setResult(null);
+                      setError(null);
+                      setSaveNotice(null);
+                      setLastRetryAction("generate");
+                      setLastRefineInstruction(null);
+                      setSensor(createSensor("validating", "idle"));
+                      void navigate({ to: "/", search: {} });
                     }}
                     onError={(message) =>
                       setError(createApiError("INVALID_FILE", message, "validating"))
@@ -253,7 +321,7 @@ function Index() {
                 </AdvancedSettings>
 
                 <Button
-                  className="h-11 w-full bg-[#5b35d5] text-white hover:bg-[#4c2bb8]"
+                  className="h-11 w-full bg-primary text-primary-foreground hover:bg-primary-hover"
                   size="lg"
                   disabled={(!image && !result) || busy}
                   onClick={() => {
@@ -283,23 +351,37 @@ function Index() {
           </div>
 
           {result && (
-            <section className="mt-8 space-y-4 rounded-xl border border-[#2a2a31] bg-[#17171a] p-5">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-sm font-medium text-white">Generated output</h2>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setResult(null);
-                    setError(null);
-                    setSensor(createSensor("validating", "idle"));
-                  }}
-                  className="text-xs text-[#8b90a0] hover:text-[#c9ccd6]"
-                >
-                  New upload
-                </button>
+            <section className="mt-8 space-y-4 rounded-xl border border-shell-border bg-shell-elevated p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-sm font-medium text-foreground">Generated output</h2>
+                  {saveNotice && (
+                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-200">
+                      {saveNotice}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  {activeProjectId && (
+                    <Link
+                      to="/projects/$projectId"
+                      params={{ projectId: activeProjectId }}
+                      className="text-xs text-info hover:underline"
+                    >
+                      View in Projects
+                    </Link>
+                  )}
+                  <button
+                    type="button"
+                    onClick={resetForNewImage}
+                    className="text-xs text-shell-muted hover:text-foreground"
+                  >
+                    New upload
+                  </button>
+                </div>
               </div>
               <ResultTabs result={result} />
-              <div className="border-t border-[#2a2a31] pt-4">
+              <div className="border-t border-shell-border pt-4">
                 <RefinementBox onSubmit={(i) => refineMut.mutate(i)} disabled={busy} />
               </div>
             </section>
@@ -313,6 +395,28 @@ function Index() {
   );
 }
 
+function LoadedProjectBanner({ project, onClear }: { project: SavedProject; onClear: () => void }) {
+  return (
+    <div className="workspace-panel flex items-center gap-3 p-3">
+      <img src={project.thumbnailDataUrl} alt="" className="h-16 w-16 rounded-md object-cover" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-workspace-foreground">{project.name}</p>
+        <p className="text-xs text-workspace-muted">
+          Opened from Projects · {project.fileName} · continue refining or generate from a new
+          screenshot
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onClear}
+        className="shrink-0 text-xs text-workspace-muted hover:text-workspace-foreground"
+      >
+        Clear
+      </button>
+    </div>
+  );
+}
+
 function DiagnosticErrorPanel({ error, onRetry }: { error: ApiError; onRetry: () => void }) {
   const diagnostic = error.diagnostic;
   const phase = error.phase ?? "failed";
@@ -320,17 +424,17 @@ function DiagnosticErrorPanel({ error, onRetry }: { error: ApiError; onRetry: ()
   return (
     <div
       role="alert"
-      className="space-y-3 rounded-lg border border-red-300 bg-red-50 p-3 text-xs text-red-900"
+      className="space-y-3 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive"
     >
       <div className="flex items-start gap-2">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
         <div className="min-w-0 space-y-1">
           <div className="text-sm font-medium">{diagnostic?.title ?? error.message}</div>
-          <div className="text-red-700/80">Phase: {PHASE_LABELS[phase]}</div>
+          <div className="text-destructive/80">Phase: {PHASE_LABELS[phase]}</div>
         </div>
       </div>
 
-      <div className="space-y-2 text-red-800/90">
+      <div className="space-y-2 text-destructive/90">
         <p>{diagnostic?.detail ?? error.message}</p>
         {diagnostic && <p>Likely cause: {diagnostic.likelyCause}</p>}
         {diagnostic && <p>Suggested fix: {diagnostic.suggestedFix}</p>}
@@ -340,7 +444,7 @@ function DiagnosticErrorPanel({ error, onRetry }: { error: ApiError; onRetry: ()
         <Button
           size="sm"
           variant="outline"
-          className="h-8 border-red-300 bg-white text-red-900 hover:bg-red-100"
+          className="h-8 border-destructive/30 bg-workspace-surface text-destructive hover:bg-destructive/10"
           onClick={onRetry}
         >
           <RotateCcw className="h-3.5 w-3.5" aria-hidden />
