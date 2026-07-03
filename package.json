@@ -1,16 +1,11 @@
 {
-  "name": "pngtohtmlapp-workspace",
+  "name": "pngtohtmlapp",
   "private": true,
   "scripts": {
     "dev": "npm run dev --prefix visual-html",
-    "dev:html": "npm run dev --prefix visual-html",
-    "dev:vibecraft": "npm run dev --prefix vibecraft",
-    "dev:all": "npm run dev:html & npm run dev:vibecraft & wait",
-    "build": "npm run build --prefix visual-html && npm run build --prefix vibecraft",
-    "build:html": "npm run build --prefix visual-html",
-    "build:vibecraft": "npm run build --prefix vibecraft",
+    "build": "npm run build --prefix visual-html",
     "test": "npm run test --prefix visual-html",
-    "test:vibecraft": "npm run test --prefix vibecraft",
-    "lint": "npm run lint --prefix visual-html && npm run lint --prefix vibecraft"
+    "lint": "npm run lint --prefix visual-html",
+    "preview": "npm run preview --prefix visual-html"
   }
 }

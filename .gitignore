@@ -1,13 +1,33 @@
+# dependencies
 node_modules/
+**/node_modules/
+
+# build output
 dist/
 .output/
+**/.output/
 .vercel/
+**/.vercel/
 .wrangler/
+**/.wrangler/
+.tanstack/
+
+# test artifacts
 test-results/
 playwright-report/
+
+# env & secrets
 *.log
 .env
 .env.local
 .env.*.local
+
+# OS
 .DS_Store
+
+# git worktrees (local only)
 visual-html.worktrees/
+
+# legacy standalone copy — integrated into visual-html/src/routes/builder.tsx
+# upstream: https://github.com/youh4ck3dme/vibecraft
+vibecraft/

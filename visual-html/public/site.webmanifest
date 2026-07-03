@@ -1,12 +1,12 @@
 {
   "name": "PNGtoHTMLapp",
   "short_name": "PNGtoHTML",
-  "description": "Turn UI screenshots into clean, semantic HTML with AI.",
+  "description": "Turn UI screenshots into clean, semantic HTML with AI. Includes VibeCraft app builder.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "theme_color": "#ffffff",
-  "background_color": "#ffffff",
+  "theme_color": "#09090b",
+  "background_color": "#09090b",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
