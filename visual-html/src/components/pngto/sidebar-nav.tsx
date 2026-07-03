@@ -1,31 +1,13 @@
 import { Link } from "@tanstack/react-router";
-import {
-  FolderKanban,
-  HelpCircle,
-  Plus,
-  Settings,
-  Sparkles,
-  UserRound,
-  Wand2,
-} from "lucide-react";
+import { FolderKanban, HelpCircle, Plus, Settings, Sparkles, UserRound, Wand2 } from "lucide-react";
 
-import { getVibecraftUrl } from "@/lib/vibecraft-link";
 import { cn } from "@/lib/utils";
 import { ThemeSwitcher } from "./theme-switcher";
 
 const NAV_ITEMS = [
   { id: "projects", label: "Projects", icon: FolderKanban, to: "/projects" as const },
   { id: "new", label: "New", icon: Plus, to: "/" as const },
-] as const;
-
-const EXTERNAL_ITEMS = [
-  {
-    id: "vibecraft",
-    label: "VibeCraft",
-    icon: Wand2,
-    href: getVibecraftUrl(),
-    hint: "Prompt → HTML builder",
-  },
+  { id: "builder", label: "VibeCraft", icon: Wand2, to: "/builder" as const },
 ] as const;
 
 const BOTTOM_ITEMS = [
@@ -33,6 +15,8 @@ const BOTTOM_ITEMS = [
   { id: "settings", label: "Settings", icon: Settings, disabled: true },
   { id: "account", label: "Account", icon: UserRound, disabled: true },
 ] as const;
+
+type NavTo = "/" | "/projects" | "/builder";
 
 function navButtonClass(active: boolean, disabled: boolean, compact?: boolean) {
   return cn(
@@ -55,7 +39,7 @@ function NavLink({
 }: {
   label: string;
   icon: typeof Plus;
-  to: "/" | "/projects";
+  to: NavTo;
   compact?: boolean;
 }) {
   return (
@@ -74,34 +58,6 @@ function NavLink({
       <Icon className="h-4 w-4 shrink-0" aria-hidden />
       {!compact && <span>{label}</span>}
     </Link>
-  );
-}
-
-function NavExternal({
-  label,
-  icon: Icon,
-  href,
-  hint,
-  compact = false,
-}: {
-  label: string;
-  icon: typeof Wand2;
-  href: string;
-  hint?: string;
-  compact?: boolean;
-}) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={hint ? `${label} — ${hint}` : label}
-      title={hint ?? label}
-      className={navButtonClass(false, false, compact)}
-    >
-      <Icon className="h-4 w-4 shrink-0" aria-hidden />
-      {!compact && <span>{label}</span>}
-    </a>
   );
 }
 
@@ -153,16 +109,6 @@ export function VisualSidebar() {
           {NAV_ITEMS.map((item) => (
             <NavLink key={item.id} label={item.label} icon={item.icon} to={item.to} />
           ))}
-          <div className="my-1 border-t border-shell-border" aria-hidden />
-          {EXTERNAL_ITEMS.map((item) => (
-            <NavExternal
-              key={item.id}
-              label={item.label}
-              icon={item.icon}
-              href={item.href}
-              hint={item.hint}
-            />
-          ))}
         </nav>
 
         <div className="flex flex-col items-center gap-2 border-t border-shell-border px-2 py-4">
@@ -186,16 +132,6 @@ export function VisualSidebar() {
         </Link>
         {NAV_ITEMS.map((item) => (
           <NavLink key={item.id} label={item.label} icon={item.icon} to={item.to} compact />
-        ))}
-        {EXTERNAL_ITEMS.map((item) => (
-          <NavExternal
-            key={item.id}
-            label={item.label}
-            icon={item.icon}
-            href={item.href}
-            hint={item.hint}
-            compact
-          />
         ))}
         <ThemeSwitcher compact />
       </nav>

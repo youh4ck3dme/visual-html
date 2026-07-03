@@ -224,6 +224,7 @@ function throwMistralHttpError(role: MistralKeyRole, res: Response, bodyText: st
 async function callMistralChat(
   messages: ChatMessage[],
   options: ChatOptions = {},
+  jsonMode = true,
 ): Promise<string> {
   const model = options.modelOverride || process.env.MISTRAL_MODEL || DEFAULT_MODEL;
   const timeoutMs = readIntEnv("MISTRAL_TIMEOUT_MS", DEFAULT_TIMEOUT_MS, 5_000, MAX_TIMEOUT_MS);
@@ -243,7 +244,7 @@ async function callMistralChat(
           model,
           temperature: options.temperature ?? 0.2,
           max_tokens: maxTokens,
-          response_format: { type: "json_object" },
+          ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
           messages,
         }),
       },
@@ -260,6 +261,28 @@ async function callMistralChat(
   const content = json.choices?.[0]?.message?.content;
   if (!content) throw new AiError("AI_INVALID_RESPONSE", "Empty AI response");
   return content;
+}
+
+/** Plain-text Mistral chat for VibeCraft builder (single-file HTML output). */
+export async function mistralBuilderChat(args: {
+  systemPrompt: string;
+  userPrompt: string;
+  model?: string;
+}): Promise<string> {
+  const model =
+    args.model ||
+    process.env.MISTRAL_BUILDER_MODEL ||
+    process.env.MISTRAL_MODEL ||
+    "mistral-large-latest";
+
+  return callMistralChat(
+    [
+      { role: "system", content: args.systemPrompt },
+      { role: "user", content: args.userPrompt },
+    ],
+    { modelOverride: model, maxTokens: 8000, temperature: 0.2 },
+    false,
+  );
 }
 
 async function callMistralOcr(imageUrl: string): Promise<string> {
