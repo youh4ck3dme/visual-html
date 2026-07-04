@@ -5,6 +5,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import { BuilderWorkspace } from "@/components/builder/builder-workspace";
 import { promptCategories, promptLibrary } from "@/lib/builder/prompt-library";
 import * as download from "@/lib/utils/download";
+import { getServerFnMocks } from "@/test/mocks/server-fns";
 import { renderWithProviders } from "@/test/test-utils";
 
 vi.mock("@/lib/utils/download", async (importOriginal) => {
@@ -95,6 +96,9 @@ describe("buttons › builder-workspace", () => {
     await waitFor(() => expect(screen.getByPlaceholderText(/AI is working/i)).toBeInTheDocument(), {
       timeout: 3000,
     });
+    await waitFor(() => expect(screen.getByTitle("VibeCraft Preview")).toBeInTheDocument(), {
+      timeout: 10000,
+    });
   });
 
   it("Send prompt — disabled when input empty", () => {
@@ -103,6 +107,64 @@ describe("buttons › builder-workspace", () => {
     const form = input.closest("form")!;
     const submit = within(form).getAllByRole("button").at(-1)!;
     expect(submit).toBeDisabled();
+  });
+
+  async function loadSnakePreview(user: ReturnType<typeof userEvent.setup>) {
+    // Reject all server chat calls so generateBuilderCode falls back to the offline
+    // snake mock (contains <script>). mockRejectedValueOnce is unsafe here because
+    // in-flight generation from a prior test can consume the single rejection.
+    const { builderChat } = getServerFnMocks();
+    builderChat.mockReset();
+    builderChat.mockRejectedValue(new Error("offline demo"));
+    await user.click(screen.getByRole("button", { name: "Interactive Games" }));
+    await user.click(screen.getByRole("button", { name: /Retro Snake Game/i }));
+    await waitFor(() => expect(screen.getByTitle("VibeCraft Preview")).toBeInTheDocument(), {
+      timeout: 10000,
+    });
+  }
+
+  it("preview — disables JavaScript by default and sanitizes script tags", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BuilderWorkspace />);
+    await loadSnakePreview(user);
+
+    const iframe = screen.getByTestId("preview-frame-iframe");
+    expect(iframe).toHaveAttribute("sandbox", "");
+    expect((iframe as HTMLIFrameElement).srcdoc?.toLowerCase() ?? "").not.toContain("<script");
+    expect(screen.getByTestId("builder-preview-allow-js")).not.toBeChecked();
+  });
+
+  it("preview — JS toggle enables script sandbox mode", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BuilderWorkspace />);
+    await loadSnakePreview(user);
+
+    const iframe = screen.getByTestId("preview-frame-iframe");
+    await user.click(screen.getByTestId("builder-preview-allow-js"));
+    expect(screen.getByTestId("builder-preview-allow-js")).toBeChecked();
+    expect(iframe).toHaveAttribute("sandbox", "allow-scripts");
+    expect((iframe as HTMLIFrameElement).srcdoc?.toLowerCase() ?? "").toContain("<script");
+  });
+
+  it("preview — shows security warning for suspicious HTML before risky JS opt-in", async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    renderWithProviders(<BuilderWorkspace />);
+    await loadSnakePreview(user);
+
+    await user.click(screen.getByRole("button", { name: /Code/i }));
+    const editor = screen.getByLabelText("HTML editor");
+    const risky = '<script src="https://evil.example/payload.js"></script>';
+    await user.type(editor, risky);
+
+    await user.click(screen.getByRole("button", { name: /Live Preview/i }));
+    expect(screen.getByText(/Security Warning/i)).toBeInTheDocument();
+    expect(screen.getByText(/External script/i)).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("builder-preview-allow-js"));
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(screen.getByTestId("builder-preview-allow-js")).not.toBeChecked();
+    confirmSpy.mockRestore();
   });
 
   it("Live Preview / Code tabs — switch preview panel", async () => {

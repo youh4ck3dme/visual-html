@@ -61,7 +61,7 @@ export function ResultTabs({ result }: { result: GenerateHtmlResult }) {
         </div>
 
         <TabsContent value="preview" className="mt-3">
-          <PreviewFrame srcDoc={previewDoc} allowJs={allowJs && hasJs} />
+          <PreviewFrame srcDoc={previewDoc} allowJs={allowJs && hasJs} className="h-130" />
         </TabsContent>
         <TabsContent value="html" className="mt-3">
           <CodeBlock code={result.html} language="html" />

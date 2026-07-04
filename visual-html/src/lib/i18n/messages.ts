@@ -380,6 +380,8 @@ export const messages = {
     "builder.copied": "Copied",
     "builder.download": "Download",
     "builder.securityWarning": "Security Warning",
+    "builder.previewJsRiskConfirm":
+      "Security warnings were detected in this HTML. Enable JavaScript preview only if you trust the generated code.",
     "builder.previewEmptyTitle": "Preview Monitor",
     "builder.previewEmptyHint": "Generated apps render interactively here.",
     "builder.previewFrameTitle": "VibeCraft Preview",
@@ -1007,6 +1009,8 @@ export const messages = {
     "builder.copied": "Skopírované",
     "builder.download": "Stiahnuť",
     "builder.securityWarning": "Bezpečnostné upozornenie",
+    "builder.previewJsRiskConfirm":
+      "V tomto HTML boli zistené bezpečnostné výstrahy. Zapnite JS náhľad len ak dôverujete vygenerovanému kódu.",
     "builder.previewEmptyTitle": "Monitor náhľadu",
     "builder.previewEmptyHint": "Vygenerované appky sa tu zobrazia interaktívne.",
     "builder.previewFrameTitle": "VibeCraft náhľad",

@@ -51,7 +51,9 @@ import {
 import { promptCategories, promptLibrary, type PromptItem } from "@/lib/builder/prompt-library";
 import { scanGeneratedHtml } from "@/lib/builder/risk-scanner";
 import type { MessageKey } from "@/lib/i18n/messages";
+import { PreviewFrame } from "@/components/pngto/preview-frame";
 import { cn } from "@/lib/utils";
+import { buildSingleFileHtml } from "@/lib/utils/build-single-file-html";
 import { downloadTextFile } from "@/lib/utils/download";
 import type { GenerationMode, OutputSource, VersionRecord } from "@/types/builder";
 
@@ -155,6 +157,7 @@ export function BuilderWorkspace() {
   const [hasAiAccess, setHasAiAccess] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [previewTab, setPreviewTab] = useState<"preview" | "code">("preview");
+  const [previewAllowJs, setPreviewAllowJs] = useState(false);
   const [copied, setCopied] = useState(false);
   const [key1, setKey1] = useState("");
   const [key2, setKey2] = useState("");
@@ -164,6 +167,15 @@ export function BuilderWorkspace() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatFn = useServerFn(builderChat);
   const risks = useMemo(() => scanGeneratedHtml(generatedCode), [generatedCode]);
+  const previewHasJs = useMemo(() => /<script\b/i.test(generatedCode), [generatedCode]);
+  const previewDoc = useMemo(
+    () =>
+      buildSingleFileHtml(
+        { html: generatedCode, css: "", javascript: "" },
+        { allowJs: previewAllowJs && previewHasJs, title: "VibeCraft Preview" },
+      ),
+    [generatedCode, previewAllowJs, previewHasJs],
+  );
   const prompts = promptLibrary.filter((p) => p.category === currentCategory);
   const hasUnsaved = Boolean(generatedCode) && generatedCode !== (versions.at(-1)?.code || "");
   const modeHint = MODES.find((m) => m.mode === generationMode)?.hintKey;
@@ -310,6 +322,7 @@ export function BuilderWorkspace() {
       const code = result.content;
       const src: OutputSource = online ? "ai" : "demo";
       setGeneratedCode(code);
+      setPreviewAllowJs(false);
       setOutputSource(src);
       setGenerationMode("refine");
       setVersions((p) => [...p, makeVersion(code, src, versionLabel(requestedMode, online))]);
@@ -330,6 +343,7 @@ export function BuilderWorkspace() {
   const handleNewChat = () => {
     setMessages([{ id: "new", sender: "ai", text: t("builder.chat.newWorkspace") }]);
     setGeneratedCode("");
+    setPreviewAllowJs(false);
     setOutputSource("empty");
     setVersions([]);
     setGenerationMode("build");
@@ -582,79 +596,105 @@ export function BuilderWorkspace() {
             ))}
           </div>
           {generatedCode && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span
-                className={cn(
-                  "rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase",
-                  SOURCE_BADGE[outputSource],
-                )}
-              >
-                {sourceLabel(outputSource)}
-                {hasUnsaved ? t("builder.unsavedMarker") : ""}
-              </span>
-              {versions.length > 0 && (
-                <div className="relative">
-                  <RotateCcw className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-shell-muted" />
-                  <select
-                    aria-label={t("builder.historyAria")}
-                    value=""
-                    onChange={(e) => handleRestore(e.target.value)}
-                    className="h-8 w-28 rounded-md border border-shell-border bg-shell pl-7 text-[11px]"
-                  >
-                    <option value="">
-                      {t("builder.historyOption", { count: versions.length })}
-                    </option>
-                    {[...versions].reverse().map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.label} ·{" "}
-                        {new Date(v.createdAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {previewHasJs && (
+                <label
+                  htmlFor="builder-preview-allow-js"
+                  className="flex cursor-pointer items-center gap-1.5 text-[11px] text-shell-muted"
+                >
+                  <input
+                    id="builder-preview-allow-js"
+                    name="builderAllowPreviewJavaScript"
+                    type="checkbox"
+                    checked={previewAllowJs}
+                    onChange={(e) => {
+                      const next = e.target.checked;
+                      if (next && risks.length > 0) {
+                        const ok = window.confirm(t("builder.previewJsRiskConfirm"));
+                        if (!ok) return;
+                      }
+                      setPreviewAllowJs(next);
+                    }}
+                    className="h-3.5 w-3.5 accent-primary"
+                    data-testid="builder-preview-allow-js"
+                  />
+                  {t("result.runJsInPreview")}
+                </label>
               )}
-              {hasUnsaved && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span
+                  className={cn(
+                    "rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase",
+                    SOURCE_BADGE[outputSource],
+                  )}
+                >
+                  {sourceLabel(outputSource)}
+                  {hasUnsaved ? t("builder.unsavedMarker") : ""}
+                </span>
+                {versions.length > 0 && (
+                  <div className="relative">
+                    <RotateCcw className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-shell-muted" />
+                    <select
+                      aria-label={t("builder.historyAria")}
+                      value=""
+                      onChange={(e) => handleRestore(e.target.value)}
+                      className="h-8 w-28 rounded-md border border-shell-border bg-shell pl-7 text-[11px]"
+                    >
+                      <option value="">
+                        {t("builder.historyOption", { count: versions.length })}
+                      </option>
+                      {[...versions].reverse().map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.label} ·{" "}
+                          {new Date(v.createdAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {hasUnsaved && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() =>
+                      setVersions((p) => [
+                        ...p,
+                        makeVersion(generatedCode, "manual", t("builder.version.manualEdit")),
+                      ])
+                    }
+                    data-testid="builder-save-manual"
+                  >
+                    <Save className="h-3.5 w-3.5" /> {t("builder.saveManual")}
+                  </Button>
+                )}
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() =>
-                    setVersions((p) => [
-                      ...p,
-                      makeVersion(generatedCode, "manual", t("builder.version.manualEdit")),
-                    ])
-                  }
-                  data-testid="builder-save-manual"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(generatedCode);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  data-testid="builder-copy"
                 >
-                  <Save className="h-3.5 w-3.5" /> {t("builder.saveManual")}
+                  {copied ? (
+                    <Check className="h-3.5 w-3.5 text-emerald-500" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                  {copied ? t("builder.copied") : t("builder.copy")}
                 </Button>
-              )}
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  void navigator.clipboard.writeText(generatedCode);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                }}
-                data-testid="builder-copy"
-              >
-                {copied ? (
-                  <Check className="h-3.5 w-3.5 text-emerald-500" />
-                ) : (
-                  <Copy className="h-3.5 w-3.5" />
-                )}
-                {copied ? t("builder.copied") : t("builder.copy")}
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => downloadTextFile("vibecraft-application.html", generatedCode)}
-                data-testid="builder-download"
-              >
-                <Download className="h-3.5 w-3.5" /> {t("builder.download")}
-              </Button>
+                <Button
+                  size="sm"
+                  onClick={() => downloadTextFile("vibecraft-application.html", generatedCode)}
+                  data-testid="builder-download"
+                >
+                  <Download className="h-3.5 w-3.5" /> {t("builder.download")}
+                </Button>
+              </div>
             </div>
           )}
         </header>
@@ -692,11 +732,11 @@ export function BuilderWorkspace() {
               <p className="max-w-xs text-xs">{t("builder.previewEmptyHint")}</p>
             </div>
           ) : previewTab === "preview" ? (
-            <iframe
-              srcDoc={generatedCode}
+            <PreviewFrame
+              srcDoc={previewDoc}
+              allowJs={previewAllowJs && previewHasJs}
               title={t("builder.previewFrameTitle")}
-              sandbox="allow-scripts"
-              className="h-full w-full border-0 bg-white"
+              className="h-full border-0 bg-white"
             />
           ) : (
             <Textarea
