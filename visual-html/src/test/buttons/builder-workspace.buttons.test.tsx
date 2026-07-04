@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { screen, waitFor, within } from "@testing-library/react";
 
 import { BuilderWorkspace } from "@/components/builder/builder-workspace";
+import { APPLE_GLASS_QUALITY_POLISH_FIX_PROMPT } from "@/lib/builder/quality-fix-prompts";
 import { promptCategories, promptLibrary } from "@/lib/builder/prompt-library";
 import * as download from "@/lib/utils/download";
 import { getServerFnMocks } from "@/test/mocks/server-fns";
@@ -399,6 +400,43 @@ describe("buttons › builder-workspace", () => {
       expect(await screen.findByTestId("builder-quality-profile-fast-warning")).toHaveTextContent(
         /Pro or Beast/i,
       );
+    });
+
+    it("apply polish fix — loads Fix prompt when motion/focus/responsive warnings exist", async () => {
+      const user = userEvent.setup();
+      const { builderChat, builderAiStatus } = getServerFnMocks();
+      builderAiStatus.mockResolvedValue({ serverKeysConfigured: true });
+      builderChat.mockReset();
+      builderChat.mockResolvedValue({
+        ok: true,
+        content: `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Polish</title><style>
+          .hero { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; }
+          .card { width: 1200px; animation: float 3s infinite; }
+          @keyframes float { to { transform: translateY(-8px); } }
+          button { padding: 8px 16px; }
+        </style></head><body><section class="hero"><button>Go</button></section></body></html>`,
+      });
+
+      renderWithProviders(<BuilderWorkspace />);
+      await user.type(
+        screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
+        "apple glass premium landing page",
+      );
+      await user.click(await getSubmitButton());
+
+      await waitFor(() => expect(screen.getByTitle("VibeCraft Preview")).toBeInTheDocument(), {
+        timeout: 10000,
+      });
+      await openGenerationTrace(user);
+
+      const polishBtn = await screen.findByTestId("builder-health-apply-polish-fix");
+      await user.click(polishBtn);
+
+      const input = screen.getByPlaceholderText(/Build, refine, fix, or explain/i) as HTMLInputElement;
+      expect(input.value).toContain("prefers-reduced-motion");
+      expect(input.value).toContain(":focus-visible");
+      expect(input.value).toContain("max-width: 480px");
+      expect(screen.getByRole("button", { name: "Fix" }).className).toMatch(/bg-primary/);
     });
 
     it("shows HTML health score after a successful generation", async () => {

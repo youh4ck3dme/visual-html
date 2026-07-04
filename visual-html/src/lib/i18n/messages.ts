@@ -634,6 +634,9 @@ export const messages = {
     "builder.health.noIssues": "No issues detected.",
     "builder.health.showDetails": "Show findings",
     "builder.health.hideDetails": "Hide findings",
+    "builder.health.applyPolishFix": "Apply motion, focus & responsive fix",
+    "builder.health.applyPolishFixHint":
+      "Loads a Fix prompt for reduced-motion, focus-visible, and responsive breakpoints",
     "builder.health.category.structure": "Structure",
     "builder.health.category.security": "Security",
     "builder.health.category.accessibility": "Accessibility",
@@ -1577,6 +1580,9 @@ export const messages = {
     "builder.health.noIssues": "Nenašli sa žiadne problémy.",
     "builder.health.showDetails": "Zobraziť nálezy",
     "builder.health.hideDetails": "Skryť nálezy",
+    "builder.health.applyPolishFix": "Opraviť motion, focus a responzivitu",
+    "builder.health.applyPolishFixHint":
+      "Načíta Fix prompt pre reduced-motion, focus-visible a responzívne breakpointy",
     "builder.health.category.structure": "Štruktúra",
     "builder.health.category.security": "Bezpečnosť",
     "builder.health.category.accessibility": "Prístupnosť",

@@ -82,6 +82,7 @@ import {
   type BuilderGenerationMetrics,
 } from "@/lib/builder/generation-metrics";
 import type { HtmlHealthCheckResult } from "@/lib/builder/html-health-check";
+import { APPLE_GLASS_QUALITY_POLISH_FIX_PROMPT } from "@/lib/builder/quality-fix-prompts";
 import {
   getBuilderQualityProfileId,
   type BuilderQualityProfileId,
@@ -532,6 +533,12 @@ export function BuilderWorkspace({ startTemplateId }: BuilderWorkspaceProps = {}
     }
   };
 
+  const handleApplyQualityPolishFix = useCallback(() => {
+    if (!generatedCode.trim() || isGenerating || isCancelling) return;
+    setGenerationMode("fix");
+    setInputVal(APPLE_GLASS_QUALITY_POLISH_FIX_PROMPT);
+  }, [generatedCode, isCancelling, isGenerating]);
+
   return (
     <>
       {isMobile ? (
@@ -741,6 +748,7 @@ export function BuilderWorkspace({ startTemplateId }: BuilderWorkspaceProps = {}
                   trace={currentGenerationTrace}
                   metrics={lastGenerationMetrics}
                   health={lastHtmlHealthCheck}
+                  onApplyPolishFix={handleApplyQualityPolishFix}
                 />
               )}
               {showCancelledNotice && !isGenerating && (

@@ -25,6 +25,7 @@ import {
   type HtmlHealthFinding,
   type HtmlHealthSeverity,
 } from "@/lib/builder/html-health-check";
+import { shouldOfferQualityPolishFix } from "@/lib/builder/quality-fix-prompts";
 import { BUILDER_ORCHESTRATION_MODE_META } from "@/lib/builder/orchestration-mode";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
@@ -83,6 +84,7 @@ type BuilderGenerationTracePanelProps = {
   trace: BuilderGenerationTrace;
   metrics?: BuilderGenerationMetrics | null;
   health?: HtmlHealthCheckResult | null;
+  onApplyPolishFix?: () => void;
 };
 
 function TraceStepRow({ step }: { step: BuilderTraceStep }) {
@@ -255,10 +257,17 @@ function HealthFindingRow({ finding }: { finding: HtmlHealthFinding }) {
   );
 }
 
-function HtmlHealthSection({ health }: { health: HtmlHealthCheckResult }) {
+function HtmlHealthSection({
+  health,
+  onApplyPolishFix,
+}: {
+  health: HtmlHealthCheckResult;
+  onApplyPolishFix?: () => void;
+}) {
   const { t } = useT();
   const shouldExpandDetails = health.criticalCount > 0 || health.score < 85;
   const [showDetails, setShowDetails] = useState(shouldExpandDetails);
+  const showPolishFix = shouldOfferQualityPolishFix(health) && onApplyPolishFix;
 
   useEffect(() => {
     if (health.criticalCount > 0) {
@@ -342,14 +351,27 @@ function HtmlHealthSection({ health }: { health: HtmlHealthCheckResult }) {
         </p>
       ) : (
         <>
-          <button
-            type="button"
-            className="text-[10px] font-medium text-primary hover:underline"
-            data-testid="builder-health-details-toggle"
-            onClick={() => setShowDetails((value) => !value)}
-          >
-            {showDetails ? t("builder.health.hideDetails") : t("builder.health.showDetails")}
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              className="text-[10px] font-medium text-primary hover:underline"
+              data-testid="builder-health-details-toggle"
+              onClick={() => setShowDetails((value) => !value)}
+            >
+              {showDetails ? t("builder.health.hideDetails") : t("builder.health.showDetails")}
+            </button>
+            {showPolishFix && (
+              <button
+                type="button"
+                className="rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-[10px] font-medium text-primary hover:bg-primary/15"
+                data-testid="builder-health-apply-polish-fix"
+                title={t("builder.health.applyPolishFixHint")}
+                onClick={onApplyPolishFix}
+              >
+                {t("builder.health.applyPolishFix")}
+              </button>
+            )}
+          </div>
           {showDetails && (
             <div className="mt-2 space-y-1" data-testid="builder-health-findings">
               {health.findings.map((finding) => (
@@ -367,6 +389,7 @@ export function BuilderGenerationTracePanel({
   trace,
   metrics,
   health,
+  onApplyPolishFix,
 }: BuilderGenerationTracePanelProps) {
   const { t } = useT();
   const [openValue, setOpenValue] = useState("");
@@ -407,7 +430,7 @@ export function BuilderGenerationTracePanel({
                 <TraceStepRow key={step.id} step={step} />
               ))}
             </div>
-            {health && <HtmlHealthSection health={health} />}
+            {health && <HtmlHealthSection health={health} onApplyPolishFix={onApplyPolishFix} />}
           </AccordionContent>
         </AccordionItem>
       </Accordion>
