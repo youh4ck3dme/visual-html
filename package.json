@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "npm run dev --prefix visual-html",
-    "build": "npm run build --prefix visual-html",
+    "build": "NITRO_PRESET=vercel npm run build --prefix visual-html",
     "test": "npm run test --prefix visual-html",
     "lint": "npm run lint --prefix visual-html",
     "typecheck": "npm run typecheck --prefix visual-html",
