@@ -1,23 +1,38 @@
+import { Link } from "@tanstack/react-router";
 import {
+  AlertCircle,
   ArrowRight,
+  Check,
   Code,
+  Copy,
   Eye,
+  FolderKanban,
   LayoutGrid,
   Menu,
   MoreHorizontal,
   Play,
+  Plus,
   RefreshCw,
   Smartphone,
   Square,
   Type,
   ImageIcon,
+  Wand2,
+  X,
 } from "lucide-react";
-import type { FormEvent, ReactNode } from "react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
 
 import { AppLogo } from "@/components/pngto/app-logo";
 import { PreviewFrame } from "@/components/pngto/preview-frame";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { useT } from "@/hooks/use-t";
 import type { MessageKey } from "@/lib/i18n/messages";
@@ -34,8 +49,15 @@ const TEMPLATE_PREVIEW: Record<string, string> = {
   "pomodoro-timer": "from-orange-950/70 via-zinc-900 to-black",
 };
 
+const MENU_ITEMS = [
+  { id: "projects", labelKey: "nav.projects" as MessageKey, icon: FolderKanban, to: "/projects" as const },
+  { id: "new", labelKey: "nav.new" as MessageKey, icon: Plus, to: "/" as const },
+  { id: "builder", labelKey: "nav.builder" as MessageKey, icon: Wand2, to: "/builder" as const },
+] as const;
+
 type BuilderMobileStudioProps = {
   prompts: PromptItem[];
+  allPrompts: PromptItem[];
   activeTemplateId: string | null;
   activeTemplateTitle: string | null;
   generationMode: string;
@@ -46,17 +68,22 @@ type BuilderMobileStudioProps = {
   previewHasJs: boolean;
   isGenerating: boolean;
   isCancelling: boolean;
+  stepStatusText: string;
+  error: string | null;
+  showCancelledNotice: boolean;
   inputVal: string;
   hasAiAccess: boolean;
   onSelectPrompt: (prompt: PromptItem) => void;
   onPreviewTab: (tab: "preview" | "code") => void;
   onInputChange: (value: string) => void;
   onSubmit: (e: FormEvent) => void;
+  onCancelGeneration: () => void;
   onOpenSettings: () => void;
 };
 
 export function BuilderMobileStudio({
   prompts,
+  allPrompts,
   activeTemplateId,
   activeTemplateTitle,
   generationMode,
@@ -67,25 +94,62 @@ export function BuilderMobileStudio({
   previewHasJs,
   isGenerating,
   isCancelling,
+  stepStatusText,
+  error,
+  showCancelledNotice,
   inputVal,
   hasAiAccess,
   onSelectPrompt,
   onPreviewTab,
   onInputChange,
   onSubmit,
+  onCancelGeneration,
   onOpenSettings,
 }: BuilderMobileStudioProps) {
   const { t } = useT();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showAllTemplates, setShowAllTemplates] = useState(false);
+  const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const templatesRef = useRef<HTMLElement>(null);
+  const previewSectionRef = useRef<HTMLElement>(null);
+
   const featured = prompts.slice(0, 3);
+  const visibleTemplates = showAllTemplates ? allPrompts : featured;
   const isLive = Boolean(generatedCode.trim());
 
+  const handleRunPreview = () => {
+    if (!isLive) return;
+    onPreviewTab("preview");
+    previewSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleRefreshPreview = () => {
+    if (!isLive) return;
+    setPreviewRefreshKey((key) => key + 1);
+  };
+
+  const handleViewAll = () => {
+    setShowAllTemplates(true);
+    templatesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleCopyCode = async () => {
+    if (!generatedCode.trim()) return;
+    await navigator.clipboard.writeText(generatedCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col" data-testid="builder-mobile-studio">
       <header className="vibecraft-studio-elevated sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-shell-border/80 px-3 py-2.5">
         <button
           type="button"
           className="grid h-9 w-9 place-items-center rounded-lg text-shell-muted"
-          aria-label={t("nav.appAria")}
+          aria-label={t("builder.mobile.menuAria")}
+          data-testid="builder-mobile-menu-trigger"
+          onClick={() => setMenuOpen(true)}
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -101,8 +165,11 @@ export function BuilderMobileStudio({
         <div className="flex items-center gap-0.5">
           <button
             type="button"
-            className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground"
+            className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground disabled:opacity-40"
             aria-label={t("builder.mobile.runPreview")}
+            data-testid="builder-mobile-run-preview"
+            disabled={!isLive}
+            onClick={handleRunPreview}
           >
             <Play className="h-4 w-4 fill-current" />
           </button>
@@ -125,6 +192,42 @@ export function BuilderMobileStudio({
           </button>
         </div>
       </header>
+
+      <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+        <SheetContent side="left" className="border-shell-border bg-shell-elevated" data-testid="builder-mobile-menu">
+          <SheetHeader>
+            <SheetTitle>{t("builder.mobile.navTitle")}</SheetTitle>
+            <SheetDescription>{t("nav.appAria")}</SheetDescription>
+          </SheetHeader>
+          <nav className="mt-6 flex flex-col gap-2" aria-label={t("nav.appAria")}>
+            <Link
+              to="/"
+              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-shell-hover"
+              aria-label={t("nav.homeAria")}
+              onClick={() => setMenuOpen(false)}
+            >
+              <AppLogo size="xs" className="rounded-md" />
+              {t("nav.homeTitle")}
+            </Link>
+            {MENU_ITEMS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.id}
+                  to={item.to}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-shell-hover"
+                  aria-label={t(item.labelKey)}
+                  data-testid={`builder-mobile-nav-${item.id}`}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <Icon className="h-4 w-4 shrink-0" aria-hidden />
+                  {t(item.labelKey)}
+                </Link>
+              );
+            })}
+          </nav>
+        </SheetContent>
+      </Sheet>
 
       <div className="flex-1 space-y-4 overflow-y-auto px-3 py-4 pb-28">
         <div className="vibecraft-studio-elevated flex items-start justify-between gap-3 rounded-xl border border-shell-border/80 p-3">
@@ -149,15 +252,75 @@ export function BuilderMobileStudio({
           </div>
         </div>
 
-        <section>
+        {isGenerating && (
+          <div
+            className="vibecraft-studio-elevated rounded-xl border border-shell-border/80 p-3"
+            data-testid="builder-generation-status"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <p className="flex min-w-0 flex-1 items-center gap-2 text-xs font-medium text-primary">
+                <RefreshCw
+                  className={cn("h-4 w-4 shrink-0", !isCancelling && "animate-spin")}
+                  aria-hidden
+                />
+                <span className="truncate">{stepStatusText}</span>
+              </p>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="h-9 shrink-0 border-shell-border bg-shell px-2.5 text-[11px]"
+                onClick={onCancelGeneration}
+                disabled={isCancelling}
+                data-testid="builder-cancel-generation"
+                aria-label={t("builder.action.cancelGeneration")}
+              >
+                <X className="mr-1 h-3 w-3" aria-hidden />
+                {t("builder.action.cancelGeneration")}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {showCancelledNotice && !isGenerating && (
+          <div
+            className="rounded-xl border border-shell-border/80 bg-shell px-3 py-2 text-xs text-shell-muted"
+            data-testid="builder-cancelled-notice"
+          >
+            {t("builder.status.cancelled")}
+          </div>
+        )}
+
+        {error && (
+          <div
+            role="alert"
+            className="flex gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive"
+            data-testid="builder-mobile-error"
+          >
+            <AlertCircle className="h-4 w-4 shrink-0" aria-hidden />
+            <span>
+              <strong>{t("builder.errorPrefix")}</strong> {error}
+            </span>
+          </div>
+        )}
+
+        <section ref={templatesRef}>
           <div className="mb-2 flex items-center justify-between">
             <p className="text-[10px] font-bold uppercase tracking-wide text-shell-muted">
               {t("builder.starterTemplates")}
             </p>
-            <span className="text-[10px] font-medium text-primary">{t("builder.mobile.viewAll")}</span>
+            <button
+              type="button"
+              className="text-[10px] font-medium text-primary"
+              aria-label={t("builder.mobile.viewAllAria")}
+              data-testid="builder-mobile-view-all"
+              onClick={handleViewAll}
+            >
+              {t("builder.mobile.viewAll")}
+            </button>
           </div>
           <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1">
-            {featured.map((p, index) => {
+            {visibleTemplates.map((p, index) => {
               const active = activeTemplateId === p.id;
               const title = t(`builder.template.${p.id}.title` as MessageKey);
               return (
@@ -179,7 +342,7 @@ export function BuilderMobileStudio({
                       TEMPLATE_PREVIEW[p.id] ?? "from-zinc-800 to-black",
                     )}
                   >
-                    {index === 0 && (
+                    {index === 0 && !showAllTemplates && (
                       <span className="absolute left-2 top-2 rounded-full bg-primary px-1.5 py-0.5 text-[8px] font-bold uppercase text-primary-foreground">
                         {t("builder.mobile.newBadge")}
                       </span>
@@ -210,32 +373,55 @@ export function BuilderMobileStudio({
           </div>
         )}
 
-        <section className="vibecraft-studio-elevated overflow-hidden rounded-xl border border-shell-border/80">
+        <section
+          ref={previewSectionRef}
+          className="vibecraft-studio-elevated overflow-hidden rounded-xl border border-shell-border/80"
+        >
           <div className="flex border-b border-shell-border/80">
-            {(
-              [
-                ["preview", t("builder.previewTab"), Eye],
-                ["code", t("builder.codeTab"), Code],
-                ["files", t("builder.mobile.tabFiles"), LayoutGrid, true],
-                ["settings", t("builder.mobile.tabSettings"), MoreHorizontal, true],
-              ] as const
-            ).map(([tab, label, Icon, disabled]) => (
-              <button
-                key={tab}
-                type="button"
-                disabled={disabled}
-                onClick={() => !disabled && onPreviewTab(tab as "preview" | "code")}
-                data-testid={tab === "preview" || tab === "code" ? `builder-tab-${tab}` : undefined}
-                className={cn(
-                  "flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[9px] font-semibold uppercase",
-                  previewTab === tab ? "border-b-2 border-primary text-primary" : "text-shell-muted",
-                  disabled && "cursor-not-allowed opacity-40",
-                )}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {label}
-              </button>
-            ))}
+            <button
+              type="button"
+              onClick={() => onPreviewTab("preview")}
+              data-testid="builder-tab-preview"
+              className={cn(
+                "flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[9px] font-semibold uppercase",
+                previewTab === "preview" ? "border-b-2 border-primary text-primary" : "text-shell-muted",
+              )}
+            >
+              <Eye className="h-3.5 w-3.5" />
+              {t("builder.previewTab")}
+            </button>
+            <button
+              type="button"
+              onClick={() => onPreviewTab("code")}
+              data-testid="builder-tab-code"
+              className={cn(
+                "flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[9px] font-semibold uppercase",
+                previewTab === "code" ? "border-b-2 border-primary text-primary" : "text-shell-muted",
+              )}
+            >
+              <Code className="h-3.5 w-3.5" />
+              {t("builder.codeTab")}
+            </button>
+            <button
+              type="button"
+              disabled
+              aria-disabled
+              title={t("builder.mobile.tabFilesSoon")}
+              data-testid="builder-tab-files"
+              className="flex flex-1 cursor-not-allowed flex-col items-center gap-0.5 py-2.5 text-[9px] font-semibold uppercase text-shell-muted opacity-40"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              {t("builder.mobile.tabFiles")}
+            </button>
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              data-testid="builder-tab-settings"
+              className="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[9px] font-semibold uppercase text-shell-muted"
+            >
+              <MoreHorizontal className="h-3.5 w-3.5" />
+              {t("builder.mobile.tabSettings")}
+            </button>
           </div>
 
           <div className="flex items-center justify-between gap-2 border-b border-shell-border/80 px-3 py-2">
@@ -243,13 +429,20 @@ export function BuilderMobileStudio({
               <Smartphone className="h-3.5 w-3.5" />
               {t("builder.mobile.deviceIphone17Air")}
             </div>
-            <button type="button" className="text-shell-muted" aria-label={t("builder.mobile.refreshPreview")}>
+            <button
+              type="button"
+              className="text-shell-muted disabled:opacity-40"
+              aria-label={t("builder.mobile.refreshPreview")}
+              data-testid="builder-mobile-refresh-preview"
+              disabled={!isLive}
+              onClick={handleRefreshPreview}
+            >
               <RefreshCw className="h-3.5 w-3.5" />
             </button>
           </div>
 
-          <div className="relative bg-workspace p-4">
-            <FloatingToolbar />
+          <div className="relative bg-[#202124] p-4">
+            <FloatingToolbar comingSoonLabel={t("builder.mobile.comingSoon")} />
             {!generatedCode ? (
               <div className="flex min-h-[420px] flex-col items-center justify-center gap-2 px-4 text-center">
                 <Eye className="h-8 w-8 text-shell-muted opacity-40" />
@@ -260,6 +453,7 @@ export function BuilderMobileStudio({
               <div className="mx-auto w-[min(100%,375px)] rounded-[2rem] border-[3px] border-[#3c4043] bg-black p-1.5 shadow-2xl">
                 <div className="overflow-hidden rounded-[1.6rem] bg-white">
                   <PreviewFrame
+                    key={previewRefreshKey}
                     srcDoc={previewDoc}
                     allowJs={previewAllowJs && previewHasJs}
                     title={t("builder.previewFrameTitle")}
@@ -268,12 +462,30 @@ export function BuilderMobileStudio({
                 </div>
               </div>
             ) : (
-              <Textarea
-                aria-label={t("builder.codeEditorAria")}
-                value={generatedCode}
-                readOnly
-                className="min-h-[420px] resize-none border-0 bg-shell font-mono text-[10px]"
-              />
+              <div className="space-y-2">
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => void handleCopyCode()}
+                    data-testid="builder-mobile-copy-code"
+                  >
+                    {copied ? (
+                      <Check className="h-3.5 w-3.5 text-emerald-500" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5" />
+                    )}
+                    {copied ? t("builder.copied") : t("builder.mobile.copyCode")}
+                  </Button>
+                </div>
+                <Textarea
+                  aria-label={t("builder.codeEditorAria")}
+                  value={generatedCode}
+                  readOnly
+                  className="min-h-[420px] resize-none border-0 bg-shell font-mono text-[10px]"
+                />
+              </div>
             )}
           </div>
         </section>
@@ -304,6 +516,7 @@ export function BuilderMobileStudio({
             className="absolute right-1 top-1/2 h-9 w-9 -translate-y-1/2"
             disabled={!inputVal.trim() || isGenerating || isCancelling}
             data-testid="builder-send"
+            aria-label={t("builder.action.sendPrompt")}
           >
             {isGenerating ? (
               <RefreshCw className="h-4 w-4 animate-spin" />
@@ -317,7 +530,7 @@ export function BuilderMobileStudio({
   );
 }
 
-function FloatingToolbar() {
+function FloatingToolbar({ comingSoonLabel }: { comingSoonLabel: string }) {
   const items: { icon: ReactNode; label: string }[] = [
     { icon: <Square className="h-3.5 w-3.5" />, label: "Box" },
     { icon: <Type className="h-3.5 w-3.5" />, label: "Text" },
@@ -327,13 +540,19 @@ function FloatingToolbar() {
   ];
 
   return (
-    <div className="absolute right-2 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-1 rounded-xl border border-shell-border/60 bg-shell-elevated/90 p-1 shadow-lg backdrop-blur-sm">
+    <div
+      className="absolute right-2 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-1 rounded-xl border border-shell-border/60 bg-shell-elevated/90 p-1 shadow-lg backdrop-blur-sm"
+      data-testid="builder-mobile-floating-toolbar"
+    >
       {items.map((item) => (
         <button
           key={item.label}
           type="button"
+          disabled
+          aria-disabled
           aria-label={item.label}
-          className="grid h-8 w-8 place-items-center rounded-lg text-shell-muted hover:bg-shell-hover hover:text-foreground"
+          title={comingSoonLabel}
+          className="grid h-8 w-8 cursor-not-allowed place-items-center rounded-lg text-shell-muted opacity-40"
         >
           {item.icon}
         </button>

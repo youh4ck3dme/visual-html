@@ -542,12 +542,16 @@ export function BuilderWorkspace({ startTemplateId }: BuilderWorkspaceProps = {}
             previewHasJs={previewHasJs}
             isGenerating={isGenerating}
             isCancelling={isCancelling}
+            stepStatusText={stepStatusText}
+            error={error}
+            showCancelledNotice={showCancelledNotice}
             inputVal={inputVal}
             hasAiAccess={hasAiAccess}
             onSelectPrompt={handleSelectPrompt}
             onPreviewTab={setPreviewTab}
             onInputChange={setInputVal}
             onSubmit={handlePromptSubmit}
+            onCancelGeneration={handleCancelGeneration}
             onOpenSettings={() => setSettingsOpen(true)}
           />
         </div>
