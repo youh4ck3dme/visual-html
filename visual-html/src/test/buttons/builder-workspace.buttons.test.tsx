@@ -13,6 +13,17 @@ vi.mock("@/lib/utils/download", async (importOriginal) => {
   return { ...actual, downloadTextFile: vi.fn() };
 });
 
+const TRACE_FRIENDLY_HTML = `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Trace Friendly</title><style>button:focus-visible{outline:1px solid #fff}</style></head><body><button>Go</button></body></html>`;
+
+async function openGenerationTrace(user: ReturnType<typeof userEvent.setup>) {
+  const tracePanel = await screen.findByTestId("builder-generation-trace");
+  if (tracePanel.getAttribute("data-trace-expanded") !== "true") {
+    await user.click(screen.getByTestId("builder-generation-trace-trigger"));
+  }
+  await waitFor(() => expect(tracePanel).toHaveAttribute("data-trace-expanded", "true"));
+  return tracePanel;
+}
+
 describe("buttons › builder-workspace", () => {
   beforeEach(() => {
     localStorage.removeItem("vibecraft_workspace_v1");
@@ -119,12 +130,11 @@ describe("buttons › builder-workspace", () => {
   });
 
   async function loadSnakePreview(user: ReturnType<typeof userEvent.setup>) {
-    // Reject all server chat calls so generateBuilderCode falls back to the offline
-    // snake mock (contains <script>). mockRejectedValueOnce is unsafe here because
-    // in-flight generation from a prior test can consume the single rejection.
+    // Return a fallback-safe server failure so generateBuilderCode uses the offline
+    // snake mock (contains <script>) after retry exhaustion.
     const { builderChat } = getServerFnMocks();
     builderChat.mockReset();
-    builderChat.mockRejectedValue(new Error("offline demo"));
+    builderChat.mockResolvedValue({ ok: false, message: "missing server key" });
     await user.click(screen.getByRole("button", { name: "Interactive Games" }));
     await user.click(screen.getByRole("button", { name: /Retro Snake Game/i }));
     await waitFor(() => expect(screen.getByTitle("VibeCraft Preview")).toBeInTheDocument(), {
@@ -167,8 +177,9 @@ describe("buttons › builder-workspace", () => {
     await user.type(editor, risky);
 
     await user.click(screen.getByRole("button", { name: /Live Preview/i }));
-    expect(screen.getByText(/Security Warning/i)).toBeInTheDocument();
-    expect(screen.getByText(/External script/i)).toBeInTheDocument();
+    const warningSection = screen.getByText(/Security Warning/i).parentElement!.parentElement!;
+    expect(warningSection).toBeInTheDocument();
+    expect(within(warningSection).getByText(/External script/i)).toBeInTheDocument();
 
     await user.click(screen.getByTestId("builder-preview-allow-js"));
     expect(confirmSpy).toHaveBeenCalled();
@@ -274,5 +285,366 @@ describe("buttons › builder-workspace", () => {
     await waitFor(() => expect(screen.queryByText("Mistral BYOK")).not.toBeInTheDocument());
     expect(localStorage.getItem("builder_mistral_api_key_1")).toBe("sk-test-key");
     expect(screen.getByText("BYOK Ready")).toBeInTheDocument();
+  });
+
+  describe("generation cancel", () => {
+    beforeEach(() => {
+      localStorage.setItem("visual-html.builder.orchestrationMode", "fast");
+      localStorage.removeItem("builder_mistral_api_key_1");
+      localStorage.removeItem("builder_mistral_api_key_2");
+    });
+
+    async function getSubmitButton() {
+      const input = screen.getByPlaceholderText(/Build, refine, fix, or explain/i);
+      return within(input.closest("form")!).getAllByRole("button").at(-1)!;
+    }
+
+    async function startHangingGeneration(user: ReturnType<typeof userEvent.setup>) {
+      const { builderChat } = getServerFnMocks();
+      builderChat.mockReset();
+      builderChat.mockImplementation(() => new Promise(() => {}));
+      await user.type(
+        screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
+        "Build a hanging test page",
+      );
+      await user.click(await getSubmitButton());
+      await waitFor(() =>
+        expect(screen.getByTestId("builder-cancel-generation")).toBeInTheDocument(),
+      );
+    }
+
+    it("shows Cancel button while generating and hides it when idle", async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<BuilderWorkspace />);
+      expect(screen.queryByTestId("builder-cancel-generation")).not.toBeInTheDocument();
+
+      await startHangingGeneration(user);
+      expect(screen.getByTestId("builder-cancel-generation")).toBeInTheDocument();
+
+      const abortSpy = vi.spyOn(AbortController.prototype, "abort");
+      await user.click(screen.getByTestId("builder-cancel-generation"));
+
+      await waitFor(() =>
+        expect(screen.queryByTestId("builder-cancel-generation")).not.toBeInTheDocument(),
+      );
+      expect(abortSpy).toHaveBeenCalled();
+      abortSpy.mockRestore();
+    });
+
+    it("does not show error feedback when generation is cancelled", async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<BuilderWorkspace />);
+      await startHangingGeneration(user);
+      await user.click(screen.getByTestId("builder-cancel-generation"));
+
+      await waitFor(() =>
+        expect(screen.getByTestId("builder-cancelled-notice")).toHaveTextContent(
+          /Generation cancelled/i,
+        ),
+      );
+      expect(screen.queryByText(/Generation failed/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Error:/i)).not.toBeInTheDocument();
+    });
+
+    it("shows collapsible generation trace during generation", async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<BuilderWorkspace />);
+      await startHangingGeneration(user);
+
+      const tracePanel = await screen.findByTestId("builder-generation-trace");
+      expect(tracePanel).toBeInTheDocument();
+      expect(tracePanel).toHaveAttribute("data-trace-expanded", "false");
+
+      await user.click(screen.getByTestId("builder-generation-trace-trigger"));
+      expect(tracePanel).toHaveAttribute("data-trace-expanded", "true");
+      expect(screen.getByTestId("builder-trace-step-building")).toBeInTheDocument();
+
+      await user.click(screen.getByTestId("builder-cancel-generation"));
+      await waitFor(() =>
+        expect(screen.queryByTestId("builder-cancel-generation")).not.toBeInTheDocument(),
+      );
+    });
+
+    it("shows Quality Profile dropdown in settings", async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<BuilderWorkspace />);
+      await user.click(screen.getByLabelText("Settings"));
+      expect(await screen.findByTestId("builder-quality-profile-select")).toBeInTheDocument();
+      expect(screen.getByTestId("builder-quality-profile")).toBeInTheDocument();
+    });
+
+    it("shows recommended mode badge for selected profile", async () => {
+      const user = userEvent.setup();
+      localStorage.setItem("visual-html.builder.qualityProfile", "neon-parallax");
+      renderWithProviders(<BuilderWorkspace />);
+      await user.click(screen.getByLabelText("Settings"));
+      const recommended = await screen.findByTestId("builder-quality-profile-recommended-mode");
+      expect(recommended).toHaveTextContent(/Recommended|Odporúčané/i);
+      expect(recommended).toHaveTextContent(/Beast/i);
+    });
+
+    it("shows fast warning for Neon Parallax with Fast mode", async () => {
+      const user = userEvent.setup();
+      localStorage.setItem("visual-html.builder.qualityProfile", "neon-parallax");
+      localStorage.setItem("visual-html.builder.orchestrationMode", "fast");
+      renderWithProviders(<BuilderWorkspace />);
+      await user.click(screen.getByLabelText("Settings"));
+      expect(await screen.findByTestId("builder-quality-profile-fast-warning")).toHaveTextContent(
+        /Pro or Beast/i,
+      );
+    });
+
+    it("shows HTML health score after a successful generation", async () => {
+      const user = userEvent.setup();
+      const { builderChat, builderAiStatus } = getServerFnMocks();
+      builderAiStatus.mockResolvedValue({ serverKeysConfigured: true });
+      builderChat.mockReset();
+      builderChat.mockResolvedValue({
+        ok: true,
+        content: `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Health UI</title><style>button:focus-visible{outline:2px solid #fff}</style></head><body><button>Go</button></body></html>`,
+      });
+
+      renderWithProviders(<BuilderWorkspace />);
+      await user.type(
+        screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
+        "Build a health score page",
+      );
+      await user.click(await getSubmitButton());
+
+      await waitFor(() => expect(screen.getByTitle("VibeCraft Preview")).toBeInTheDocument(), {
+        timeout: 10000,
+      });
+
+      await openGenerationTrace(user);
+      const health = await screen.findByTestId("builder-html-health");
+      expect(health).toBeInTheDocument();
+      expect(screen.getByTestId("builder-health-score")).toHaveTextContent(/\/100/);
+      expect(screen.getByTestId("builder-health-profile")).toBeInTheDocument();
+      expect(screen.getByTestId("builder-health-minimum-expected-score")).toBeInTheDocument();
+    });
+
+    it("auto-expands trace when health check has critical findings", async () => {
+      const user = userEvent.setup();
+      const { builderChat, builderAiStatus } = getServerFnMocks();
+      builderAiStatus.mockResolvedValue({ serverKeysConfigured: true });
+      builderChat.mockReset();
+      builderChat.mockResolvedValue({
+        ok: true,
+        content: `<!DOCTYPE html><html><head><title>Bad</title></head><body><script src="https://evil.example/x.js"></script></body></html>`,
+      });
+
+      renderWithProviders(<BuilderWorkspace />);
+      await user.type(
+        screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
+        "Build a critical health page",
+      );
+      await user.click(await getSubmitButton());
+
+      await waitFor(() => {
+        const tracePanel = screen.getByTestId("builder-generation-trace");
+        expect(tracePanel).toHaveAttribute("data-trace-expanded", "true");
+      });
+      expect(screen.getByTestId("builder-health-critical-count")).toHaveTextContent(/[1-9]/);
+    });
+
+    it("clears previous HTML health result on new generation", async () => {
+      const user = userEvent.setup();
+      const { builderChat, builderAiStatus } = getServerFnMocks();
+      builderAiStatus.mockResolvedValue({ serverKeysConfigured: true });
+      builderChat.mockReset();
+      builderChat
+        .mockResolvedValueOnce({
+          ok: true,
+          content: `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>One</title><style>button:focus-visible{outline:1px solid #fff}</style></head><body><button>One</button></body></html>`,
+        })
+        .mockImplementationOnce(() => new Promise(() => {}));
+
+      renderWithProviders(<BuilderWorkspace />);
+      await user.type(
+        screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
+        "Build first health page",
+      );
+      await user.click(await getSubmitButton());
+      await waitFor(() => expect(screen.getByTitle("VibeCraft Preview")).toBeInTheDocument(), {
+        timeout: 10000,
+      });
+      await user.click(screen.getByTestId("builder-generation-trace-trigger"));
+      expect(await screen.findByTestId("builder-html-health")).toBeInTheDocument();
+
+      await user.type(
+        screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
+        "Build second hanging page",
+      );
+      await user.click(await getSubmitButton());
+      await waitFor(() =>
+        expect(screen.getByTestId("builder-cancel-generation")).toBeInTheDocument(),
+      );
+      expect(screen.queryByTestId("builder-html-health")).not.toBeInTheDocument();
+    });
+
+    it("shows compact metrics summary after a successful generation", async () => {
+      const user = userEvent.setup();
+      const { builderChat, builderAiStatus } = getServerFnMocks();
+      builderAiStatus.mockResolvedValue({ serverKeysConfigured: true });
+      builderChat.mockReset();
+      builderChat.mockResolvedValue({
+        ok: true,
+        content: TRACE_FRIENDLY_HTML,
+      });
+
+      renderWithProviders(<BuilderWorkspace />);
+      await user.type(
+        screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
+        "Build a metrics summary page",
+      );
+      await user.click(await getSubmitButton());
+
+      await waitFor(() => expect(screen.getByTitle("VibeCraft Preview")).toBeInTheDocument(), {
+        timeout: 10000,
+      });
+
+      await openGenerationTrace(user);
+      const summary = await screen.findByTestId("builder-trace-metrics-summary");
+      expect(summary).toBeInTheDocument();
+      expect(screen.getByTestId("builder-metrics-ai-calls")).toHaveTextContent(/1/);
+      expect(screen.getByTestId("builder-metrics-retries")).toHaveTextContent(/0/);
+      expect(screen.getByTestId("builder-metrics-timeouts")).toHaveTextContent(/0/);
+      expect(screen.getByTestId("builder-metrics-fallbacks")).toHaveTextContent(/0/);
+    });
+
+    it("does not show error feedback when cancelled during retry delay", async () => {
+      const user = userEvent.setup();
+      const { builderChat, builderAiStatus } = getServerFnMocks();
+      builderAiStatus.mockResolvedValue({ serverKeysConfigured: true });
+      builderChat.mockReset();
+      let chatCalls = 0;
+      builderChat.mockImplementation(async () => {
+        chatCalls += 1;
+        if (chatCalls === 1) return { ok: false, message: "network timeout" };
+        return new Promise(() => {});
+      });
+
+      renderWithProviders(<BuilderWorkspace />);
+      await user.type(
+        screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
+        "Build a retry backoff cancel test page",
+      );
+      await user.click(await getSubmitButton());
+
+      await waitFor(() =>
+        expect(screen.getByTestId("builder-cancel-generation")).toBeInTheDocument(),
+      );
+      await waitFor(() => expect(chatCalls).toBeGreaterThanOrEqual(1));
+      await user.click(screen.getByTestId("builder-cancel-generation"));
+
+      await waitFor(() =>
+        expect(screen.getByTestId("builder-cancelled-notice")).toHaveTextContent(
+          /Generation cancelled/i,
+        ),
+      );
+      expect(screen.queryByText(/Generation failed/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Error:/i)).not.toBeInTheDocument();
+    });
+
+    it("shows retried once in trace after a retryable step succeeds", async () => {
+      const user = userEvent.setup();
+      const fetchMock = vi
+        .fn()
+        .mockRejectedValue(new Error("browser path should not run in this test"));
+      vi.stubGlobal("fetch", fetchMock);
+      const { builderChat, builderAiStatus } = getServerFnMocks();
+      builderAiStatus.mockResolvedValue({ serverKeysConfigured: true });
+      builderChat.mockReset();
+      let chatCalls = 0;
+      builderChat.mockImplementation(async () => {
+        chatCalls += 1;
+        if (chatCalls === 1) return { ok: false, message: "network timeout" };
+        return {
+          ok: true,
+          content: TRACE_FRIENDLY_HTML,
+        };
+      });
+
+      try {
+        renderWithProviders(<BuilderWorkspace />);
+        await user.type(
+          screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
+          "Build a retry test page",
+        );
+        await user.click(await getSubmitButton());
+
+        await waitFor(() => expect(screen.getByTitle("VibeCraft Preview")).toBeInTheDocument(), {
+          timeout: 10000,
+        });
+
+        await openGenerationTrace(user);
+        const buildingStep = await screen.findByTestId("builder-trace-step-building");
+        expect(buildingStep).toHaveAttribute("data-trace-retry-count", "1");
+        expect(screen.getByTestId("builder-trace-retried-building")).toHaveTextContent(
+          /retried once/i,
+        );
+        expect(fetchMock).not.toHaveBeenCalled();
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    });
+
+    it("auto-expands generation trace when a step fails", async () => {
+      const user = userEvent.setup();
+      localStorage.setItem("visual-html.builder.orchestrationMode", "pro");
+      localStorage.setItem("builder_mistral_api_key_1", "sk-test");
+      const { builderChat } = getServerFnMocks();
+      builderChat.mockReset();
+      builderChat.mockResolvedValue({ ok: false, message: "planner boom" });
+
+      renderWithProviders(<BuilderWorkspace />);
+      await user.type(
+        screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
+        "Build a failing page",
+      );
+      await user.click(await getSubmitButton());
+
+      await waitFor(() => {
+        const tracePanel = screen.getByTestId("builder-generation-trace");
+        expect(tracePanel).toHaveAttribute("data-trace-failed", "true");
+        expect(tracePanel).toHaveAttribute("data-trace-expanded", "true");
+      });
+      expect(screen.getByTestId("builder-trace-step-planning")).toHaveAttribute(
+        "data-trace-status",
+        "failed",
+      );
+    });
+
+    it("keeps the last successful preview after cancellation", async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<BuilderWorkspace />);
+      await loadSnakePreview(user);
+
+      const iframe = screen.getByTestId("preview-frame-iframe") as HTMLIFrameElement;
+      expect(iframe.srcdoc ?? "").toContain("Retro Neon Snake");
+
+      const { builderChat } = getServerFnMocks();
+      builderChat.mockReset();
+      builderChat.mockImplementation(() => new Promise(() => {}));
+
+      await user.click(screen.getByRole("button", { name: "Refine" }));
+      await user.type(
+        screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
+        "Make the snake blue",
+      );
+      await user.click(await getSubmitButton());
+
+      await waitFor(() =>
+        expect(screen.getByTestId("builder-cancel-generation")).toBeInTheDocument(),
+      );
+      await user.click(screen.getByTestId("builder-cancel-generation"));
+
+      await waitFor(() =>
+        expect(screen.getByTestId("builder-cancelled-notice")).toBeInTheDocument(),
+      );
+
+      const afterCancel = screen.getByTestId("preview-frame-iframe") as HTMLIFrameElement;
+      expect(afterCancel.srcdoc ?? "").toContain("Retro Neon Snake");
+    });
   });
 });
