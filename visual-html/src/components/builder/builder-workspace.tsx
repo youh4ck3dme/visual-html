@@ -26,6 +26,7 @@ import {
   Sparkles,
   Trash2,
   Wrench,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +41,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useT } from "@/hooks/use-t";
+import { BuilderGenerationTracePanel } from "@/components/builder/builder-generation-trace";
+import { BuilderOrchestrationModeSelect } from "@/components/builder/builder-orchestration-mode-select";
+import { BuilderQualityProfileSelect } from "@/components/builder/builder-quality-profile-select";
 import { builderAiStatus, builderChat } from "@/lib/builder.functions";
 import {
   clearBuilderSettings,
@@ -47,8 +51,15 @@ import {
   getBuilderMistralKeys,
   getBuilderMistralModel,
   hasBuilderAiAccess,
+  isAbortError,
+  isBuilderOrchestrationError,
+  isTimeoutError,
   saveBuilderSettings,
 } from "@/lib/builder/generate";
+import {
+  getBuilderOrchestrationMode,
+  type BuilderOrchestrationMode,
+} from "@/lib/builder/orchestration-mode";
 import { promptCategories, promptLibrary, type PromptItem } from "@/lib/builder/prompt-library";
 import { scanGeneratedHtml } from "@/lib/builder/risk-scanner";
 import type { MessageKey } from "@/lib/i18n/messages";
@@ -56,6 +67,16 @@ import { PreviewFrame } from "@/components/pngto/preview-frame";
 import { cn } from "@/lib/utils";
 import { buildSingleFileHtml } from "@/lib/utils/build-single-file-html";
 import { downloadTextFile } from "@/lib/utils/download";
+import {
+  createMetricsFromTrace,
+  type BuilderGenerationMetrics,
+} from "@/lib/builder/generation-metrics";
+import type { HtmlHealthCheckResult } from "@/lib/builder/html-health-check";
+import {
+  getBuilderQualityProfileId,
+  type BuilderQualityProfileId,
+} from "@/lib/builder/quality-profiles";
+import type { BuilderGenerationTrace } from "@/lib/builder/generation-trace";
 import type { GenerationMode, OutputSource, VersionRecord } from "@/types/builder";
 
 type ChatMessage = { id: string; sender: "user" | "ai"; text: string };
@@ -92,6 +113,12 @@ const STATUS_KEYS: Record<string, MessageKey> = {
   "Inspecting current app for targeted fixes...": "builder.status.inspectingFix",
   "Reading current app for explanation...": "builder.status.readingExplain",
   "Generating HTML...": "builder.status.generatingHtml",
+  "Planning architecture...": "builder.status.planningArchitecture",
+  "Building HTML...": "builder.status.buildingHtml",
+  "Reviewing and repairing...": "builder.status.reviewingRepairing",
+  "Building candidate variants...": "builder.status.buildingVariants",
+  "Judging candidates...": "builder.status.judgingCandidates",
+  Cancelled: "builder.status.cancelled",
   "Preparing explanation...": "builder.status.preparingExplanation",
   "Finalizing...": "builder.status.finalizing",
   "Complete!": "builder.status.complete",
@@ -151,6 +178,8 @@ export function BuilderWorkspace() {
   const [versions, setVersions] = useState<VersionRecord[]>([]);
   const [generationMode, setGenerationMode] = useState<GenerationMode>("build");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [showCancelledNotice, setShowCancelledNotice] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [stepStatusText, setStepStatusText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -164,9 +193,19 @@ export function BuilderWorkspace() {
   const [key1, setKey1] = useState("");
   const [key2, setKey2] = useState("");
   const [model, setModel] = useState("mistral-large-latest");
+  const [orchestrationMode, setOrchestrationMode] = useState<BuilderOrchestrationMode>("pro");
+  const [qualityProfileId, setQualityProfileId] = useState<BuilderQualityProfileId>("auto");
+  const [currentGenerationTrace, setCurrentGenerationTrace] =
+    useState<BuilderGenerationTrace | null>(null);
+  const [lastGenerationMetrics, setLastGenerationMetrics] =
+    useState<BuilderGenerationMetrics | null>(null);
+  const [lastHtmlHealthCheck, setLastHtmlHealthCheck] = useState<HtmlHealthCheckResult | null>(
+    null,
+  );
   const [showKeys, setShowKeys] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const generationAbortRef = useRef<AbortController | null>(null);
   const chatFn = useServerFn(builderChat);
   const statusFn = useServerFn(builderAiStatus);
   const hasAiAccess = hasByokAccess || serverAiConfigured;
@@ -268,6 +307,8 @@ export function BuilderWorkspace() {
     setKey1(keys[0] || "");
     setKey2(keys[1] || "");
     setModel(getBuilderMistralModel());
+    setOrchestrationMode(getBuilderOrchestrationMode());
+    setQualityProfileId(getBuilderQualityProfileId());
     setHasByokAccess(hasBuilderAiAccess());
     void statusFn()
       .then((status) => setServerAiConfigured(status.serverKeysConfigured))
@@ -297,12 +338,38 @@ export function BuilderWorkspace() {
 
   const addAi = (text: string) => setMessages((p) => [...p, { id: id(), sender: "ai", text }]);
 
+  const cancelActiveGeneration = useCallback(() => {
+    generationAbortRef.current?.abort();
+    generationAbortRef.current = null;
+  }, []);
+
+  const handleCancelGeneration = useCallback(() => {
+    if (!isGenerating || isCancelling) return;
+    setIsCancelling(true);
+    setStepStatusText(t("builder.status.cancelling"));
+    cancelActiveGeneration();
+  }, [cancelActiveGeneration, isCancelling, isGenerating, t]);
+
+  useEffect(() => {
+    if (!showCancelledNotice) return;
+    const timer = globalThis.setTimeout(() => setShowCancelledNotice(false), 4000);
+    return () => globalThis.clearTimeout(timer);
+  }, [showCancelledNotice]);
+
   const handleSendPrompt = async (
     promptText: string,
     requestedMode = generationMode,
     templateId?: string,
   ) => {
     if (!promptText.trim()) return;
+    cancelActiveGeneration();
+    const controller = new AbortController();
+    generationAbortRef.current = controller;
+    setCurrentGenerationTrace(null);
+    setLastGenerationMetrics(null);
+    setLastHtmlHealthCheck(null);
+    setShowCancelledNotice(false);
+    setIsCancelling(false);
     setError(null);
     setInputVal("");
     setMessages((p) => [...p, { id: id(), sender: "user", text: promptText }]);
@@ -329,11 +396,24 @@ export function BuilderWorkspace() {
           setActiveStep(s);
           setStepStatusText(localizeStatus(status));
         },
-        (args) => chatFn({ data: args }),
+        (args) => {
+          const { signal: _omit, ...data } = args;
+          return chatFn({ data, signal: controller.signal });
+        },
         prev,
         requestedMode,
         templateId,
-        useServerAi,
+        {
+          preferServerAi: useServerAi,
+          orchestrationMode,
+          qualityProfileId,
+          signal: controller.signal,
+          onTraceUpdate: (trace) => {
+            setCurrentGenerationTrace(trace);
+            setLastGenerationMetrics(createMetricsFromTrace(trace));
+          },
+          onHealthCheckUpdate: setLastHtmlHealthCheck,
+        },
       );
       if (result.type === "explanation") {
         addAi(result.content);
@@ -349,9 +429,24 @@ export function BuilderWorkspace() {
       setVersions((p) => [...p, makeVersion(code, src, versionLabel(requestedMode, online))]);
       addAi(aiReplyText(requestedMode, online));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unexpected error.");
+      if (isAbortError(err)) {
+        setShowCancelledNotice(true);
+        setStepStatusText(t("builder.status.cancelled"));
+        return;
+      }
+      if (isBuilderOrchestrationError(err)) {
+        const stepLabel = t(`builder.error.step.${err.step}`);
+        const detail = isTimeoutError(err.cause) ? t("builder.error.timeout") : err.message;
+        setError(`${stepLabel}: ${detail}`);
+      } else {
+        setError(err instanceof Error ? err.message : "Unexpected error.");
+      }
       addAi(t("builder.chat.generationFailed"));
     } finally {
+      if (generationAbortRef.current === controller) {
+        generationAbortRef.current = null;
+      }
+      setIsCancelling(false);
       setIsGenerating(false);
     }
   };
@@ -362,6 +457,7 @@ export function BuilderWorkspace() {
     void handleSendPrompt(p.prompt, "build", p.id);
   };
   const handleNewChat = () => {
+    if (isGenerating) cancelActiveGeneration();
     setMessages([{ id: "new", sender: "ai", text: t("builder.chat.newWorkspace") }]);
     setGeneratedCode("");
     setPreviewAllowJs(false);
@@ -370,6 +466,9 @@ export function BuilderWorkspace() {
     setGenerationMode("build");
     setInputVal("");
     setError(null);
+    setCurrentGenerationTrace(null);
+    setLastGenerationMetrics(null);
+    setLastHtmlHealthCheck(null);
   };
   const handleRestore = (vid: string) => {
     const v = versions.find((x) => x.id === vid);
@@ -515,11 +614,28 @@ export function BuilderWorkspace() {
             </div>
           ))}
           {isGenerating && (
-            <div className="max-w-[90%] self-start rounded-xl border border-shell-border bg-shell-elevated p-3 text-xs">
-              <p className="flex items-center gap-2 font-medium text-primary">
-                <RefreshCw className="h-4 w-4 animate-spin" />
-                {stepStatusText}
-              </p>
+            <div
+              className="max-w-[90%] self-start rounded-xl border border-shell-border bg-shell-elevated p-3 text-xs"
+              data-testid="builder-generation-status"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <p className="flex items-center gap-2 font-medium text-primary">
+                  <RefreshCw className={cn("h-4 w-4", !isCancelling && "animate-spin")} />
+                  {stepStatusText}
+                </p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="h-7 shrink-0 border-shell-border bg-shell px-2 text-[11px]"
+                  onClick={handleCancelGeneration}
+                  disabled={isCancelling}
+                  data-testid="builder-cancel-generation"
+                >
+                  <X className="mr-1 h-3 w-3" />
+                  {t("builder.action.cancelGeneration")}
+                </Button>
+              </div>
               {STEP_KEYS.map((stepKey, i) => (
                 <p
                   key={stepKey}
@@ -537,6 +653,21 @@ export function BuilderWorkspace() {
               ))}
             </div>
           )}
+          {currentGenerationTrace && (
+            <BuilderGenerationTracePanel
+              trace={currentGenerationTrace}
+              metrics={lastGenerationMetrics}
+              health={lastHtmlHealthCheck}
+            />
+          )}
+          {showCancelledNotice && !isGenerating && (
+            <div
+              className="max-w-[90%] self-start rounded-xl border border-shell-border bg-shell px-3 py-2 text-xs text-shell-muted"
+              data-testid="builder-cancelled-notice"
+            >
+              {t("builder.status.cancelled")}
+            </div>
+          )}
           {error && (
             <div className="flex gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
               <AlertCircle className="h-4 w-4 shrink-0" />
@@ -551,12 +682,14 @@ export function BuilderWorkspace() {
           className="border-t border-shell-border bg-shell-elevated p-4"
           onSubmit={(e) => {
             e.preventDefault();
-            if (inputVal.trim() && !isGenerating) void handleSendPrompt(inputVal.trim());
+            if (inputVal.trim() && !isGenerating && !isCancelling) {
+              void handleSendPrompt(inputVal.trim());
+            }
           }}
         >
           <div className="mb-2 flex gap-1 rounded-lg border border-shell-border bg-shell p-1">
             {MODES.map(({ mode, labelKey, hintKey }) => {
-              const off = (mode !== "build" && !generatedCode) || isGenerating;
+              const off = (mode !== "build" && !generatedCode) || isGenerating || isCancelling;
               return (
                 <button
                   key={mode}
@@ -582,15 +715,19 @@ export function BuilderWorkspace() {
             <Input
               value={inputVal}
               onChange={(e) => setInputVal(e.target.value)}
-              disabled={isGenerating}
-              placeholder={isGenerating ? t("builder.inputWorking") : t("builder.inputPlaceholder")}
+              disabled={isGenerating || isCancelling}
+              placeholder={
+                isGenerating || isCancelling
+                  ? t("builder.inputWorking")
+                  : t("builder.inputPlaceholder")
+              }
               className="bg-shell pr-12"
             />
             <Button
               type="submit"
               size="icon"
               className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2"
-              disabled={!inputVal.trim() || isGenerating}
+              disabled={!inputVal.trim() || isGenerating || isCancelling}
               data-testid="builder-send"
             >
               {isGenerating ? (
@@ -784,7 +921,13 @@ export function BuilderWorkspace() {
         </div>
       </section>
 
-      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+      <Dialog
+        open={settingsOpen}
+        onOpenChange={(open) => {
+          if (!open && isGenerating) cancelActiveGeneration();
+          setSettingsOpen(open);
+        }}
+      >
         <DialogContent className="border-shell-border bg-shell-elevated sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -836,6 +979,22 @@ export function BuilderWorkspace() {
                 <option value="codestral-latest">{t("builder.settings.modelCodestral")}</option>
               </select>
             </div>
+            <BuilderOrchestrationModeSelect
+              value={orchestrationMode}
+              onChange={(mode) => {
+                if (isGenerating) cancelActiveGeneration();
+                setOrchestrationMode(mode);
+              }}
+            />
+            <BuilderQualityProfileSelect
+              value={qualityProfileId}
+              orchestrationMode={orchestrationMode}
+              previewPrompt={inputVal}
+              onChange={(profileId) => {
+                if (isGenerating) cancelActiveGeneration();
+                setQualityProfileId(profileId);
+              }}
+            />
             <Button
               type="button"
               variant="secondary"
