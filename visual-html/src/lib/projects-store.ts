@@ -1,3 +1,4 @@
+import { getLocalStorage } from "@/lib/browser-env";
 import {
   parseProjectsJson as parseProjectsJsonPayload,
   SAVED_PROJECT_SCHEMA_VERSION,
@@ -100,26 +101,27 @@ export type LoadProjectsResult = {
   migrationPersistFailed: boolean;
 };
 
-export function loadProjectsFromStorageWithMeta(
-  storage: Storage = localStorage,
-): LoadProjectsResult {
-  const { projects, migrated } = parseProjectsJsonPayload(storage.getItem(PROJECTS_STORAGE_KEY));
+export function loadProjectsFromStorageWithMeta(storage?: Storage | null): LoadProjectsResult {
+  const resolved = storage ?? getLocalStorage();
+  if (!resolved) {
+    return { projects: [], migrationPersistFailed: false };
+  }
+  const { projects, migrated } = parseProjectsJsonPayload(resolved.getItem(PROJECTS_STORAGE_KEY));
   if (!migrated) {
     return { projects, migrationPersistFailed: false };
   }
-  return { projects, migrationPersistFailed: !saveProjectsToStorage(projects, storage) };
+  return { projects, migrationPersistFailed: !saveProjectsToStorage(projects, resolved) };
 }
 
-export function loadProjectsFromStorage(storage: Storage = localStorage): SavedProject[] {
+export function loadProjectsFromStorage(storage?: Storage | null): SavedProject[] {
   return loadProjectsFromStorageWithMeta(storage).projects;
 }
 
-export function saveProjectsToStorage(
-  projects: SavedProject[],
-  storage: Storage = localStorage,
-): boolean {
+export function saveProjectsToStorage(projects: SavedProject[], storage?: Storage | null): boolean {
+  const resolved = storage ?? getLocalStorage();
+  if (!resolved) return false;
   try {
-    storage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(trimProjectsToLimit(projects)));
+    resolved.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(trimProjectsToLimit(projects)));
     return true;
   } catch {
     return false;

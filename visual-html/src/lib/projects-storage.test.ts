@@ -175,4 +175,46 @@ describe("projects-storage", () => {
     expect(loaded.projects[0].id).toBe("ls-1");
     expect(loaded.backend).toBe("localStorage");
   });
+
+  it("does not throw when localStorage is unavailable (SSR-safe)", async () => {
+    const originalWindow = globalThis.window;
+    vi.stubGlobal("window", {
+      ...originalWindow,
+      localStorage: undefined,
+      indexedDB: undefined,
+    });
+    try {
+      await expect(listProjects()).resolves.toEqual({
+        projects: [],
+        migrationPersistFailed: false,
+        backend: "localStorage",
+        fallbackActivated: false,
+      });
+      await expect(saveProjects([makeProject()])).resolves.toEqual({
+        ok: false,
+        backend: "unavailable",
+        fallbackActivated: false,
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("does not throw when indexedDB is unavailable", async () => {
+    const originalWindow = globalThis.window;
+    vi.stubGlobal("window", {
+      ...originalWindow,
+      indexedDB: undefined,
+    });
+    mockLocalStorageWriteFailure();
+    try {
+      await expect(saveProjects([makeProject()])).resolves.toEqual({
+        ok: false,
+        backend: "unavailable",
+        fallbackActivated: false,
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

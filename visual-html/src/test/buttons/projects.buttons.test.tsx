@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import userEvent from "@testing-library/user-event";
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 
 import { ProjectCard } from "@/components/pngto/project-card";
 import { ProjectsToolbar } from "@/components/pngto/projects-toolbar";
@@ -16,8 +16,11 @@ describe("buttons › projects page", () => {
   beforeEach(() => clearProjectsStorage());
 
   it("New project — links to /", async () => {
-    seedProjectsStorage();
+    const [project] = seedProjectsStorage();
     await renderPageAt("/projects");
+    await waitFor(() =>
+      expect(screen.getByRole("link", { name: new RegExp(project.name) })).toBeInTheDocument(),
+    );
     const link = screen.getByRole("link", { name: /New project/i });
     expect(link).toHaveAttribute("href", "/");
   });

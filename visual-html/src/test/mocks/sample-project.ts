@@ -1,3 +1,6 @@
+import { expect } from "vitest";
+import { screen, waitFor } from "@testing-library/react";
+
 import { clearProjectsIndexedDb } from "@/lib/projects-indexeddb";
 import { SAVED_PROJECT_SCHEMA_VERSION } from "@/lib/projects-schema";
 import { PROJECTS_STORAGE_KEY, saveProjectsToStorage } from "@/lib/projects-store";
@@ -31,6 +34,13 @@ export function makeSavedProject(overrides: Partial<SavedProject> = {}): SavedPr
 export function seedProjectsStorage(projects: SavedProject[] = [makeSavedProject()]) {
   saveProjectsToStorage(projects);
   return projects;
+}
+
+/** Wait until ProjectsProvider refresh() has hydrated seeded projects into the UI. */
+export async function waitForProjectLinks(...names: Array<string | RegExp>) {
+  for (const name of names) {
+    await waitFor(() => expect(screen.getByRole("link", { name })).toBeInTheDocument());
+  }
 }
 
 export function clearProjectsStorage() {

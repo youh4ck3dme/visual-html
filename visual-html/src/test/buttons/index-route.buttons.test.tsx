@@ -7,6 +7,7 @@ import {
   clearProjectsStorage,
   makeSavedProject,
   seedProjectsStorage,
+  waitForProjectLinks,
 } from "@/test/mocks/sample-project";
 
 describe("buttons › index route", () => {
@@ -40,6 +41,7 @@ describe("buttons › index route", () => {
     const user = userEvent.setup();
     seedProjectsStorage([makeSavedProject({ id: "round-1", name: "Round trip" })]);
     await renderPageAt("/projects");
+    await waitForProjectLinks(/Round trip/i);
     await user.click(screen.getByRole("link", { name: /Round trip/i }));
     await waitFor(() => expect(screen.getByRole("link", { name: /Open in editor/i })));
     const editor = screen.getByRole("link", { name: /Open in editor/i });

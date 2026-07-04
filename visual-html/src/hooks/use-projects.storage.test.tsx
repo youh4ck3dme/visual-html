@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import userEvent from "@testing-library/user-event";
 import { screen, waitFor } from "@testing-library/react";
 
+import * as browserEnv from "@/lib/browser-env";
 import { useProjects } from "@/hooks/use-projects";
 import { PROJECTS_STORAGE_KEY } from "@/lib/projects-store";
 import { resetProjectsStorageWarningsForTests } from "@/lib/projects-storage-session";
@@ -205,6 +206,13 @@ describe("use-projects storage failures", () => {
 
     await waitFor(() => expect(screen.getByTestId("latest-html")).toHaveTextContent("Visible"));
     expect(screen.getByTestId("project-count")).toHaveTextContent("1");
+  });
+
+  it("renders with empty projects when isBrowser is false (SSR-safe initial state)", () => {
+    const isBrowserSpy = vi.spyOn(browserEnv, "isBrowser").mockReturnValue(false);
+    renderWithProviders(<ProjectCountProbe />);
+    expect(screen.getByTestId("project-count")).toHaveTextContent("0");
+    isBrowserSpy.mockRestore();
   });
 
   it("shows persist failure toast when both backends fail on save", async () => {

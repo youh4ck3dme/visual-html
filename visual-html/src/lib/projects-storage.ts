@@ -1,3 +1,4 @@
+import { getLocalStorage } from "@/lib/browser-env";
 import { parseProjectsJson as parseProjectsJsonPayload } from "@/lib/projects-schema";
 import {
   estimateProjectsBytes,
@@ -33,14 +34,6 @@ export type SaveProjectsResult = {
   backend: ProjectsStorageBackend;
   fallbackActivated: boolean;
 };
-
-function getLocalStorage(): Storage | null {
-  try {
-    return typeof localStorage !== "undefined" ? localStorage : null;
-  } catch {
-    return null;
-  }
-}
 
 function isLocalStorageMissingOrCorrupt(raw: string | null, projects: SavedProject[]): boolean {
   if (raw === null) return true;

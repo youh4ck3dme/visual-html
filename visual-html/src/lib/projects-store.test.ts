@@ -176,4 +176,16 @@ describe("projects-store", () => {
     expect(migrationPersistFailed).toBe(true);
     expect(loadProjectsFromStorage(storage)).toHaveLength(1);
   });
+
+  it("returns empty projects when browser storage is unavailable", () => {
+    vi.stubGlobal("window", undefined);
+    try {
+      expect(loadProjectsFromStorageWithMeta()).toEqual({
+        projects: [],
+        migrationPersistFailed: false,
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

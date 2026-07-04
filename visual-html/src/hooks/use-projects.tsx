@@ -10,10 +10,10 @@ import {
 import { toast } from "sonner";
 
 import { useT } from "@/hooks/use-t";
+import { isBrowser } from "@/lib/browser-env";
 import {
   createThumbnailDataUrl,
   deleteProjectById,
-  loadProjectsFromStorageWithMeta,
   renameProjectById,
   upsertProject,
 } from "@/lib/projects-store";
@@ -24,7 +24,6 @@ import {
   type ProjectsStorageStatus,
 } from "@/lib/projects-storage";
 import {
-  shouldPreferIndexedDbBackend,
   shouldShowFallbackInfoToast,
   shouldShowMigrationPersistWarning,
 } from "@/lib/projects-storage-session";
@@ -59,11 +58,11 @@ function getInitialProjectsState(): {
   projects: SavedProject[];
   backend: ProjectsStorageStatus["backend"];
 } {
-  if (shouldPreferIndexedDbBackend()) {
-    return { projects: [], backend: "indexedDB" };
+  // SSR and pre-hydration: never touch browser storage synchronously.
+  if (!isBrowser()) {
+    return { projects: [], backend: "unavailable" };
   }
-  const { projects } = loadProjectsFromStorageWithMeta();
-  return { projects, backend: "localStorage" };
+  return { projects: [], backend: "localStorage" };
 }
 
 export function ProjectsProvider({ children }: { children: ReactNode }) {

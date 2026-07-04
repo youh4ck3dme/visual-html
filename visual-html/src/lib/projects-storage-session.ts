@@ -1,3 +1,5 @@
+import { getLocalStorage, getSessionStorage } from "@/lib/browser-env";
+
 export const PROJECTS_BACKEND_MARKER_KEY = "pngto-projects-backend";
 export const PROJECTS_FALLBACK_SESSION_KEY = "pngto-projects-fallback";
 
@@ -23,9 +25,11 @@ export function isProjectsFallbackActive(): boolean {
 
 export function shouldPreferIndexedDbBackend(): boolean {
   if (fallbackActiveInMemory) return true;
+  const session = getSessionStorage();
+  const local = getLocalStorage();
   try {
-    if (sessionStorage.getItem(PROJECTS_FALLBACK_SESSION_KEY) === "indexedDB") return true;
-    if (localStorage.getItem(PROJECTS_BACKEND_MARKER_KEY) === "indexedDB") return true;
+    if (session?.getItem(PROJECTS_FALLBACK_SESSION_KEY) === "indexedDB") return true;
+    if (local?.getItem(PROJECTS_BACKEND_MARKER_KEY) === "indexedDB") return true;
   } catch {
     // storage unavailable
   }
@@ -34,9 +38,11 @@ export function shouldPreferIndexedDbBackend(): boolean {
 
 export function markProjectsFallbackActive(): void {
   fallbackActiveInMemory = true;
+  const session = getSessionStorage();
+  const local = getLocalStorage();
   try {
-    sessionStorage.setItem(PROJECTS_FALLBACK_SESSION_KEY, "indexedDB");
-    localStorage.setItem(PROJECTS_BACKEND_MARKER_KEY, "indexedDB");
+    session?.setItem(PROJECTS_FALLBACK_SESSION_KEY, "indexedDB");
+    local?.setItem(PROJECTS_BACKEND_MARKER_KEY, "indexedDB");
   } catch {
     // best effort
   }
@@ -48,8 +54,8 @@ export function resetProjectsStorageWarningsForTests() {
   fallbackInfoToastShown = false;
   fallbackActiveInMemory = false;
   try {
-    sessionStorage.removeItem(PROJECTS_FALLBACK_SESSION_KEY);
-    localStorage.removeItem(PROJECTS_BACKEND_MARKER_KEY);
+    getSessionStorage()?.removeItem(PROJECTS_FALLBACK_SESSION_KEY);
+    getLocalStorage()?.removeItem(PROJECTS_BACKEND_MARKER_KEY);
   } catch {
     // ignore
   }

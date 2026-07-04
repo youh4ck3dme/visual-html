@@ -1,3 +1,4 @@
+import { getIndexedDb } from "@/lib/browser-env";
 import { parseProjectsPayload } from "@/lib/projects-schema";
 import { trimProjectsToLimit } from "@/lib/projects-store";
 import type { SavedProject } from "@/types/project";
@@ -7,10 +8,6 @@ export const PROJECTS_IDB_STORE = "projects";
 export const PROJECTS_IDB_RECORD_KEY = "all";
 
 const DB_VERSION = 1;
-
-function getIndexedDb(): IDBFactory | undefined {
-  return typeof indexedDB !== "undefined" ? indexedDB : undefined;
-}
 
 export function openProjectsDb(): Promise<IDBDatabase> {
   const idb = getIndexedDb();

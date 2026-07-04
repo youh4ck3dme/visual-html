@@ -9,6 +9,7 @@ import {
   clearProjectsStorage,
   makeSavedProject,
   seedProjectsStorage,
+  waitForProjectLinks,
 } from "@/test/mocks/sample-project";
 
 async function openProjectDetail(
@@ -16,6 +17,7 @@ async function openProjectDetail(
 ) {
   seedProjectsStorage([project]);
   const ctx = await renderPageAt("/projects");
+  await waitForProjectLinks(new RegExp(project.name));
   await userEvent.setup().click(screen.getByRole("link", { name: new RegExp(project.name) }));
   await waitFor(() => expect(screen.getByRole("heading", { level: 1, name: project.name })));
   return ctx;
