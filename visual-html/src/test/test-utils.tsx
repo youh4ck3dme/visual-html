@@ -8,6 +8,7 @@ import {
 import { render, type RenderOptions } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
 
+import { Toaster } from "@/components/ui/sonner";
 import { LocaleProvider } from "@/hooks/use-locale";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ProjectsProvider } from "@/hooks/use-projects";
@@ -51,6 +52,7 @@ function AllProviders({
       <LocaleProvider>
         <ThemeProvider>
           <RouterContextProvider router={router}>{inner}</RouterContextProvider>
+          <Toaster />
         </ThemeProvider>
       </LocaleProvider>
     </QueryClientProvider>

@@ -14,4 +14,14 @@ describe("buttons › code-block", () => {
     expect(writeText).toHaveBeenCalledWith("<div>test</div>");
     await waitFor(() => expect(screen.getByText("Copied")).toBeInTheDocument());
   });
+
+  it("Copy code — shows toast when clipboard fails", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(new Error("denied"));
+    renderWithProviders(<CodeBlock code="<div>test</div>" language="html" />);
+    await user.click(screen.getByLabelText("Copy code"));
+    await waitFor(() =>
+      expect(screen.getByText(/Could not copy to clipboard/i)).toBeInTheDocument(),
+    );
+  });
 });

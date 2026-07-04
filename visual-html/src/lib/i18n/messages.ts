@@ -11,6 +11,7 @@ export const messages = {
     "nav.support": "Support",
     "nav.settings": "Settings",
     "nav.account": "Account",
+    "nav.comingSoon": "Coming soon",
 
     // ── Locale switcher ─────────────────────────────────────────
     "locale.en": "EN",
@@ -293,6 +294,7 @@ export const messages = {
       "JavaScript preview enabled — generated code runs in an isolated sandbox.",
     "result.code.copyAria": "Copy code",
     "result.code.copy": "Copy",
+    "result.code.copyFailed": "Could not copy to clipboard",
     "result.code.copied": "Copied",
     "result.code.empty": "// empty",
 
@@ -962,6 +964,7 @@ export const messages = {
     "nav.support": "Podpora",
     "nav.settings": "Nastavenia",
     "nav.account": "Účet",
+    "nav.comingSoon": "Čoskoro",
 
     // ── Locale switcher ─────────────────────────────────────────
     "locale.en": "EN",
@@ -1239,6 +1242,7 @@ export const messages = {
     "result.previewJsWarning": "JS náhľad zapnutý — kód beží v izolovanom sandboxe.",
     "result.code.copyAria": "Kopírovať kód",
     "result.code.copy": "Kopírovať",
+    "result.code.copyFailed": "Kopírovanie do schránky zlyhalo",
     "result.code.copied": "Skopírované",
     "result.code.empty": "// prázdne",
 

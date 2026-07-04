@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
+import { toast } from "sonner";
+
 import { cn } from "@/lib/utils";
 import { useT } from "@/hooks/use-t";
 
@@ -20,7 +22,7 @@ export function CodeBlock({
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      // ignore
+      toast.error(t("result.code.copyFailed"));
     }
   };
   return (

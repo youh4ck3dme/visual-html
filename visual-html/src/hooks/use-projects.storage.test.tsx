@@ -8,7 +8,6 @@ import { PROJECTS_STORAGE_KEY } from "@/lib/projects-store";
 import { resetProjectsStorageWarningsForTests } from "@/lib/projects-storage-session";
 import { setFakeIndexedDbWriteFailure } from "@/test/mocks/fake-indexeddb";
 import { renderWithProviders } from "@/test/test-utils";
-import { Toaster } from "@/components/ui/sonner";
 import { SAVED_PROJECT_SCHEMA_VERSION } from "@/lib/projects-schema";
 import type { SavedProject } from "@/types/project";
 
@@ -123,12 +122,7 @@ describe("use-projects storage failures", () => {
     mockProjectsStorageWriteFailure();
     setFakeIndexedDbWriteFailure(true);
 
-    renderWithProviders(
-      <>
-        <ProjectCountProbe />
-        <Toaster />
-      </>,
-    );
+    renderWithProviders(<ProjectCountProbe />);
 
     await waitFor(() => expect(screen.getByTestId("project-count")).toHaveTextContent("1"));
     await waitFor(() =>
@@ -152,12 +146,7 @@ describe("use-projects storage failures", () => {
     setFakeIndexedDbWriteFailure(true);
 
     const user = userEvent.setup();
-    renderWithProviders(
-      <>
-        <RefreshProbe />
-        <Toaster />
-      </>,
-    );
+    renderWithProviders(<RefreshProbe />);
 
     await waitFor(() =>
       expect(screen.getByText(/Could not upgrade saved projects/i)).toBeInTheDocument(),
@@ -173,12 +162,7 @@ describe("use-projects storage failures", () => {
     mockProjectsStorageWriteFailure();
 
     const user = userEvent.setup();
-    renderWithProviders(
-      <>
-        <SaveProbe />
-        <Toaster />
-      </>,
-    );
+    renderWithProviders(<SaveProbe />);
 
     await user.click(screen.getByRole("button", { name: /Save project/i }));
 
@@ -195,12 +179,7 @@ describe("use-projects storage failures", () => {
     mockProjectsStorageWriteFailure();
 
     const user = userEvent.setup();
-    renderWithProviders(
-      <>
-        <SaveProbe />
-        <Toaster />
-      </>,
-    );
+    renderWithProviders(<SaveProbe />);
 
     await user.click(screen.getByRole("button", { name: /Save project/i }));
 
@@ -220,12 +199,7 @@ describe("use-projects storage failures", () => {
     setFakeIndexedDbWriteFailure(true);
 
     const user = userEvent.setup();
-    renderWithProviders(
-      <>
-        <SaveProbe />
-        <Toaster />
-      </>,
-    );
+    renderWithProviders(<SaveProbe />);
 
     await user.click(screen.getByRole("button", { name: /Save project/i }));
 

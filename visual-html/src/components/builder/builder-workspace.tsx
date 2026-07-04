@@ -567,6 +567,8 @@ export function BuilderWorkspace({ startTemplateId }: BuilderWorkspaceProps = {}
             onSubmit={handlePromptSubmit}
             onCancelGeneration={handleCancelGeneration}
             onOpenSettings={() => setSettingsOpen(true)}
+            health={lastHtmlHealthCheck}
+            onApplyPolishFix={handleApplyQualityPolishFix}
           />
         </div>
       ) : (
@@ -928,9 +930,13 @@ export function BuilderWorkspace({ startTemplateId }: BuilderWorkspaceProps = {}
                       variant="secondary"
                       size="sm"
                       onClick={() => {
-                        void navigator.clipboard.writeText(generatedCode);
-                        setCopied(true);
-                        setTimeout(() => setCopied(false), 2000);
+                        void navigator.clipboard.writeText(generatedCode).then(
+                          () => {
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 2000);
+                          },
+                          () => toast.error(t("result.code.copyFailed")),
+                        );
                       }}
                       data-testid="builder-copy"
                     >

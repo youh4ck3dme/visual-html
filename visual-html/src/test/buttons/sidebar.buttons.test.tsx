@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import userEvent from "@testing-library/user-event";
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 
 import { VisualSidebar } from "@/components/pngto/sidebar-nav";
 import { renderWithProviders } from "@/test/test-utils";
@@ -34,11 +34,15 @@ describe("buttons › sidebar-nav", () => {
   });
 
   it.each(["Support", "Settings", "Account"] as const)(
-    "%s — disabled (intentional placeholder)",
-    (label) => {
+    "%s — shows coming soon toast on click",
+    async (label) => {
+      const user = userEvent.setup();
       renderWithProviders(<VisualSidebar />);
       const btn = screen.getByLabelText(label);
-      expect(btn).toBeDisabled();
+      expect(btn).toBeEnabled();
+      expect(btn).toHaveAttribute("title", "Coming soon");
+      await user.click(btn);
+      await waitFor(() => expect(screen.getByText(/Coming soon/i)).toBeInTheDocument());
     },
   );
 

@@ -257,12 +257,14 @@ function HealthFindingRow({ finding }: { finding: HtmlHealthFinding }) {
   );
 }
 
-function HtmlHealthSection({
+export function BuilderHtmlHealthPanel({
   health,
   onApplyPolishFix,
+  className,
 }: {
   health: HtmlHealthCheckResult;
   onApplyPolishFix?: () => void;
+  className?: string;
 }) {
   const { t } = useT();
   const shouldExpandDetails = health.criticalCount > 0 || health.score < 85;
@@ -277,7 +279,7 @@ function HtmlHealthSection({
 
   return (
     <div
-      className="mt-3 border-t border-shell-border/60 pt-3"
+      className={cn("mt-3 border-t border-shell-border/60 pt-3", className)}
       data-testid="builder-html-health"
       data-health-score={health.score}
       data-health-critical={health.criticalCount}
@@ -430,7 +432,9 @@ export function BuilderGenerationTracePanel({
                 <TraceStepRow key={step.id} step={step} />
               ))}
             </div>
-            {health && <HtmlHealthSection health={health} onApplyPolishFix={onApplyPolishFix} />}
+            {health && (
+              <BuilderHtmlHealthPanel health={health} onApplyPolishFix={onApplyPolishFix} />
+            )}
           </AccordionContent>
         </AccordionItem>
       </Accordion>

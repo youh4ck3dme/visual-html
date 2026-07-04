@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { FolderKanban, HelpCircle, Plus, Settings, UserRound, Wand2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { AppLogo } from "@/components/pngto/app-logo";
 import { useT } from "@/hooks/use-t";
@@ -20,9 +21,9 @@ const NAV_ITEMS = [
 ] as const;
 
 const BOTTOM_ITEMS = [
-  { id: "support", labelKey: "nav.support" as MessageKey, icon: HelpCircle, disabled: true },
-  { id: "settings", labelKey: "nav.settings" as MessageKey, icon: Settings, disabled: true },
-  { id: "account", labelKey: "nav.account" as MessageKey, icon: UserRound, disabled: true },
+  { id: "support", labelKey: "nav.support" as MessageKey, icon: HelpCircle },
+  { id: "settings", labelKey: "nav.settings" as MessageKey, icon: Settings },
+  { id: "account", labelKey: "nav.account" as MessageKey, icon: UserRound },
 ] as const;
 
 type NavTo = "/" | "/projects" | "/builder";
@@ -82,26 +83,29 @@ function NavLink({
   );
 }
 
-function NavButton({
+function NavPlaceholderButton({
   id,
   label,
   icon: Icon,
-  disabled = false,
+  onComingSoon,
   compact = false,
 }: {
   id: string;
   label: string;
   icon: typeof Plus;
-  disabled?: boolean;
+  onComingSoon: () => void;
   compact?: boolean;
 }) {
+  const { t } = useT();
+
   return (
     <button
       type="button"
-      disabled={disabled}
+      onClick={onComingSoon}
+      title={t("nav.comingSoon")}
       aria-label={label}
       data-testid={`nav-${id}`}
-      className={navButtonClass(false, disabled, compact)}
+      className={navButtonClass(false, false, compact)}
     >
       <Icon className="h-4 w-4 shrink-0" aria-hidden />
       {!compact && <span>{label}</span>}
@@ -111,6 +115,10 @@ function NavButton({
 
 export function VisualSidebar() {
   const { t } = useT();
+
+  const showComingSoon = () => {
+    toast.info(t("nav.comingSoon"));
+  };
 
   return (
     <>
@@ -143,12 +151,12 @@ export function VisualSidebar() {
           <LocaleSwitcher compact />
           <ThemeSwitcher compact />
           {BOTTOM_ITEMS.map((item) => (
-            <NavButton
+            <NavPlaceholderButton
               key={item.id}
               id={item.id}
               label={t(item.labelKey)}
               icon={item.icon}
-              disabled={item.disabled}
+              onComingSoon={showComingSoon}
             />
           ))}
         </div>

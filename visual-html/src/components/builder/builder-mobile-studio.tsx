@@ -21,8 +21,10 @@ import {
   X,
 } from "lucide-react";
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
+import { toast } from "sonner";
 
 import { AppLogo } from "@/components/pngto/app-logo";
+import { BuilderHtmlHealthPanel } from "@/components/builder/builder-generation-trace";
 import { PreviewFrame } from "@/components/pngto/preview-frame";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +39,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useT } from "@/hooks/use-t";
 import type { MessageKey } from "@/lib/i18n/messages";
 import type { PromptItem } from "@/lib/builder/prompt-library";
+import type { HtmlHealthCheckResult } from "@/lib/builder/html-health-check";
 import { cn } from "@/lib/utils";
 
 const TEMPLATE_PREVIEW: Record<string, string> = {
@@ -84,6 +87,8 @@ type BuilderMobileStudioProps = {
   onSubmit: (e: FormEvent) => void;
   onCancelGeneration: () => void;
   onOpenSettings: () => void;
+  health: HtmlHealthCheckResult | null;
+  onApplyPolishFix?: () => void;
 };
 
 export function BuilderMobileStudio({
@@ -110,6 +115,8 @@ export function BuilderMobileStudio({
   onSubmit,
   onCancelGeneration,
   onOpenSettings,
+  health,
+  onApplyPolishFix,
 }: BuilderMobileStudioProps) {
   const { t } = useT();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -141,9 +148,13 @@ export function BuilderMobileStudio({
 
   const handleCopyCode = async () => {
     if (!generatedCode.trim()) return;
-    await navigator.clipboard.writeText(generatedCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(generatedCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error(t("result.code.copyFailed"));
+    }
   };
 
   return (
@@ -313,6 +324,14 @@ export function BuilderMobileStudio({
               <strong>{t("builder.errorPrefix")}</strong> {error}
             </span>
           </div>
+        )}
+
+        {health && (
+          <BuilderHtmlHealthPanel
+            health={health}
+            onApplyPolishFix={onApplyPolishFix}
+            className="vibecraft-studio-elevated mt-0 rounded-xl border border-shell-border/80 p-3"
+          />
         )}
 
         <section ref={templatesRef}>

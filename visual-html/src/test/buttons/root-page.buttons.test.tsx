@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
 import { screen } from "@testing-library/react";
 
 import { ErrorPageFixture } from "@/test/fixtures/error-page-fixture";
@@ -15,5 +16,13 @@ describe("buttons › root pages", () => {
   it("error page Go home — links to /", () => {
     renderWithProviders(<ErrorPageFixture error={new Error("test")} reset={() => {}} />);
     expect(screen.getByTestId("error-page-go-home")).toHaveAttribute("href", "/");
+  });
+
+  it("error page Try again — calls reset", async () => {
+    const user = userEvent.setup();
+    const reset = vi.fn();
+    renderWithProviders(<ErrorPageFixture error={new Error("test")} reset={reset} />);
+    await user.click(screen.getByTestId("error-page-retry"));
+    expect(reset).toHaveBeenCalledOnce();
   });
 });

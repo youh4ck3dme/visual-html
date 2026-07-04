@@ -159,6 +159,75 @@ describe("buttons › builder-mobile", () => {
     await waitFor(() => expect(screen.getByText("Copied")).toBeInTheDocument());
   });
 
+  it("Copy code — shows toast when clipboard fails", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(new Error("denied"));
+    renderWithProviders(<BuilderWorkspace />);
+    await waitForMobileStudio();
+    await loadSnakePreview(user);
+    await user.click(screen.getByTestId("builder-tab-code"));
+    await user.click(screen.getByTestId("builder-mobile-copy-code"));
+    await waitFor(() =>
+      expect(screen.getByText(/Could not copy to clipboard/i)).toBeInTheDocument(),
+    );
+  });
+
+  describe("HTML health and polish fix", () => {
+    const POLISH_TRIGGER_HTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Polish</title><style>
+      .hero { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; }
+      .card { width: 1200px; animation: float 3s infinite; }
+      @keyframes float { to { transform: translateY(-8px); } }
+      button { padding: 8px 16px; }
+    </style></head><body><section class="hero"><button>Go</button></section></body></html>`;
+
+    async function generatePolishTriggerPage(user: ReturnType<typeof userEvent.setup>) {
+      const { builderChat, builderAiStatus } = getServerFnMocks();
+      builderAiStatus.mockResolvedValue({ serverKeysConfigured: true });
+      builderChat.mockReset();
+      builderChat.mockResolvedValue({ ok: true, content: POLISH_TRIGGER_HTML });
+      await user.type(
+        screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
+        "apple glass premium landing page",
+      );
+      await user.click(screen.getByTestId("builder-send"));
+      await waitFor(() => expect(screen.getByTitle("VibeCraft Preview")).toBeInTheDocument(), {
+        timeout: 10000,
+      });
+    }
+
+    it("shows HTML health panel on mobile after generation", async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<BuilderWorkspace />);
+      await waitForMobileStudio();
+      await generatePolishTriggerPage(user);
+
+      const studio = screen.getByTestId("builder-mobile-studio");
+      const health = await within(studio).findByTestId("builder-html-health");
+      expect(health).toBeInTheDocument();
+      expect(within(studio).getByTestId("builder-health-score")).toHaveTextContent(/\/100/);
+      expect(within(studio).getByTestId("builder-health-chip-reduced-motion")).toBeInTheDocument();
+    });
+
+    it("apply polish fix — loads Fix prompt on mobile", async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<BuilderWorkspace />);
+      await waitForMobileStudio();
+      await generatePolishTriggerPage(user);
+
+      const studio = screen.getByTestId("builder-mobile-studio");
+      const polishBtn = await within(studio).findByTestId("builder-health-apply-polish-fix");
+      await user.click(polishBtn);
+
+      const input = screen.getByPlaceholderText(
+        /Build, refine, fix, or explain/i,
+      ) as HTMLInputElement;
+      expect(input.value).toContain("prefers-reduced-motion");
+      expect(input.value).toContain(":focus-visible");
+      expect(input.value).toContain("max-width: 480px");
+      expect(within(studio).getByText("Fix")).toBeInTheDocument();
+    });
+  });
+
   describe("generation cancel and errors", () => {
     beforeEach(() => {
       localStorage.setItem("visual-html.builder.orchestrationMode", "fast");
