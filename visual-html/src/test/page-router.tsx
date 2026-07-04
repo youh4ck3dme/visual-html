@@ -13,9 +13,9 @@ import { Toaster } from "@/components/ui/sonner";
 import { LocaleProvider } from "@/hooks/use-locale";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ProjectsProvider } from "@/hooks/use-projects";
-import { Index } from "@/routes/index";
-import { ProjectsPage } from "@/routes/projects";
-import { ProjectDetailPage } from "@/routes/projects.$projectId";
+import { IndexPage } from "@/pages/index-page";
+import { ProjectDetailPage } from "@/pages/project-detail-page";
+import { ProjectsPage } from "@/pages/projects-page";
 
 function createTestQueryClient() {
   return new QueryClient({
@@ -31,7 +31,7 @@ const rootRoute = createRootRoute({ component: () => <Outlet /> });
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  component: Index,
+  component: IndexPage,
   validateSearch: (search: Record<string, unknown>) => ({
     project: typeof search.project === "string" ? search.project : undefined,
   }),
