@@ -55,16 +55,16 @@ describe("buttons › builder-workspace", () => {
     const user = userEvent.setup();
     renderWithProviders(<BuilderWorkspace />);
     await user.click(screen.getByRole("button", { name: "Landing Pages" }));
-    expect(screen.getByRole("button", { name: /WordPress Marketing Landing/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /WordPress Marketing Landing/i }),
+    ).toBeInTheDocument();
   });
 
   it("shows Server AI ready when server env keys are configured", async () => {
     const { builderAiStatus } = getServerFnMocks();
     builderAiStatus.mockResolvedValueOnce({ serverKeysConfigured: true });
     renderWithProviders(<BuilderWorkspace />);
-    await waitFor(() =>
-      expect(screen.getByText("Server AI ready")).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText("Server AI ready")).toBeInTheDocument());
     expect(screen.getByText(/MISTRAL_API_KEY from server env/i)).toBeInTheDocument();
   });
 

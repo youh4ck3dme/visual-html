@@ -189,9 +189,7 @@ async function generateWithAi(
 
   const attempts: Array<() => Promise<string>> = [
     () => generateWithServer(serverChat, systemPrompt, userPrompt),
-    ...(hasBrowserKeys
-      ? [() => generateWithMistralBrowser(systemPrompt, userPrompt)]
-      : []),
+    ...(hasBrowserKeys ? [() => generateWithMistralBrowser(systemPrompt, userPrompt)] : []),
   ];
 
   for (const attempt of attempts) {
