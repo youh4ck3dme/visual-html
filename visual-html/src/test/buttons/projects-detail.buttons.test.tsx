@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { screen, waitFor, within } from "@testing-library/react";
 
 import { PROJECTS_STORAGE_KEY } from "@/lib/projects-store";
+import { setFakeIndexedDbWriteFailure } from "@/test/mocks/fake-indexeddb";
 import { renderPageAt } from "@/test/page-router";
 import {
   clearProjectsStorage,
@@ -94,6 +95,7 @@ describe("buttons › projects detail", () => {
   it("Save rename — shows toast and keeps original name when storage write fails", async () => {
     const user = userEvent.setup();
     await openProjectDetail();
+    setFakeIndexedDbWriteFailure(true);
 
     const originalSetItem = Storage.prototype.setItem;
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key, value) {
@@ -122,6 +124,7 @@ describe("buttons › projects detail", () => {
     const user = userEvent.setup();
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     const { router } = await openProjectDetail();
+    setFakeIndexedDbWriteFailure(true);
 
     const originalSetItem = Storage.prototype.setItem;
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key, value) {

@@ -27,7 +27,7 @@ export const Route = createFileRoute("/projects")({
 
 export function ProjectsPage() {
   const { t } = useT();
-  const { projects, storageBytes } = useProjects();
+  const { projects, storageBytes, storageStatus } = useProjects();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ProjectSort>("updated");
 
@@ -50,7 +50,12 @@ export function ProjectsPage() {
               <p className="mt-1 text-sm text-shell-muted">{t("projects.subtitle")}</p>
               {projects.length > 0 && (
                 <div className="mt-2">
-                  <ProjectsStorageHint count={projects.length} bytes={storageBytes} />
+                  <ProjectsStorageHint
+                    count={projects.length}
+                    bytes={storageBytes}
+                    backend={storageStatus.backend}
+                    fallbackActive={storageStatus.fallbackActive}
+                  />
                 </div>
               )}
             </div>

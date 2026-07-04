@@ -13,13 +13,21 @@ import { useT } from "@/hooks/use-t";
 import {
   createThumbnailDataUrl,
   deleteProjectById,
-  estimateProjectsBytes,
   loadProjectsFromStorageWithMeta,
   renameProjectById,
-  saveProjectsToStorage,
   upsertProject,
 } from "@/lib/projects-store";
-import { shouldShowMigrationPersistWarning } from "@/lib/projects-storage-session";
+import {
+  getStorageStatus,
+  listProjects,
+  saveProjects,
+  type ProjectsStorageStatus,
+} from "@/lib/projects-storage";
+import {
+  shouldPreferIndexedDbBackend,
+  shouldShowFallbackInfoToast,
+  shouldShowMigrationPersistWarning,
+} from "@/lib/projects-storage-session";
 import type { CreateProjectInput, SavedProject } from "@/types/project";
 import type { GenerateHtmlResult, GenerationOptions } from "@/types/generation";
 
@@ -35,19 +43,36 @@ type SaveFromGenerationInput = {
 
 type ProjectsContextValue = {
   projects: SavedProject[];
+  storageStatus: ProjectsStorageStatus;
+  /** @deprecated Use storageStatus.approximateBytes */
   storageBytes: number;
   getProject: (id: string) => SavedProject | undefined;
   saveFromGeneration: (input: SaveFromGenerationInput) => Promise<string | null>;
-  renameProject: (id: string, name: string) => boolean;
-  deleteProject: (id: string) => boolean;
-  refresh: () => void;
+  renameProject: (id: string, name: string) => Promise<boolean>;
+  deleteProject: (id: string) => Promise<boolean>;
+  refresh: () => Promise<void>;
 };
 
 const ProjectsContext = createContext<ProjectsContextValue | null>(null);
 
+function getInitialProjectsState(): {
+  projects: SavedProject[];
+  backend: ProjectsStorageStatus["backend"];
+} {
+  if (shouldPreferIndexedDbBackend()) {
+    return { projects: [], backend: "indexedDB" };
+  }
+  const { projects } = loadProjectsFromStorageWithMeta();
+  return { projects, backend: "localStorage" };
+}
+
 export function ProjectsProvider({ children }: { children: ReactNode }) {
   const { t } = useT();
-  const [projects, setProjects] = useState<SavedProject[]>([]);
+  const [initial] = useState(getInitialProjectsState);
+  const [projects, setProjects] = useState<SavedProject[]>(initial.projects);
+  const [storageStatus, setStorageStatus] = useState<ProjectsStorageStatus>(() =>
+    getStorageStatus(initial.projects, initial.backend),
+  );
 
   const notifyPersistFailed = useCallback(() => {
     toast.error(t("projects.persistFailed.title"), {
@@ -56,26 +81,57 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     });
   }, [t]);
 
-  const refresh = useCallback(() => {
-    const { projects: loaded, migrationPersistFailed } = loadProjectsFromStorageWithMeta();
-    setProjects(loaded);
-    if (migrationPersistFailed && shouldShowMigrationPersistWarning()) {
-      toast.warning(t("projects.migrationPersistFailed.title"), {
-        description: t("projects.migrationPersistFailed.description"),
-        duration: 8000,
-      });
-    }
+  const notifyFallbackActivated = useCallback(() => {
+    toast.info(t("projects.fallbackActivated.title"), {
+      description: t("projects.fallbackActivated.description"),
+      duration: 8000,
+    });
   }, [t]);
 
+  const handleStorageSideEffects = useCallback(
+    (result: {
+      migrationPersistFailed: boolean;
+      fallbackActivated: boolean;
+      backend: ProjectsStorageStatus["backend"];
+    }) => {
+      if (result.fallbackActivated && shouldShowFallbackInfoToast()) {
+        notifyFallbackActivated();
+      }
+      if (result.migrationPersistFailed && shouldShowMigrationPersistWarning()) {
+        toast.warning(t("projects.migrationPersistFailed.title"), {
+          description: t("projects.migrationPersistFailed.description"),
+          duration: 8000,
+        });
+      }
+    },
+    [notifyFallbackActivated, t],
+  );
+
+  const refresh = useCallback(async () => {
+    const result = await listProjects();
+    setProjects(result.projects);
+    setStorageStatus(getStorageStatus(result.projects, result.backend));
+    handleStorageSideEffects(result);
+  }, [handleStorageSideEffects]);
+
   useEffect(() => {
-    refresh();
+    void refresh();
   }, [refresh]);
 
-  const persist = useCallback((next: SavedProject[]) => {
-    const ok = saveProjectsToStorage(next);
-    if (ok) setProjects(next);
-    return ok;
-  }, []);
+  const persist = useCallback(
+    async (next: SavedProject[]) => {
+      const result = await saveProjects(next);
+      if (result.ok) {
+        setProjects(next);
+        setStorageStatus(getStorageStatus(next, result.backend));
+        if (result.fallbackActivated && shouldShowFallbackInfoToast()) {
+          notifyFallbackActivated();
+        }
+      }
+      return result.ok;
+    },
+    [notifyFallbackActivated],
+  );
 
   const getProject = useCallback((id: string) => projects.find((p) => p.id === id), [projects]);
 
@@ -92,7 +148,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
           result: input.result,
         };
         const next = upsertProject(projects, payload, input.projectId ?? undefined);
-        if (!persist(next)) return null;
+        if (!(await persist(next))) return null;
         return input.projectId ?? next[0]?.id ?? null;
       } catch {
         return null;
@@ -102,8 +158,8 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   );
 
   const renameProject = useCallback(
-    (id: string, name: string) => {
-      const ok = persist(renameProjectById(projects, id, name));
+    async (id: string, name: string) => {
+      const ok = await persist(renameProjectById(projects, id, name));
       if (!ok) notifyPersistFailed();
       return ok;
     },
@@ -111,27 +167,34 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   );
 
   const deleteProject = useCallback(
-    (id: string) => {
-      const ok = persist(deleteProjectById(projects, id));
+    async (id: string) => {
+      const ok = await persist(deleteProjectById(projects, id));
       if (!ok) notifyPersistFailed();
       return ok;
     },
     [notifyPersistFailed, persist, projects],
   );
 
-  const storageBytes = useMemo(() => estimateProjectsBytes(projects), [projects]);
-
   const value = useMemo(
     () => ({
       projects,
-      storageBytes,
+      storageStatus,
+      storageBytes: storageStatus.approximateBytes,
       getProject,
       saveFromGeneration,
       renameProject,
       deleteProject,
       refresh,
     }),
-    [projects, storageBytes, getProject, saveFromGeneration, renameProject, deleteProject, refresh],
+    [
+      projects,
+      storageStatus,
+      getProject,
+      saveFromGeneration,
+      renameProject,
+      deleteProject,
+      refresh,
+    ],
   );
 
   return <ProjectsContext.Provider value={value}>{children}</ProjectsContext.Provider>;

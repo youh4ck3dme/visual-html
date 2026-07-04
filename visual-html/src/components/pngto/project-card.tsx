@@ -65,14 +65,30 @@ export function ProjectCard({ project }: { project: SavedProject }) {
   );
 }
 
-export function ProjectsStorageHint({ count, bytes }: { count: number; bytes: number }) {
+export function ProjectsStorageHint({
+  count,
+  bytes,
+  backend,
+  fallbackActive,
+}: {
+  count: number;
+  bytes: number;
+  backend?: "localStorage" | "indexedDB" | "unavailable";
+  fallbackActive?: boolean;
+}) {
   const { t } = useT();
+  const usingIndexedDb = fallbackActive || backend === "indexedDB";
+  const storageLabel = usingIndexedDb
+    ? t("projects.storageMode.indexedDB")
+    : t("projects.storageMode.localStorage");
 
   return (
     <p className="text-xs text-shell-muted">
       {count === 1
         ? t("projects.storageOne", { size: formatBytes(bytes) })
         : t("projects.storage", { count, size: formatBytes(bytes) })}
+      <span aria-hidden> · </span>
+      <span className="text-shell-subtle">{storageLabel}</span>
     </p>
   );
 }

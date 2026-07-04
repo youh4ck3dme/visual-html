@@ -5,8 +5,44 @@ import { screen, waitFor } from "@testing-library/react";
 import { useProjects } from "@/hooks/use-projects";
 import { PROJECTS_STORAGE_KEY } from "@/lib/projects-store";
 import { resetProjectsStorageWarningsForTests } from "@/lib/projects-storage-session";
+import { setFakeIndexedDbWriteFailure } from "@/test/mocks/fake-indexeddb";
 import { renderWithProviders } from "@/test/test-utils";
 import { Toaster } from "@/components/ui/sonner";
+import { SAVED_PROJECT_SCHEMA_VERSION } from "@/lib/projects-schema";
+import type { SavedProject } from "@/types/project";
+
+const SAMPLE_RESULT = {
+  html: "<main>Visible</main>",
+  css: "main{color:red}",
+  javascript: "",
+  explanation: "Demo",
+  accessibilityNotes: "",
+  responsiveNotes: "",
+  assumptions: [],
+  warnings: [],
+};
+
+function makeProject(overrides: Partial<SavedProject> = {}): SavedProject {
+  return {
+    schemaVersion: SAVED_PROJECT_SCHEMA_VERSION,
+    id: overrides.id ?? "p1",
+    name: overrides.name ?? "Landing page",
+    createdAt: overrides.createdAt ?? "2026-07-01T10:00:00.000Z",
+    updatedAt: overrides.updatedAt ?? "2026-07-03T10:00:00.000Z",
+    fileName: overrides.fileName ?? "landing.png",
+    imageWidth: 1200,
+    imageHeight: 800,
+    thumbnailDataUrl: "data:image/jpeg;base64,abc",
+    options: {
+      outputMode: "static",
+      stylingMode: "vanilla-css",
+      responsiveness: "adaptive",
+      accessibilityLevel: "strict",
+    },
+    result: SAMPLE_RESULT,
+    ...overrides,
+  };
+}
 
 function ProjectCountProbe() {
   const { projects } = useProjects();
@@ -18,8 +54,33 @@ function RefreshProbe() {
   return (
     <>
       <div data-testid="project-count">{projects.length}</div>
-      <button type="button" onClick={() => refresh()}>
+      <button type="button" onClick={() => void refresh()}>
         Refresh projects
+      </button>
+    </>
+  );
+}
+
+function SaveProbe() {
+  const { projects, saveFromGeneration } = useProjects();
+  return (
+    <>
+      <div data-testid="project-count">{projects.length}</div>
+      <div data-testid="latest-html">{projects[0]?.result.html ?? ""}</div>
+      <button
+        type="button"
+        onClick={() =>
+          void saveFromGeneration({
+            fileName: "hero.png",
+            imageWidth: 100,
+            imageHeight: 100,
+            imageDataUrl: "data:image/png;base64,abc",
+            options: makeProject().options,
+            result: SAMPLE_RESULT,
+          })
+        }
+      >
+        Save project
       </button>
     </>
   );
@@ -43,9 +104,11 @@ describe("use-projects storage failures", () => {
   beforeEach(() => {
     resetProjectsStorageWarningsForTests();
     localStorage.clear();
+    sessionStorage.clear();
+    setFakeIndexedDbWriteFailure(false);
   });
 
-  it("surfaces migration write-back failure and still loads legacy projects", async () => {
+  it("surfaces migration write-back failure when both backends fail", async () => {
     const legacy = {
       id: "legacy-provider-1",
       name: "Provider legacy",
@@ -57,6 +120,7 @@ describe("use-projects storage failures", () => {
     };
     localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify([legacy]));
     mockProjectsStorageWriteFailure();
+    setFakeIndexedDbWriteFailure(true);
 
     renderWithProviders(
       <>
@@ -84,6 +148,7 @@ describe("use-projects storage failures", () => {
     };
     localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify([legacy]));
     mockProjectsStorageWriteFailure();
+    setFakeIndexedDbWriteFailure(true);
 
     const user = userEvent.setup();
     renderWithProviders(
@@ -101,5 +166,62 @@ describe("use-projects storage failures", () => {
     await user.click(screen.getByRole("button", { name: /Refresh projects/i }));
 
     expect(screen.getAllByText(/Could not upgrade saved projects/i)).toHaveLength(1);
+  });
+
+  it("falls back to IndexedDB and shows info toast when localStorage is full", async () => {
+    mockProjectsStorageWriteFailure();
+
+    const user = userEvent.setup();
+    renderWithProviders(
+      <>
+        <SaveProbe />
+        <Toaster />
+      </>,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Save project/i }));
+
+    await waitFor(() => expect(screen.getByTestId("project-count")).toHaveTextContent("1"));
+    expect(screen.getByTestId("latest-html")).toHaveTextContent("Visible");
+    await waitFor(() =>
+      expect(
+        screen.getByText(/stored in browser database because local storage is full/i),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it("keeps generated output visible when fallback save succeeds", async () => {
+    mockProjectsStorageWriteFailure();
+
+    const user = userEvent.setup();
+    renderWithProviders(
+      <>
+        <SaveProbe />
+        <Toaster />
+      </>,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Save project/i }));
+
+    await waitFor(() => expect(screen.getByTestId("latest-html")).toHaveTextContent("Visible"));
+    expect(screen.getByTestId("project-count")).toHaveTextContent("1");
+  });
+
+  it("shows persist failure toast when both backends fail on save", async () => {
+    mockProjectsStorageWriteFailure();
+    setFakeIndexedDbWriteFailure(true);
+
+    const user = userEvent.setup();
+    renderWithProviders(
+      <>
+        <SaveProbe />
+        <Toaster />
+      </>,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Save project/i }));
+
+    await waitFor(() => expect(screen.getByTestId("project-count")).toHaveTextContent("0"));
+    expect(screen.queryByTestId("latest-html")).toHaveTextContent("");
   });
 });

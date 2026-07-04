@@ -75,20 +75,25 @@ export function ProjectDetailPage() {
   const commitRename = () => {
     const next = nameDraft.trim();
     if (next && next !== project.name) {
-      const ok = renameProject(project.id, next);
-      if (!ok) {
-        setNameDraft(project.name);
+      void renameProject(project.id, next).then((ok) => {
+        if (!ok) {
+          setNameDraft(project.name);
+          setEditingName(false);
+          return;
+        }
         setEditingName(false);
-        return;
-      }
+      });
+      return;
     }
     setEditingName(false);
   };
 
   const handleDelete = () => {
     if (!window.confirm(t("projectDetail.deleteConfirm", { name: project.name }))) return;
-    if (!deleteProject(project.id)) return;
-    void navigate({ to: "/projects" });
+    void deleteProject(project.id).then((ok) => {
+      if (!ok) return;
+      void navigate({ to: "/projects" });
+    });
   };
 
   const outputLabel = t(OUTPUT_LABEL_KEYS[project.options.outputMode]);

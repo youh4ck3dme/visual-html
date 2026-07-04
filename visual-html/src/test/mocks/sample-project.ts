@@ -1,5 +1,11 @@
+import { clearProjectsIndexedDb } from "@/lib/projects-indexeddb";
 import { SAVED_PROJECT_SCHEMA_VERSION } from "@/lib/projects-schema";
 import { PROJECTS_STORAGE_KEY, saveProjectsToStorage } from "@/lib/projects-store";
+import {
+  PROJECTS_BACKEND_MARKER_KEY,
+  PROJECTS_FALLBACK_SESSION_KEY,
+  resetProjectsStorageWarningsForTests,
+} from "@/lib/projects-storage-session";
 import type { SavedProject } from "@/types/project";
 import { SAMPLE_GENERATE_RESULT, SAMPLE_GENERATION_OPTIONS } from "@/test/mocks/sample-image";
 
@@ -29,4 +35,8 @@ export function seedProjectsStorage(projects: SavedProject[] = [makeSavedProject
 
 export function clearProjectsStorage() {
   localStorage.removeItem(PROJECTS_STORAGE_KEY);
+  localStorage.removeItem(PROJECTS_BACKEND_MARKER_KEY);
+  sessionStorage.removeItem(PROJECTS_FALLBACK_SESSION_KEY);
+  resetProjectsStorageWarningsForTests();
+  void clearProjectsIndexedDb();
 }

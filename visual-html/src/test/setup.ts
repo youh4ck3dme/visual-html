@@ -2,6 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, vi } from "vitest";
 
+import { installFakeIndexedDb, resetFakeIndexedDb } from "@/test/mocks/fake-indexeddb";
 import { resetForensicsMock, resetServerFnMocks } from "@/test/mocks/server-fns";
 
 class ImageStub {
@@ -14,9 +15,12 @@ class ImageStub {
   }
 }
 
+installFakeIndexedDb();
+
 beforeEach(() => {
   resetServerFnMocks();
   resetForensicsMock();
+  resetFakeIndexedDb();
   vi.stubGlobal("Image", ImageStub);
 
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({

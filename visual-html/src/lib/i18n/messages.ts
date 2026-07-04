@@ -293,6 +293,11 @@ export const messages = {
     "projects.subtitle": "Your saved screenshot-to-HTML generations in this browser.",
     "projects.storage": "{count} projects · {size} stored locally",
     "projects.storageOne": "1 project · {size} stored locally",
+    "projects.storageMode.localStorage": "Local storage",
+    "projects.storageMode.indexedDB": "Browser database",
+    "projects.fallbackActivated.title": "Using browser database storage",
+    "projects.fallbackActivated.description":
+      "Projects are now stored in browser database because local storage is full.",
     "projects.migrationPersistFailed.title": "Could not upgrade saved projects",
     "projects.migrationPersistFailed.description":
       "Your projects were loaded in memory, but writing the upgraded format to browser storage failed. This often happens when local storage is full — try removing old projects.",
@@ -922,6 +927,11 @@ export const messages = {
     "projects.subtitle": "Vaše uložené generovania screenshot→HTML v tomto prehliadači.",
     "projects.storage": "{count} projektov · {size} uložených lokálne",
     "projects.storageOne": "1 projekt · {size} uložený lokálne",
+    "projects.storageMode.localStorage": "Lokálne úložisko",
+    "projects.storageMode.indexedDB": "Databáza prehliadača",
+    "projects.fallbackActivated.title": "Používa sa databáza prehliadača",
+    "projects.fallbackActivated.description":
+      "Projekty sa teraz ukladajú do databázy prehliadača, pretože lokálne úložisko je plné.",
     "projects.migrationPersistFailed.title": "Nepodarilo sa aktualizovať uložené projekty",
     "projects.migrationPersistFailed.description":
       "Projekty sa načítali do pamäte, ale zápis aktualizovaného formátu do úložiska prehliadača zlyhal. Často to spôsobí plné lokálne úložisko — skúste odstrániť staré projekty.",
