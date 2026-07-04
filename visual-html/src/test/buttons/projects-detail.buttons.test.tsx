@@ -83,6 +83,12 @@ describe("buttons › projects detail", () => {
     expect(link).toHaveAttribute("href", "/?project=detail-1");
   });
 
+  it("Open in VibeCraft — links to /builder with importProject", async () => {
+    await openProjectDetail();
+    const link = screen.getByTestId("open-in-vibecraft");
+    expect(link).toHaveAttribute("href", "/builder?importProject=detail-1");
+  });
+
   it("Delete — removes project after confirm", async () => {
     const user = userEvent.setup();
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);

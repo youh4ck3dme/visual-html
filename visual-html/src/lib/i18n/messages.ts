@@ -350,6 +350,41 @@ export const messages = {
     "projectDetail.linesWithJs": "{htmlLines} HTML · {cssLines} CSS · {jsLines} JS",
     "projectDetail.created": "Created:",
     "projectDetail.generatedOutput": "Generated output",
+    "projectDetail.openInVibeCraft": "Open in VibeCraft",
+    "projectDetail.openExport": "Export HTML",
+    "projectDetail.openQa": "QA report",
+
+    // ── Export route ────────────────────────────────────────────
+    "export.notFound.title": "Project not found",
+    "export.notFound.description": "It may have been deleted or never saved to this browser.",
+    "export.backToProjects": "Back to projects",
+    "export.title": "Export — {name}",
+    "export.subtitle": "Sandboxed preview of the saved single-file HTML output.",
+    "export.copyHtml": "Copy HTML",
+    "export.copied": "Copied",
+    "export.downloadHtml": "Download HTML",
+    "export.backToProject": "Back to project",
+    "export.previewTitle": "Export preview — {name}",
+
+    // ── QA route ────────────────────────────────────────────────
+    "qa.notFound.title": "Project not found",
+    "qa.notFound.description": "It may have been deleted or never saved to this browser.",
+    "qa.backToProjects": "Back to projects",
+    "qa.title": "QA — {name}",
+    "qa.summary": "{pass} passed · {warn} warnings · {fail} failed",
+    "qa.backToProject": "Back to project",
+    "qa.openExport": "Open export",
+    "qa.check.unknown": "Check",
+    "qa.check.htmlNonempty": "HTML content",
+    "qa.check.cssForClasses": "CSS for class selectors",
+    "qa.check.viewportMeta": "Viewport meta tag",
+    "qa.check.documentTitle": "Document title",
+    "qa.check.imageAlt": "Image alt attributes",
+    "qa.check.externalResources": "External resources",
+    "qa.check.inlineScripts": "JavaScript in source",
+    "qa.check.outputSize": "Output size",
+    "qa.check.generationWarnings": "Generation warnings",
+    "qa.check.generationAssumptions": "Generation assumptions",
 
     // ── Builder workspace ───────────────────────────────────────
     "builder.brand": "VibeCraft",
@@ -450,6 +485,16 @@ export const messages = {
     "builder.status.explanationReady": "Explanation ready.",
 
     // Builder chat messages
+    "builder.import.banner": "Imported from project: {name}",
+    "builder.import.notFound": "Project import failed — project not found in this browser.",
+    "builder.import.loaded":
+      "Imported HTML from project “{name}”. You can refine it in Refine mode.",
+    "builder.import.versionLabel": "Imported: {name}",
+    "builder.import.confirmTitle": "Replace Builder workspace?",
+    "builder.import.confirmDescription":
+      "Importing a project will replace the current generated code in this workspace.",
+    "builder.import.confirmCancel": "Keep current workspace",
+    "builder.import.confirmReplace": "Import project",
     "builder.chat.greet":
       "VibeCraft AI Ready. Select a starter template or describe your application to generate a single-file interactive layout.",
     "builder.chat.newWorkspace": "New workspace. Pick a template or describe your layout.",
@@ -1001,6 +1046,41 @@ export const messages = {
     "projectDetail.linesWithJs": "{htmlLines} HTML · {cssLines} CSS · {jsLines} JS",
     "projectDetail.created": "Vytvorené:",
     "projectDetail.generatedOutput": "Vygenerovaný výstup",
+    "projectDetail.openInVibeCraft": "Otvoriť vo VibeCraft",
+    "projectDetail.openExport": "Export HTML",
+    "projectDetail.openQa": "QA report",
+
+    // ── Export route ────────────────────────────────────────────
+    "export.notFound.title": "Projekt sa nenašiel",
+    "export.notFound.description": "Mohol byť zmazaný alebo nikdy neuložený v tomto prehliadači.",
+    "export.backToProjects": "Späť na projekty",
+    "export.title": "Export — {name}",
+    "export.subtitle": "Sandboxovaný náhľad uloženého single-file HTML výstupu.",
+    "export.copyHtml": "Kopírovať HTML",
+    "export.copied": "Skopírované",
+    "export.downloadHtml": "Stiahnuť HTML",
+    "export.backToProject": "Späť na projekt",
+    "export.previewTitle": "Export náhľad — {name}",
+
+    // ── QA route ────────────────────────────────────────────────
+    "qa.notFound.title": "Projekt sa nenašiel",
+    "qa.notFound.description": "Mohol byť zmazaný alebo nikdy neuložený v tomto prehliadači.",
+    "qa.backToProjects": "Späť na projekty",
+    "qa.title": "QA — {name}",
+    "qa.summary": "{pass} OK · {warn} varovaní · {fail} zlyhaní",
+    "qa.backToProject": "Späť na projekt",
+    "qa.openExport": "Otvoriť export",
+    "qa.check.unknown": "Kontrola",
+    "qa.check.htmlNonempty": "HTML obsah",
+    "qa.check.cssForClasses": "CSS pre triedy",
+    "qa.check.viewportMeta": "Viewport meta tag",
+    "qa.check.documentTitle": "Titulok dokumentu",
+    "qa.check.imageAlt": "Alt atribúty obrázkov",
+    "qa.check.externalResources": "Externé zdroje",
+    "qa.check.inlineScripts": "JavaScript vo zdroji",
+    "qa.check.outputSize": "Veľkosť výstupu",
+    "qa.check.generationWarnings": "Varovania generovania",
+    "qa.check.generationAssumptions": "Predpoklady generovania",
 
     // ── Builder workspace ───────────────────────────────────────
     "builder.brand": "VibeCraft",
@@ -1101,6 +1181,16 @@ export const messages = {
     "builder.status.explanationReady": "Vysvetlenie pripravené.",
 
     // Builder chat messages
+    "builder.import.banner": "Importované z projektu: {name}",
+    "builder.import.notFound": "Import projektu zlyhal — projekt sa v tomto prehliadači nenašiel.",
+    "builder.import.loaded":
+      "HTML importované z projektu „{name}“. Môžete ho upraviť v režime Refine.",
+    "builder.import.versionLabel": "Import: {name}",
+    "builder.import.confirmTitle": "Nahradiť Builder workspace?",
+    "builder.import.confirmDescription":
+      "Import projektu nahradí aktuálny vygenerovaný kód v tomto workspace.",
+    "builder.import.confirmCancel": "Ponechať aktuálny workspace",
+    "builder.import.confirmReplace": "Importovať projekt",
     "builder.chat.greet":
       "VibeCraft AI pripravené. Vyberte šablónu alebo popíšte aplikáciu pre generovanie interaktívneho layoutu v jednom súbore.",
     "builder.chat.newWorkspace": "Nový workspace. Vyberte šablónu alebo popíšte layout.",

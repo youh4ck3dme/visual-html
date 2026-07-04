@@ -13,9 +13,11 @@ import { Toaster } from "@/components/ui/sonner";
 import { LocaleProvider } from "@/hooks/use-locale";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ProjectsProvider } from "@/hooks/use-projects";
+import { ExportPage } from "@/pages/export-page";
 import { IndexPage } from "@/pages/index-page";
 import { ProjectDetailPage } from "@/pages/project-detail-page";
 import { ProjectsPage } from "@/pages/projects-page";
+import { QaPage } from "@/pages/qa-page";
 
 function createTestQueryClient() {
   return new QueryClient({
@@ -49,7 +51,25 @@ const projectDetailRoute = createRoute({
   component: ProjectDetailPage,
 });
 
-const pageRouteTree = rootRoute.addChildren([indexRoute, projectsRoute, projectDetailRoute]);
+const exportRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/export/$projectId",
+  component: ExportPage,
+});
+
+const qaRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/qa/$projectId",
+  component: QaPage,
+});
+
+const pageRouteTree = rootRoute.addChildren([
+  indexRoute,
+  projectsRoute,
+  projectDetailRoute,
+  exportRoute,
+  qaRoute,
+]);
 
 export async function renderPageAt(path: string) {
   const queryClient = createTestQueryClient();

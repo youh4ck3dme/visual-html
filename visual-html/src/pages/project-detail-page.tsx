@@ -1,5 +1,14 @@
 import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Pencil, Trash2, Wand2, ZoomIn } from "lucide-react";
+import {
+  ArrowLeft,
+  ClipboardCheck,
+  Download,
+  Pencil,
+  Sparkles,
+  Trash2,
+  Wand2,
+  ZoomIn,
+} from "lucide-react";
 import { useState } from "react";
 
 import { ImageLightbox } from "@/components/pngto/image-lightbox";
@@ -179,6 +188,32 @@ export function ProjectDetailPage() {
                 <Link to="/" search={{ project: project.id }} data-testid="open-in-editor">
                   <Wand2 className="h-4 w-4" aria-hidden />
                   {t("projectDetail.openInEditor")}
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link
+                  to="/builder"
+                  search={{ importProject: project.id }}
+                  data-testid="open-in-vibecraft"
+                >
+                  <Sparkles className="h-4 w-4" aria-hidden />
+                  {t("projectDetail.openInVibeCraft")}
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link
+                  to="/export/$projectId"
+                  params={{ projectId: project.id }}
+                  data-testid="open-export"
+                >
+                  <Download className="h-4 w-4" aria-hidden />
+                  {t("projectDetail.openExport")}
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link to="/qa/$projectId" params={{ projectId: project.id }} data-testid="open-qa">
+                  <ClipboardCheck className="h-4 w-4" aria-hidden />
+                  {t("projectDetail.openQa")}
                 </Link>
               </Button>
               <Button variant="outline" onClick={handleDelete} data-testid="delete-project">

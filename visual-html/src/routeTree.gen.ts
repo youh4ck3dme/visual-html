@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as BuilderRouteImport } from './routes/builder'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as QaProjectIdRouteImport } from './routes/qa.$projectId'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects.$projectId'
+import { Route as ExportProjectIdRouteImport } from './routes/export.$projectId'
 
 const ProjectsRoute = ProjectsRouteImport.update({
   id: '/projects',
@@ -29,43 +31,80 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const QaProjectIdRoute = QaProjectIdRouteImport.update({
+  id: '/qa/$projectId',
+  path: '/qa/$projectId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
   id: '/$projectId',
   path: '/$projectId',
   getParentRoute: () => ProjectsRoute,
+} as any)
+const ExportProjectIdRoute = ExportProjectIdRouteImport.update({
+  id: '/export/$projectId',
+  path: '/export/$projectId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/builder': typeof BuilderRoute
   '/projects': typeof ProjectsRouteWithChildren
+  '/export/$projectId': typeof ExportProjectIdRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
+  '/qa/$projectId': typeof QaProjectIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/builder': typeof BuilderRoute
   '/projects': typeof ProjectsRouteWithChildren
+  '/export/$projectId': typeof ExportProjectIdRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
+  '/qa/$projectId': typeof QaProjectIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/builder': typeof BuilderRoute
   '/projects': typeof ProjectsRouteWithChildren
+  '/export/$projectId': typeof ExportProjectIdRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
+  '/qa/$projectId': typeof QaProjectIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/builder' | '/projects' | '/projects/$projectId'
+  fullPaths:
+    | '/'
+    | '/builder'
+    | '/projects'
+    | '/export/$projectId'
+    | '/projects/$projectId'
+    | '/qa/$projectId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/builder' | '/projects' | '/projects/$projectId'
-  id: '__root__' | '/' | '/builder' | '/projects' | '/projects/$projectId'
+  to:
+    | '/'
+    | '/builder'
+    | '/projects'
+    | '/export/$projectId'
+    | '/projects/$projectId'
+    | '/qa/$projectId'
+  id:
+    | '__root__'
+    | '/'
+    | '/builder'
+    | '/projects'
+    | '/export/$projectId'
+    | '/projects/$projectId'
+    | '/qa/$projectId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BuilderRoute: typeof BuilderRoute
   ProjectsRoute: typeof ProjectsRouteWithChildren
+  ExportProjectIdRoute: typeof ExportProjectIdRoute
+  QaProjectIdRoute: typeof QaProjectIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -91,12 +130,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/qa/$projectId': {
+      id: '/qa/$projectId'
+      path: '/qa/$projectId'
+      fullPath: '/qa/$projectId'
+      preLoaderRoute: typeof QaProjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projects/$projectId': {
       id: '/projects/$projectId'
       path: '/$projectId'
       fullPath: '/projects/$projectId'
       preLoaderRoute: typeof ProjectsProjectIdRouteImport
       parentRoute: typeof ProjectsRoute
+    }
+    '/export/$projectId': {
+      id: '/export/$projectId'
+      path: '/export/$projectId'
+      fullPath: '/export/$projectId'
+      preLoaderRoute: typeof ExportProjectIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -117,6 +170,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BuilderRoute: BuilderRoute,
   ProjectsRoute: ProjectsRouteWithChildren,
+  ExportProjectIdRoute: ExportProjectIdRoute,
+  QaProjectIdRoute: QaProjectIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
