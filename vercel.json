@@ -1,6 +1,6 @@
 {
   "framework": null,
-  "buildCommand": "cd visual-html && NITRO_PRESET=vercel bun run build",
+  "buildCommand": "node scripts/vercel-build.mjs",
   "installCommand": "cd visual-html && bun install",
   "env": {
     "NITRO_PRESET": "vercel"
