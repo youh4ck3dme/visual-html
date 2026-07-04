@@ -8,6 +8,8 @@ const builderChatSchema = z.object({
   systemPrompt: z.string().max(120_000),
   userPrompt: z.string().max(120_000),
   model: z.string().max(80).optional(),
+  keySlot: z.enum(["primary", "secondary", "auto"]).optional(),
+  jsonMode: z.boolean().optional(),
 });
 
 export type BuilderChatResult = { ok: true; content: string } | { ok: false; message: string };

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { getMistralKeyPool, shouldFailoverToNextKey } from "./mistral-keys";
+import { getMistralKeyPool, orderKeysBySlot, shouldFailoverToNextKey } from "./mistral-keys";
 
 const ENV_KEYS = [
   "MISTRAL_API_KEY",
@@ -89,6 +89,19 @@ describe("getMistralKeyPool", () => {
       "synthesis-extra",
       "global",
     ]);
+  });
+});
+
+describe("orderKeysBySlot", () => {
+  it("prefers secondary key when requested", () => {
+    expect(orderKeysBySlot(["primary", "secondary"], "secondary")).toEqual([
+      "secondary",
+      "primary",
+    ]);
+  });
+
+  it("falls back to primary when only one key exists", () => {
+    expect(orderKeysBySlot(["only"], "secondary")).toEqual(["only"]);
   });
 });
 

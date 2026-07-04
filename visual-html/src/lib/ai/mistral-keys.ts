@@ -77,6 +77,19 @@ export function getMistralKeyPool(role: MistralKeyRole): string[] {
   ]);
 }
 
+export type MistralKeySlot = "primary" | "secondary" | "auto";
+
+/** Reorder key pool so orchestration lanes prefer a specific slot first. */
+export function orderKeysBySlot(keys: string[], slot: MistralKeySlot = "auto"): string[] {
+  if (keys.length === 0 || slot === "auto") return keys;
+
+  const primary = keys[0];
+  const secondary = keys[1] ?? keys[0];
+  const preferred = slot === "primary" ? primary : secondary;
+
+  return dedupeKeys([preferred, ...keys]);
+}
+
 const QUOTA_HINT =
   /quota|rate.?limit|billing|exceeded|insufficient|credit|capacity|too many requests/i;
 

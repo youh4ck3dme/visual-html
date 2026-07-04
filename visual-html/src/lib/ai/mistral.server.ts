@@ -4,8 +4,10 @@ import { randomUUID } from "node:crypto";
 import {
   getMistralKeyPool,
   maskApiKey,
+  orderKeysBySlot,
   shouldFailoverToNextKey,
   type MistralKeyRole,
+  type MistralKeySlot,
 } from "@/lib/ai/mistral-keys";
 import {
   parseGenerateOutput,
@@ -54,6 +56,7 @@ interface ChatOptions {
   modelOverride?: string;
   temperature?: number;
   maxTokens?: number;
+  keySlot?: MistralKeySlot;
 }
 
 interface OcrResponse {
@@ -151,8 +154,9 @@ async function fetchWithTimeout(
 async function callMistralWithKeyPool(
   role: MistralKeyRole,
   operation: (apiKey: string) => Promise<Response>,
+  keysOverride?: string[],
 ): Promise<Response> {
-  const keys = getMistralKeyPool(role);
+  const keys = keysOverride?.length ? keysOverride : getMistralKeyPool(role);
   if (keys.length === 0) {
     throw new AiError(
       "MISSING_API_KEY",
@@ -231,25 +235,29 @@ async function callMistralChat(
   const maxTokens =
     options.maxTokens ?? readIntEnv("MISTRAL_MAX_TOKENS", DEFAULT_MAX_TOKENS, 1000, 6000);
 
-  const res = await callMistralWithKeyPool("chat", (apiKey) =>
-    fetchWithTimeout(
-      MISTRAL_CHAT_URL,
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          authorization: `Bearer ${apiKey}`,
+  const chatKeys = orderKeysBySlot(getMistralKeyPool("chat"), options.keySlot ?? "auto");
+  const res = await callMistralWithKeyPool(
+    "chat",
+    (apiKey) =>
+      fetchWithTimeout(
+        MISTRAL_CHAT_URL,
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            temperature: options.temperature ?? 0.2,
+            max_tokens: maxTokens,
+            ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
+            messages,
+          }),
         },
-        body: JSON.stringify({
-          model,
-          temperature: options.temperature ?? 0.2,
-          max_tokens: maxTokens,
-          ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
-          messages,
-        }),
-      },
-      timeoutMs,
-    ),
+        timeoutMs,
+      ),
+    chatKeys,
   );
 
   const bodyText = await res.text();
@@ -268,6 +276,8 @@ export async function mistralBuilderChat(args: {
   systemPrompt: string;
   userPrompt: string;
   model?: string;
+  keySlot?: MistralKeySlot;
+  jsonMode?: boolean;
 }): Promise<string> {
   const model =
     args.model ||
@@ -280,8 +290,13 @@ export async function mistralBuilderChat(args: {
       { role: "system", content: args.systemPrompt },
       { role: "user", content: args.userPrompt },
     ],
-    { modelOverride: model, maxTokens: 8000, temperature: 0.2 },
-    false,
+    {
+      modelOverride: model,
+      maxTokens: 8000,
+      temperature: 0.2,
+      keySlot: args.keySlot,
+    },
+    args.jsonMode ?? false,
   );
 }
 
