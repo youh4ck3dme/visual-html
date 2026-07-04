@@ -8,7 +8,8 @@ AI web app for turning UI screenshots into clean, semantic HTML with a live prev
 
 | Dokument | Obsah |
 | -------- | ----- |
-| [docs/DEVELOPER.md](docs/DEVELOPER.md) | **Kompletná technická dokumentácia** — API, architektúra, testy, deploy |
+| [docs/DEVELOPER.md](docs/DEVELOPER.md) | **Kompletná technická dokumentácia** — API, Builder background, testy |
+| [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) | **QA & release checklist** pred deployom |
 | [docs/README.md](docs/README.md) | Index dokumentácie |
 | [docs/business/README.md](docs/business/README.md) | Biznis a monetizácia |
 | [src/routes/README.md](src/routes/README.md) | TanStack routing konvencie |
@@ -79,6 +80,9 @@ Strategicka pozicia Visual HTML:
 - AI build / refine / fix / explain modes (server Mistral or browser BYOK keys)
 - Sandboxed live preview, code view, risk scanner, version history
 - Demo mode without API keys (offline templates only)
+- **Background generation** — `BuilderWorkspaceProvider` v `__root.tsx` drží stav globálne; generovanie pokračuje aj po odchode z `/builder`; sidebar badge + completion toast s **Open Builder**; workspace v `localStorage` kľúč `vibecraft_workspace_v1` (detail: [docs/DEVELOPER.md](docs/DEVELOPER.md#builder-background-generation-global-workspace))
+
+> PNG→HTML generovanie na `/` zostáva viazané na index stránku (`useGenerationWorkflow`) — nie je globálne ako VibeCraft.
 
 ## Ako nastavit generovanie
 

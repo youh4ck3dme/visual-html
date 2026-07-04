@@ -63,6 +63,7 @@ npm run build    # NITRO_PRESET=vercel
 | Dokument | Obsah |
 | -------- | ----- |
 | [visual-html/README.md](visual-html/README.md) | Funkcie, generovanie, env premenné, deploy |
-| [visual-html/docs/DEVELOPER.md](visual-html/docs/DEVELOPER.md) | **Kompletná technická docs** — API, architektúra, testy |
+| [visual-html/docs/DEVELOPER.md](visual-html/docs/DEVELOPER.md) | **Kompletná technická docs** — API, Builder background, testy |
+| [visual-html/docs/RELEASE_CHECKLIST.md](visual-html/docs/RELEASE_CHECKLIST.md) | **QA & release checklist** pred deployom |
 | [visual-html/docs/README.md](visual-html/docs/README.md) | Index všetkej dokumentácie |
 | [visual-html/docs/business/README.md](visual-html/docs/business/README.md) | Biznis a monetizácia |

@@ -32,7 +32,12 @@ visual-html/
 │   │   ├── pngto/          # Screenshot → HTML UI
 │   │   ├── builder/        # VibeCraft builder UI
 │   │   └── ui/             # shadcn/Radix komponenty
-│   ├── hooks/              # use-projects, use-locale, use-theme, …
+│   ├── hooks/
+│   │   ├── use-builder-workspace.tsx      # BuilderWorkspaceProvider (globálny stav)
+│   │   ├── use-builder-workspace-consumer.ts
+│   │   ├── builder-workspace-context.ts
+│   │   ├── use-generation-workflow.ts   # PNG→HTML — len stránka /
+│   │   └── use-projects, use-locale, use-theme, …
 │   ├── lib/
 │   │   ├── ai/             # Mistral klient, kľúče, prompty
 │   │   ├── builder/        # Orchestrácia, health-check, šablóny
@@ -59,6 +64,47 @@ visual-html/
 2. `lib/builder/generate.ts` orchestruje kroky (planning, building, review, …).
 3. Offline **demo mode** používa šablóny bez API kľúčov.
 4. Výstup prechádza **HTML health check** podľa quality profilu (napr. Apple Glass ≥ 88).
+
+### Builder background generation (global workspace)
+
+Od verzie s `BuilderWorkspaceProvider` beží VibeCraft generovanie **nezávisle od aktuálnej routy**.
+
+| Aspekt | Správanie |
+| ------ | --------- |
+| Provider | `BuilderWorkspaceProvider` v `src/routes/__root.tsx` — obalí celú app pod `ProjectsProvider` |
+| Implementácia | `src/hooks/use-builder-workspace.tsx` |
+| Consumer hook | `useBuilderWorkspace()` / `useBuilderWorkspaceOptional()` v `src/hooks/use-builder-workspace-consumer.ts` |
+| UI na `/builder` | `src/components/builder/builder-workspace.tsx` a `builder-mobile-studio.tsx` čítajú rovnaký context |
+
+**Čo funguje na pozadí:**
+
+- Spustíš generovanie na `/builder`, prejdeš na `/` alebo `/projects` → orchestrácia pokračuje.
+- Sidebar (`VisualSidebar`) zobrazí pulzujúci badge na položke **VibeCraft** (`data-testid="nav-builder-generating-badge"`), kým `isGenerating === true`.
+- Po dokončení **mimo** `/builder`: toast „VibeCraft generation finished“ + akcia **Open Builder** (`builder.background.openBuilder`).
+- Po chybe **mimo** `/builder`: toast „VibeCraft generation failed“ s hintom otvoriť Builder.
+- Na `/builder` sa toasty neukazujú (stav je priamo v UI).
+
+**Perzistencia — `vibecraft_workspace_v1`:**
+
+- Kľúč: `WORKSPACE_STORAGE_KEY` v `src/lib/builder/workspace-storage.ts`
+- Ukladá: `messages`, `generatedCode`, `versions`, `generationMode`, `currentCategory`, `outputSource`
+- Hydratácia pri štarte app + zápis pri každej zmene workspace po hydrate
+- Po úspešnom dokončení na pozadí sa HTML a verzie zapíšu do localStorage pred toastom
+
+**Zrušenie (cancel):**
+
+- `handleCancelGeneration()` abortuje `AbortController` v provideri.
+- Tlačidlo **Cancel generation** je v builder UI (`/builder` desktop + mobile studio) — nie v sidebare.
+- Ak odídeš z `/builder` počas generovania, cancel nie je dostupný z iných stránok; musíš sa vrátiť na `/builder` (alebo počkať na dokončenie / toast).
+- Pri abort: `showCancelledNotice`, status „Cancelled“, žiadny success toast na pozadí.
+
+**Čo ešte NIE JE globálne — PNG→HTML (`/`):**
+
+- Screenshot pipeline používa `useGenerationWorkflow()` v `src/pages/index-page.tsx` — stav žije len v rámci index route.
+- Odchod z `/` počas OCR/syntézy **nezachová** beh generovania v globálnom provideri (na rozdiel od VibeCraft).
+- Výsledky screenshot generácie idú do **Projects** (`localStorage` projektov), nie do `vibecraft_workspace_v1`.
+
+Pred release over pozadie podľa [RELEASE_CHECKLIST.md](./RELEASE_CHECKLIST.md).
 
 ---
 
@@ -386,6 +432,7 @@ git push origin main
 | Nová routa | `src/routes/*.tsx` |
 | Screenshot generovanie UI | `src/components/pngto/`, `src/hooks/use-generation-workflow.ts` |
 | Builder UI | `src/components/builder/` |
+| Builder globálny stav | `src/hooks/use-builder-workspace.tsx`, `src/lib/builder/workspace-storage.ts` |
 | AI prompty (screenshot) | `src/lib/ai/prompts.ts` |
 | Builder šablóny | `src/lib/builder/prompt-library.ts` |
 | Quality profily | `src/lib/builder/quality-profiles.ts` |
@@ -399,5 +446,6 @@ git push origin main
 ## Ďalšie zdroje
 
 - [README.md](../README.md) — používateľská dokumentácia, generovanie, env tabuľka
+- [RELEASE_CHECKLIST.md](./RELEASE_CHECKLIST.md) — QA a release checklist pred deployom
 - [business/README.md](./business/README.md) — monetizácia a roadmap
 - [prompts-image.md](./prompts-image.md) — odporúčané prompty pre screenshoty

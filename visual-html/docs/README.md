@@ -6,7 +6,8 @@ Kompletný index dokumentácie projektu.
 
 | Dokument | Obsah |
 | -------- | ----- |
-| [DEVELOPER.md](./DEVELOPER.md) | **Hlavná technická dokumentácia** — architektúra, API, env, testy, deploy |
+| [DEVELOPER.md](./DEVELOPER.md) | **Hlavná technická dokumentácia** — architektúra, API, Builder background, testy |
+| [RELEASE_CHECKLIST.md](./RELEASE_CHECKLIST.md) | **QA & release checklist** — git gate, testy, smoke, mobile QA |
 | [../README.md](../README.md) | Prehľad aplikácie, funkcie, generovanie, env premenné |
 | [../src/routes/README.md](../src/routes/README.md) | TanStack Start file-based routing |
 | [../AGENTS.md](../AGENTS.md) | Pravidlá pre AI agentov (Lovable sync) |
