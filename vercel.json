@@ -1,6 +1,6 @@
 {
   "installCommand": "cd visual-html && bun install",
-  "buildCommand": "cd visual-html && NITRO_PRESET=vercel bun run build && mkdir -p .vercel && cp -r visual-html/.vercel/output .vercel/output",
+  "buildCommand": "cd visual-html && NITRO_PRESET=vercel bun run build && mkdir -p ../.vercel && cp -r .vercel/output ../.vercel/output",
   "env": {
     "NITRO_PRESET": "vercel"
   }
