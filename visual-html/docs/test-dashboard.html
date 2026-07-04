@@ -1,0 +1,969 @@
+<!doctype html>
+<html lang="sk">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PNGtoHTMLapp Test Dashboard</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4f6f8;
+        --surface: #ffffff;
+        --surface-muted: #eef2f6;
+        --border: #d8e0ea;
+        --text: #17202a;
+        --muted: #5f6c7b;
+        --accent: #0f766e;
+        --accent-strong: #115e59;
+        --ok: #15803d;
+        --warn: #b45309;
+        --bad: #b91c1c;
+        --info: #1d4ed8;
+        --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        --radius: 8px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--surface);
+        color: var(--text);
+        cursor: pointer;
+        min-height: 34px;
+        padding: 0 12px;
+      }
+
+      button:hover {
+        border-color: var(--accent);
+      }
+
+      button.primary {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #fff;
+      }
+
+      button.danger {
+        border-color: #fecaca;
+        color: var(--bad);
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--text);
+        padding: 8px 10px;
+      }
+
+      textarea {
+        min-height: 88px;
+        resize: vertical;
+      }
+
+      label {
+        display: grid;
+        gap: 5px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .app-shell {
+        display: grid;
+        grid-template-columns: 260px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        border-right: 1px solid var(--border);
+        background: #101820;
+        color: #ecf4f3;
+        padding: 18px;
+      }
+
+      .brand {
+        margin-bottom: 22px;
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: 19px;
+        letter-spacing: 0;
+      }
+
+      .brand p {
+        margin: 6px 0 0;
+        color: #a8b7c5;
+        font-size: 12px;
+      }
+
+      .nav {
+        display: grid;
+        gap: 6px;
+      }
+
+      .nav a {
+        border-radius: 6px;
+        color: #dce8e6;
+        padding: 8px 10px;
+        text-decoration: none;
+      }
+
+      .nav a:hover,
+      .nav a:focus {
+        background: rgba(255, 255, 255, 0.08);
+        outline: none;
+      }
+
+      .sidebar-note {
+        margin-top: 22px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: var(--radius);
+        padding: 10px;
+        color: #bdd2cf;
+        font-size: 12px;
+      }
+
+      main {
+        min-width: 0;
+        padding: 24px;
+      }
+
+      .topbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+
+      .topbar h2 {
+        margin: 0;
+        font-size: 26px;
+        letter-spacing: 0;
+      }
+
+      .topbar p {
+        margin: 4px 0 0;
+        color: var(--muted);
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .grid {
+        display: grid;
+        gap: 16px;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .two-col {
+        grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+      }
+
+      .panel {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .panel__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border-bottom: 1px solid var(--border);
+        padding: 14px 16px;
+      }
+
+      .panel__header h3 {
+        margin: 0;
+        font-size: 15px;
+      }
+
+      .panel__body {
+        padding: 16px;
+      }
+
+      .metric {
+        padding: 14px;
+      }
+
+      .metric__label {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .metric__value {
+        margin-top: 4px;
+        font-size: 28px;
+        font-weight: 800;
+      }
+
+      .metric__hint {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 800;
+        min-height: 24px;
+        padding: 0 8px;
+      }
+
+      .status-pass {
+        background: #dcfce7;
+        color: var(--ok);
+      }
+
+      .status-watch {
+        background: #fef3c7;
+        color: var(--warn);
+      }
+
+      .status-fail {
+        background: #fee2e2;
+        color: var(--bad);
+      }
+
+      .status-info {
+        background: #dbeafe;
+        color: var(--info);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--border);
+        padding: 9px 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+      }
+
+      tbody tr:hover {
+        background: #f8fafc;
+      }
+
+      .score-input {
+        max-width: 72px;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .form-grid .wide {
+        grid-column: 1 / -1;
+      }
+
+      .test-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .test-card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: #fff;
+        padding: 12px;
+      }
+
+      .test-card__head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .test-card h4 {
+        margin: 0;
+        font-size: 14px;
+      }
+
+      .test-meta {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .test-notes {
+        margin-top: 8px;
+        color: var(--text);
+        white-space: pre-wrap;
+      }
+
+      .checklist {
+        display: grid;
+        gap: 8px;
+      }
+
+      .check-item {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 8px;
+        align-items: start;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 8px;
+      }
+
+      .check-item input {
+        width: auto;
+        margin-top: 3px;
+      }
+
+      .check-title {
+        font-weight: 750;
+      }
+
+      .check-detail {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .preview-frame {
+        width: 100%;
+        height: 520px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: #fff;
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .danger-text {
+        color: var(--bad);
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      @media (max-width: 980px) {
+        .app-shell {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          position: static;
+          height: auto;
+        }
+
+        .metrics,
+        .two-col,
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+
+        main {
+          padding: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <h1>PNGtoHTMLapp QA</h1>
+          <p>Dashboard pre ostré testy, porovnania a prevádzkové blokery.</p>
+        </div>
+        <nav class="nav" aria-label="Sekcie dashboardu">
+          <a href="#overview">Prehľad</a>
+          <a href="#tests">Testy</a>
+          <a href="#comparison">Porovnanie</a>
+          <a href="#ops">Prevádzka</a>
+          <a href="#preview">Výstup</a>
+        </nav>
+        <div class="sidebar-note">
+          Dáta sa ukladajú lokálne v tomto prehliadači cez localStorage. Nepíš sem reálne API kľúče
+          ani citlivé celé výpisy.
+        </div>
+      </aside>
+
+      <main>
+        <section class="topbar" id="overview">
+          <div>
+            <h2>Test Dashboard</h2>
+            <p>Jedno miesto pre skóre vernosti, chyby, env stav, smoke testy a rozhodnutia.</p>
+          </div>
+          <div class="actions">
+            <button class="primary" id="saveButton" type="button">Uložiť stav</button>
+            <button id="exportButton" type="button">Export JSON</button>
+            <button id="importButton" type="button">Import JSON</button>
+            <button class="danger" id="resetButton" type="button">Reset sample</button>
+          </div>
+        </section>
+
+        <section class="grid metrics" aria-label="Metriky">
+          <article class="panel metric">
+            <div class="metric__label">Ostré testy</div>
+            <div class="metric__value" id="metricTests">0</div>
+            <div class="metric__hint">uložené testovacie behy</div>
+          </article>
+          <article class="panel metric">
+            <div class="metric__label">Priemerná vernosť</div>
+            <div class="metric__value" id="metricFidelity">0%</div>
+            <div class="metric__hint">z porovnávacej matice</div>
+          </article>
+          <article class="panel metric">
+            <div class="metric__label">Blokery</div>
+            <div class="metric__value" id="metricBlockers">0</div>
+            <div class="metric__hint">otvorené kritické položky</div>
+          </article>
+          <article class="panel metric">
+            <div class="metric__label">Produkcia</div>
+            <div class="metric__value" id="metricProd">OK</div>
+            <div class="metric__hint" id="metricProdHint">posledný smoke: neznáme</div>
+          </article>
+        </section>
+
+        <section class="grid two-col" id="tests" style="margin-top: 16px">
+          <article class="panel">
+            <div class="panel__header">
+              <h3>Testovacie behy</h3>
+              <button id="addTestButton" type="button">Pridať test</button>
+            </div>
+            <div class="panel__body">
+              <div class="test-list" id="testList"></div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel__header">
+              <h3>Nový / upravený test</h3>
+              <span class="status-pill status-info" id="editModeLabel">sample</span>
+            </div>
+            <div class="panel__body">
+              <form class="form-grid" id="testForm">
+                <input type="hidden" id="testId" />
+                <label>
+                  Názov testu
+                  <input id="testName" required />
+                </label>
+                <label>
+                  Status
+                  <select id="testStatus">
+                    <option value="pass">pass</option>
+                    <option value="watch">watch</option>
+                    <option value="fail">fail</option>
+                  </select>
+                </label>
+                <label>
+                  Dátum
+                  <input id="testDate" type="date" />
+                </label>
+                <label>
+                  Typ vstupu
+                  <input id="testInput" placeholder="screenshot, PDF page, bank statement..." />
+                </label>
+                <label>
+                  OCR čas / generate čas
+                  <input id="testTiming" placeholder="OCR 6.4s, generate 30.7s" />
+                </label>
+                <label>
+                  Výstupný súbor
+                  <input id="testOutput" placeholder="docs/generated.html" />
+                </label>
+                <label class="wide">
+                  Poznámky
+                  <textarea id="testNotes"></textarea>
+                </label>
+                <div class="wide actions">
+                  <button class="primary" type="submit">Uložiť test</button>
+                  <button id="deleteTestButton" class="danger" type="button">Vymazať test</button>
+                </div>
+              </form>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel" id="comparison" style="margin-top: 16px">
+          <div class="panel__header">
+            <h3>Porovnanie screenshot vs HTML</h3>
+            <span class="muted">Skóre 0-5, vyššie je lepšie</span>
+          </div>
+          <div class="panel__body">
+            <table aria-label="Porovnávacia matica">
+              <thead>
+                <tr>
+                  <th>Kategória</th>
+                  <th>Skóre</th>
+                  <th>Status</th>
+                  <th>Poznámka</th>
+                </tr>
+              </thead>
+              <tbody id="comparisonRows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="grid two-col" id="ops" style="margin-top: 16px">
+          <article class="panel">
+            <div class="panel__header">
+              <h3>Prevádzkový checklist</h3>
+              <span class="muted">env, deploy, bezpečnosť</span>
+            </div>
+            <div class="panel__body">
+              <div class="checklist" id="opsChecklist"></div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel__header">
+              <h3>Príkazy</h3>
+              <span class="muted">spúšťaj z visual-html</span>
+            </div>
+            <div class="panel__body">
+              <pre class="mono" style="white-space: pre-wrap; margin: 0">
+cd /home/asterix/Dokumenty/Projekty/PNGtoHTMLapp/visual-html
+npx vercel env ls | grep MISTRAL
+node scripts/smoke-generation.mjs
+npm run test:integrity
+curl -I -L --max-time 20 https://visual-html.vercel.app</pre>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel" id="preview" style="margin-top: 16px">
+          <div class="panel__header">
+            <h3>Posledný HTML výstup</h3>
+            <a href="generated.html" target="_blank" rel="noreferrer"
+              >Otvoriť docs/generated.html</a
+            >
+          </div>
+          <div class="panel__body">
+            <iframe
+              class="preview-frame"
+              src="generated.html"
+              title="Preview posledného vygenerovaného HTML"
+            ></iframe>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <input class="hidden" id="importFile" type="file" accept="application/json" />
+
+    <script>
+      const storageKey = "pngtohtmlapp.qa.dashboard.v1";
+
+      const sampleState = {
+        tests: [
+          {
+            id: "test-001",
+            name: "Ostrý test 001 - bankový výpis",
+            status: "watch",
+            date: "2026-07-03",
+            input: "screenshot bankového výpisu, strana 1/2",
+            timing: "produkčný smoke prešiel; ručný výstup docs/generated.html",
+            output: "docs/generated.html",
+            notes:
+              "Pipeline prešla: OCR aj syntéza vrátili použiteľný HTML strom. Hlavný problém: výstup je bez CSS a bez meta charset/viewport, takže vernosť vizuálu je zatiaľ stredná. Pozor na NOTPROVIDED a citlivé finančné údaje.",
+          },
+        ],
+        comparison: [
+          {
+            key: "structure",
+            label: "Štruktúra dokumentu",
+            score: 4,
+            status: "pass",
+            note: "Semantika header/main/section/table je dobrá.",
+          },
+          {
+            key: "ocr",
+            label: "OCR texty",
+            score: 3,
+            status: "watch",
+            note: "Veľa textu sedí, ale NOTPROVIDED a finančné údaje treba manuálne overiť.",
+          },
+          {
+            key: "layout",
+            label: "Layout vernosť",
+            score: 2,
+            status: "watch",
+            note: "HTML má triedy, ale chýba CSS, takže layout nie je verne prekreslený.",
+          },
+          {
+            key: "css",
+            label: "CSS úplnosť",
+            score: 0,
+            status: "fail",
+            note: "Chýba style tag aj externý stylesheet.",
+          },
+          {
+            key: "metadata",
+            label: "HTML metadata",
+            score: 2,
+            status: "watch",
+            note: "Chýba doctype, charset a viewport.",
+          },
+          {
+            key: "accessibility",
+            label: "Accessibility",
+            score: 4,
+            status: "pass",
+            note: "Skip link, aria-labelledby a tabuľkové hlavičky sú plus.",
+          },
+          {
+            key: "security",
+            label: "Bezpečnosť výstupu",
+            score: 4,
+            status: "pass",
+            note: "Bez scriptov; stále nepoužívať na citlivé dáta bez anonymizácie.",
+          },
+          {
+            key: "print",
+            label: "Print/PDF vernosť",
+            score: 1,
+            status: "fail",
+            note: "Chýbajú print štýly, okraje, logo a typografia bankového výpisu.",
+          },
+          {
+            key: "completeness",
+            label: "Kompletnosť",
+            score: 2,
+            status: "watch",
+            note: "Hlavička uvádza stranu 1/2, druhá strana nie je v HTML.",
+          },
+        ],
+        ops: [
+          {
+            id: "ops-prod",
+            done: true,
+            title: "Produkcia odpovedá HTTP 200",
+            detail: "https://visual-html.vercel.app prešla smoke kontrolou.",
+          },
+          {
+            id: "ops-integrity",
+            done: true,
+            title: "Integrity suite 9/9",
+            detail: "TypeScript, tests, lint, build, artifacts, Upstash, production smoke.",
+          },
+          {
+            id: "ops-upstash",
+            done: true,
+            title: "Upstash REST PONG",
+            detail: "REST ping vrátil PONG a rate-limit test prešiel.",
+          },
+          {
+            id: "ops-mistral-fallback",
+            done: false,
+            title: "Vercel Mistral fallback",
+            detail:
+              "Vo Verceli stále treba doplniť MISTRAL_API_KEY_FALLBACK pre Production/Preview/Development.",
+          },
+          {
+            id: "ops-rotate",
+            done: false,
+            title: "Rotácia poslaného Mistral kľúča",
+            detail: "Kľúč poslaný v chate považovať za kompromitovaný.",
+          },
+          {
+            id: "ops-sensitive",
+            done: false,
+            title: "Anonymizácia ostrých vstupov",
+            detail:
+              "Bankové výpisy a finančné údaje pred AI anonymizovať alebo používať syntetické dáta.",
+          },
+        ],
+      };
+
+      let state = loadState();
+
+      const els = {
+        metricTests: document.querySelector("#metricTests"),
+        metricFidelity: document.querySelector("#metricFidelity"),
+        metricBlockers: document.querySelector("#metricBlockers"),
+        metricProd: document.querySelector("#metricProd"),
+        metricProdHint: document.querySelector("#metricProdHint"),
+        testList: document.querySelector("#testList"),
+        comparisonRows: document.querySelector("#comparisonRows"),
+        opsChecklist: document.querySelector("#opsChecklist"),
+        testForm: document.querySelector("#testForm"),
+        importFile: document.querySelector("#importFile"),
+      };
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(storageKey);
+          return raw ? JSON.parse(raw) : structuredClone(sampleState);
+        } catch {
+          return structuredClone(sampleState);
+        }
+      }
+
+      function saveState() {
+        localStorage.setItem(storageKey, JSON.stringify(state, null, 2));
+        render();
+      }
+
+      function statusClass(status) {
+        if (status === "pass") return "status-pass";
+        if (status === "fail") return "status-fail";
+        if (status === "watch") return "status-watch";
+        return "status-info";
+      }
+
+      function renderMetrics() {
+        const average = state.comparison.length
+          ? Math.round(
+              (state.comparison.reduce((sum, item) => sum + Number(item.score || 0), 0) /
+                (state.comparison.length * 5)) *
+                100,
+            )
+          : 0;
+        const blockers =
+          state.comparison.filter((item) => item.status === "fail").length +
+          state.ops.filter((item) => !item.done).length;
+        const prodOk = state.ops.find((item) => item.id === "ops-prod")?.done;
+
+        els.metricTests.textContent = String(state.tests.length);
+        els.metricFidelity.textContent = `${average}%`;
+        els.metricBlockers.textContent = String(blockers);
+        els.metricProd.textContent = prodOk ? "OK" : "CHECK";
+        els.metricProdHint.textContent = prodOk ? "produkcia dostupná" : "treba overiť produkciu";
+      }
+
+      function renderTests() {
+        els.testList.innerHTML = "";
+        for (const test of state.tests) {
+          const card = document.createElement("article");
+          card.className = "test-card";
+          card.innerHTML = `
+            <div class="test-card__head">
+              <div>
+                <h4>${escapeHtml(test.name)}</h4>
+                <div class="test-meta">${escapeHtml(test.date || "bez dátumu")} · ${escapeHtml(test.input || "bez vstupu")}</div>
+              </div>
+              <span class="status-pill ${statusClass(test.status)}">${escapeHtml(test.status)}</span>
+            </div>
+            <div class="test-meta mono">${escapeHtml(test.output || "bez výstupu")}</div>
+            <div class="test-meta">${escapeHtml(test.timing || "bez časov")}</div>
+            <div class="test-notes">${escapeHtml(test.notes || "")}</div>
+          `;
+          card.addEventListener("click", () => loadTestIntoForm(test.id));
+          els.testList.appendChild(card);
+        }
+      }
+
+      function renderComparison() {
+        els.comparisonRows.innerHTML = "";
+        for (const item of state.comparison) {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td><strong>${escapeHtml(item.label)}</strong></td>
+            <td><input class="score-input" type="number" min="0" max="5" step="1" value="${Number(item.score || 0)}" aria-label="Skóre ${escapeHtml(item.label)}" /></td>
+            <td>
+              <select aria-label="Status ${escapeHtml(item.label)}">
+                <option value="pass">pass</option>
+                <option value="watch">watch</option>
+                <option value="fail">fail</option>
+              </select>
+            </td>
+            <td><textarea aria-label="Poznámka ${escapeHtml(item.label)}">${escapeHtml(item.note || "")}</textarea></td>
+          `;
+          const scoreInput = row.querySelector("input");
+          const statusSelect = row.querySelector("select");
+          const noteInput = row.querySelector("textarea");
+          statusSelect.value = item.status;
+          scoreInput.addEventListener("change", () => {
+            item.score = Math.max(0, Math.min(5, Number(scoreInput.value || 0)));
+            saveState();
+          });
+          statusSelect.addEventListener("change", () => {
+            item.status = statusSelect.value;
+            saveState();
+          });
+          noteInput.addEventListener("change", () => {
+            item.note = noteInput.value;
+            saveState();
+          });
+          els.comparisonRows.appendChild(row);
+        }
+      }
+
+      function renderOps() {
+        els.opsChecklist.innerHTML = "";
+        for (const item of state.ops) {
+          const wrapper = document.createElement("label");
+          wrapper.className = "check-item";
+          wrapper.innerHTML = `
+            <input type="checkbox" ${item.done ? "checked" : ""} />
+            <span>
+              <span class="check-title">${escapeHtml(item.title)}</span>
+              <span class="check-detail">${escapeHtml(item.detail)}</span>
+            </span>
+            <span class="status-pill ${item.done ? "status-pass" : "status-watch"}">${item.done ? "done" : "open"}</span>
+          `;
+          wrapper.querySelector("input").addEventListener("change", (event) => {
+            item.done = event.target.checked;
+            saveState();
+          });
+          els.opsChecklist.appendChild(wrapper);
+        }
+      }
+
+      function render() {
+        renderMetrics();
+        renderTests();
+        renderComparison();
+        renderOps();
+      }
+
+      function loadTestIntoForm(id) {
+        const test = state.tests.find((item) => item.id === id);
+        if (!test) return;
+        document.querySelector("#testId").value = test.id;
+        document.querySelector("#testName").value = test.name;
+        document.querySelector("#testStatus").value = test.status;
+        document.querySelector("#testDate").value = test.date;
+        document.querySelector("#testInput").value = test.input;
+        document.querySelector("#testTiming").value = test.timing;
+        document.querySelector("#testOutput").value = test.output;
+        document.querySelector("#testNotes").value = test.notes;
+        document.querySelector("#editModeLabel").textContent = "edit";
+      }
+
+      function clearForm() {
+        els.testForm.reset();
+        document.querySelector("#testId").value = "";
+        document.querySelector("#testDate").valueAsDate = new Date();
+        document.querySelector("#editModeLabel").textContent = "new";
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;");
+      }
+
+      document.querySelector("#saveButton").addEventListener("click", saveState);
+      document.querySelector("#addTestButton").addEventListener("click", clearForm);
+      document.querySelector("#deleteTestButton").addEventListener("click", () => {
+        const id = document.querySelector("#testId").value;
+        if (!id) return;
+        state.tests = state.tests.filter((test) => test.id !== id);
+        clearForm();
+        saveState();
+      });
+
+      els.testForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const id = document.querySelector("#testId").value || `test-${Date.now()}`;
+        const next = {
+          id,
+          name: document.querySelector("#testName").value.trim(),
+          status: document.querySelector("#testStatus").value,
+          date: document.querySelector("#testDate").value,
+          input: document.querySelector("#testInput").value.trim(),
+          timing: document.querySelector("#testTiming").value.trim(),
+          output: document.querySelector("#testOutput").value.trim(),
+          notes: document.querySelector("#testNotes").value.trim(),
+        };
+        const index = state.tests.findIndex((test) => test.id === id);
+        if (index >= 0) state.tests[index] = next;
+        else state.tests.unshift(next);
+        document.querySelector("#testId").value = id;
+        saveState();
+      });
+
+      document.querySelector("#exportButton").addEventListener("click", () => {
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `pngtohtmlapp-dashboard-${new Date().toISOString().slice(0, 10)}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+      });
+
+      document
+        .querySelector("#importButton")
+        .addEventListener("click", () => els.importFile.click());
+      els.importFile.addEventListener("change", async () => {
+        const file = els.importFile.files?.[0];
+        if (!file) return;
+        state = JSON.parse(await file.text());
+        saveState();
+        els.importFile.value = "";
+      });
+
+      document.querySelector("#resetButton").addEventListener("click", () => {
+        state = structuredClone(sampleState);
+        saveState();
+        clearForm();
+      });
+
+      clearForm();
+      render();
+    </script>
+  </body>
+</html>

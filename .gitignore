@@ -1,5 +1,26 @@
-# Logs
-logs
+# dependencies
+node_modules/
+**/node_modules/
+
+# build output
+dist/
+dist-ssr/
+.output/
+**/.output/
+.vercel/
+**/.vercel/
+.wrangler/
+**/.wrangler/
+.vinxi/
+.tanstack/
+.nitro/
+
+# test artifacts
+test-results/
+playwright-report/
+
+# logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,29 +28,35 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-.output
-.vercel
-.vinxi
-.tanstack/**
-.nitro
+# env & secrets
+.env
+.env.local
+.env.*.local
+.env*
+!.env.local.template
+.upstash-cli.env
+.upstash-account.env
+.config/upstash/
 *.local
-
-# Wrangler / Cloudflare
-.wrangler/
 .dev.vars
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-.env*
-!.env.local.template
+
+# OS
+.DS_Store
+
+# git worktrees (local only)
+visual-html.worktrees/
+
+# legacy standalone copy — integrated into visual-html/src/routes/builder.tsx
+# upstream: https://github.com/youh4ck3dme/vibecraft
+vibecraft/
