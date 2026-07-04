@@ -110,6 +110,8 @@ export const messages = {
     "forensic.preset.dashboard.focusHint": "Cards, sidebar, and chart regions.",
     "forensic.preset.mobile.label": "Mobile app",
     "forensic.preset.mobile.focusHint": "Mobile-first spacing and stacked layout.",
+    "forensic.preset.wordpress.label": "WordPress landing",
+    "forensic.preset.wordpress.focusHint": "Header nav, hero, main content blocks, footer menu.",
 
     // ── Forensic zone labels ────────────────────────────────────
     "forensic.zone.header.label": "Header / top bar",
@@ -746,6 +748,8 @@ export const messages = {
     "forensic.preset.dashboard.focusHint": "Karty, bočný panel a oblasti grafov.",
     "forensic.preset.mobile.label": "Mobilná app",
     "forensic.preset.mobile.focusHint": "Mobilné rozostupy a vertikálny layout.",
+    "forensic.preset.wordpress.label": "WordPress landing",
+    "forensic.preset.wordpress.focusHint": "Hlavička s menu, hero, obsahové bloky, pätička s menu.",
 
     // ── Forensic zone labels ────────────────────────────────────
     "forensic.zone.header.label": "Hlavička / horný panel",

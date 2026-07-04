@@ -87,6 +87,27 @@ describe("buttons › forensic-lightbox", () => {
     },
   );
 
+  it("WordPress landing preset — passes WP layout instructions to onGenerate", async () => {
+    const user = userEvent.setup();
+    const { onGenerate } = renderOpen();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /WordPress landing/i })).toBeInTheDocument(),
+    );
+    await user.click(screen.getByRole("button", { name: /WordPress landing/i }));
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Header nav, hero, main content blocks, footer menu/i),
+      ).toBeInTheDocument(),
+    );
+    await user.click(screen.getByRole("button", { name: /Generate full page/i }));
+    const options = onGenerate.mock.calls[0][0];
+    expect(options.additionalInstructions).toMatch(/site-header/i);
+    expect(options.additionalInstructions).toMatch(/site-hero/i);
+    expect(options.additionalInstructions).toMatch(/site-main/i);
+    expect(options.additionalInstructions).toMatch(/site-footer/i);
+    expect(options.responsiveness).toBe("mobile-first");
+  });
+
   it("Generate full page — calls onGenerate and onClose", async () => {
     const user = userEvent.setup();
     const { onClose, onGenerate } = renderOpen();

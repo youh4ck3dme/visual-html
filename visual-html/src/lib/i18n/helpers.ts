@@ -32,6 +32,7 @@ const PRESET_KEY: Record<string, MessageKey> = {
   invoice: "forensic.preset.invoice.label",
   dashboard: "forensic.preset.dashboard.label",
   mobile: "forensic.preset.mobile.label",
+  wordpress: "forensic.preset.wordpress.label",
 };
 
 const PRESET_HINT_KEY: Record<string, MessageKey> = {
@@ -39,6 +40,7 @@ const PRESET_HINT_KEY: Record<string, MessageKey> = {
   invoice: "forensic.preset.invoice.focusHint",
   dashboard: "forensic.preset.dashboard.focusHint",
   mobile: "forensic.preset.mobile.focusHint",
+  wordpress: "forensic.preset.wordpress.focusHint",
 };
 
 export function localizedPresetLabel(locale: Locale, preset: ForensicPreset): string {

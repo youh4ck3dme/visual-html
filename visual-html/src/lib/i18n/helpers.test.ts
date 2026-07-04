@@ -6,8 +6,11 @@ import {
   localizedDiagnosticLikelyCause,
   localizedDiagnosticTitle,
   localizedForensicWarningTitle,
+  localizedPresetHint,
+  localizedPresetLabel,
   resolveForensicWarningDetail,
 } from "@/lib/i18n/helpers";
+import { FORENSIC_PRESETS } from "@/lib/image-forensics";
 
 describe("diagnostic i18n helpers", () => {
   it("localizes OCR timeout title in Slovak", () => {
@@ -64,6 +67,13 @@ describe("diagnostic i18n helpers", () => {
     expect(localizedForensicWarningTitle("sk", "wide-layout", "Very wide layout")).toBe(
       "Veľmi široký layout",
     );
+  });
+
+  it("localizes WordPress landing preset label and hint in Slovak", () => {
+    const preset = FORENSIC_PRESETS.find((p) => p.id === "wordpress");
+    expect(preset).toBeDefined();
+    expect(localizedPresetLabel("sk", preset!)).toBe("WordPress landing");
+    expect(localizedPresetHint("sk", preset!)).toContain("Hlavička s menu");
   });
 
   it("localizes forensic file-size warning detail in Slovak", () => {

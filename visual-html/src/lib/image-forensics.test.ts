@@ -5,6 +5,7 @@ import {
   buildStructuralWarnings,
   estimateTokenBudget,
   fidelityInstruction,
+  FORENSIC_PRESETS,
   inferZonesFromDensity,
   regionFocusInstruction,
 } from "@/lib/image-forensics";
@@ -56,5 +57,28 @@ describe("image-forensics", () => {
     });
     expect(next.additionalInstructions).toContain("Invoice mode.");
     expect(next.additionalInstructions).toContain(fidelityInstruction(70));
+  });
+
+  it("wordpress preset injects landing layout regions and mobile-first options", () => {
+    const wordpress = FORENSIC_PRESETS.find((p) => p.id === "wordpress");
+    expect(wordpress).toBeDefined();
+
+    const base = {
+      outputMode: "tailwind" as const,
+      stylingMode: "tailwind" as const,
+      responsiveness: "desktop-first" as const,
+      accessibilityLevel: "standard" as const,
+    };
+    const next = buildForensicOptions(base, 82, null, wordpress!);
+
+    expect(next.outputMode).toBe("static");
+    expect(next.stylingMode).toBe("vanilla-css");
+    expect(next.responsiveness).toBe("mobile-first");
+    expect(next.accessibilityLevel).toBe("strict");
+    expect(next.additionalInstructions).toContain("site-header");
+    expect(next.additionalInstructions).toContain("site-hero");
+    expect(next.additionalInstructions).toContain("site-main");
+    expect(next.additionalInstructions).toContain("site-footer");
+    expect(next.additionalInstructions).toContain(fidelityInstruction(82));
   });
 });

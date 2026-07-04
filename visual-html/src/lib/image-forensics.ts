@@ -84,6 +84,27 @@ export const FORENSIC_PRESETS: ForensicPreset[] = [
     },
     focusHint: "Mobile-first spacing and stacked layout.",
   },
+  {
+    id: "wordpress",
+    label: "WordPress landing",
+    icon: "🌐",
+    patch: {
+      outputMode: "static",
+      stylingMode: "vanilla-css",
+      responsiveness: "mobile-first",
+      accessibilityLevel: "strict",
+      additionalInstructions: `Build a WordPress-style marketing landing page with semantic HTML5 and clean vanilla CSS.
+
+Required layout regions (top to bottom):
+1. HEADER — site header with logo/wordmark and horizontal primary navigation (Home, Features, Pricing, About, Contact) plus a prominent CTA button. Use <header>, <nav aria-label="Primary">, and a list for menu items.
+2. HERO — full-width hero with h1 headline, supporting subheadline, primary CTA, optional secondary link, and room for hero media. Two-column on desktop, stacked on mobile.
+3. MAIN — <main> with a flexible WordPress-like content area using block-friendly sections (site-main, wp-block-group, section, container). Include placeholder regions for a features grid, optional testimonial strip, and a rich-text content zone. Use only text visible in the screenshot; do not invent marketing copy.
+4. FOOTER — <footer> with footer navigation (<nav aria-label="Footer">), copyright line, and optional social links.
+
+Use WordPress-friendly class names (site-header, site-hero, site-main, site-footer, menu, menu-item). Accessible focus states. Static HTML/CSS only — no PHP. Preserve exact colors, typography, and spacing from the screenshot.`,
+    },
+    focusHint: "Header nav, hero, main content blocks, footer menu.",
+  },
 ] as ForensicPreset[];
 
 const GRID = 8;
