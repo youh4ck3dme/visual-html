@@ -432,7 +432,9 @@ describe("buttons › builder-workspace", () => {
       const polishBtn = await screen.findByTestId("builder-health-apply-polish-fix");
       await user.click(polishBtn);
 
-      const input = screen.getByPlaceholderText(/Build, refine, fix, or explain/i) as HTMLInputElement;
+      const input = screen.getByPlaceholderText(
+        /Build, refine, fix, or explain/i,
+      ) as HTMLInputElement;
       expect(input.value).toContain("prefers-reduced-motion");
       expect(input.value).toContain(":focus-visible");
       expect(input.value).toContain("max-width: 480px");

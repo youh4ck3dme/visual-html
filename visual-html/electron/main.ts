@@ -70,11 +70,21 @@ async function startPreviewServer(): Promise<string> {
   return PREVIEW_URL;
 }
 
+function windowIconPath(): string | undefined {
+  const root = appRoot();
+  const file =
+    process.platform === "win32"
+      ? path.join(root, "public", "favicon.ico")
+      : path.join(root, "public", "icon.png");
+  return fs.existsSync(file) ? file : undefined;
+}
+
 async function createWindow(): Promise<void> {
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     show: false,
+    icon: windowIconPath(),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

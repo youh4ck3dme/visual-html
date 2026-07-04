@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles } from "lucide-react";
+import { AppLogo } from "@/components/pngto/app-logo";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -76,7 +76,7 @@ export function RefinementBox({
           className="self-end"
           data-testid="refine-submit"
         >
-          <Sparkles className="h-4 w-4" aria-hidden /> {t("refinement.button")}
+          <AppLogo size="xs" className="rounded-md" /> {t("refinement.button")}
         </Button>
       </div>
     </div>

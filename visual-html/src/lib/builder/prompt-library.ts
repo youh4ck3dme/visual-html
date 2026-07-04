@@ -138,7 +138,7 @@ export function getPromptMock(promptText: string): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VibeCraft Preview</title>
   <style>
-    body { background:#09090b;color:#fff;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0 }
+    body { background:#202124;color:#fff;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0 }
     .card { background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);padding:30px;border-radius:16px;max-width:400px;text-align:center }
     h1 { color:#5b35d5 } p { color:#aaa;font-size:14px }
   </style>

@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { FolderKanban, HelpCircle, Plus, Settings, Sparkles, UserRound, Wand2 } from "lucide-react";
+import { FolderKanban, HelpCircle, Plus, Settings, UserRound, Wand2 } from "lucide-react";
 
+import { AppLogo } from "@/components/pngto/app-logo";
 import { useT } from "@/hooks/use-t";
 import { cn } from "@/lib/utils";
 import type { MessageKey } from "@/lib/i18n/messages";
@@ -123,12 +124,7 @@ export function VisualSidebar() {
           aria-label={t("nav.homeAria")}
           data-testid="nav-home"
         >
-          <div
-            className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm"
-            title={t("nav.homeTitle")}
-          >
-            <Sparkles className="h-4 w-4" aria-hidden />
-          </div>
+          <AppLogo size="md" shadow title={t("nav.homeTitle")} />
         </Link>
 
         <nav className="flex flex-1 flex-col gap-1 px-2 py-4">
@@ -164,11 +160,11 @@ export function VisualSidebar() {
       >
         <Link
           to="/"
-          className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground"
+          className="flex items-center justify-center"
           aria-label={t("nav.homeAria")}
           data-testid="nav-home-mobile"
         >
-          <Sparkles className="h-4 w-4" aria-hidden />
+          <AppLogo size="md" />
         </Link>
         {NAV_ITEMS.map((item) => (
           <NavLink

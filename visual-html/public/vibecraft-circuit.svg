@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200" fill="none">
+  <g opacity="0.55" stroke="#B8954A" stroke-width="0.55">
+    <line x1="0" y1="50" x2="200" y2="50" />
+    <line x1="0" y1="100" x2="200" y2="100" />
+    <line x1="0" y1="150" x2="200" y2="150" />
+    <line x1="50" y1="0" x2="50" y2="200" />
+    <line x1="100" y1="0" x2="100" y2="200" />
+    <line x1="150" y1="0" x2="150" y2="200" />
+    <rect x="72" y="72" width="56" height="36" rx="2" />
+    <rect x="18" y="118" width="38" height="26" rx="1.5" />
+    <rect x="138" y="22" width="44" height="28" rx="1.5" />
+    <path d="M50 50h28v18M150 150h-36v-22M50 150v-32h52M100 50v22M150 100h-28" />
+  </g>
+  <g fill="#C9A962" opacity="0.45">
+    <circle cx="50" cy="50" r="1.1" />
+    <circle cx="100" cy="50" r="1.1" />
+    <circle cx="150" cy="50" r="1.1" />
+    <circle cx="50" cy="100" r="1.1" />
+    <circle cx="100" cy="100" r="1.1" />
+    <circle cx="150" cy="100" r="1.1" />
+    <circle cx="50" cy="150" r="1.1" />
+    <circle cx="100" cy="150" r="1.1" />
+    <circle cx="150" cy="150" r="1.1" />
+    <circle cx="25" cy="25" r="0.9" />
+    <circle cx="75" cy="25" r="0.9" />
+    <circle cx="125" cy="25" r="0.9" />
+    <circle cx="175" cy="25" r="0.9" />
+    <circle cx="25" cy="75" r="0.9" />
+    <circle cx="75" cy="75" r="0.9" />
+    <circle cx="125" cy="75" r="0.9" />
+    <circle cx="175" cy="75" r="0.9" />
+    <circle cx="25" cy="125" r="0.9" />
+    <circle cx="75" cy="125" r="0.9" />
+    <circle cx="125" cy="125" r="0.9" />
+    <circle cx="175" cy="125" r="0.9" />
+    <circle cx="25" cy="175" r="0.9" />
+    <circle cx="75" cy="175" r="0.9" />
+    <circle cx="125" cy="175" r="0.9" />
+    <circle cx="175" cy="175" r="0.9" />
+  </g>
+</svg>

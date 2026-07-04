@@ -55,9 +55,14 @@ section("Build artifacts");
 const staticDir = ".vercel/output/static";
 const requiredStatic = [
   "favicon.ico",
+  "favicon-16x16.png",
+  "favicon-32x32.png",
   "site.webmanifest",
   "apple-touch-icon.png",
+  "android-chrome-192x192.png",
   "android-chrome-512x512.png",
+  "icon.png",
+  "vibecraft-circuit.svg",
 ];
 const artifactOk = existsSync(staticDir);
 let artifactDetail = artifactOk ? "static dir present" : "missing .vercel/output/static";

@@ -17,7 +17,7 @@ export const pomodoroTimerPrompt: PromptItem = {
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #09090b;
+      --bg: #202124;
       --accent: #ff007f;
       --card: rgba(255, 255, 255, 0.03);
       --border: rgba(255, 255, 255, 0.08);

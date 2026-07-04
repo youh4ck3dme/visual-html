@@ -4,7 +4,7 @@ import { screen } from "@testing-library/react";
 
 import { UploadDropzone } from "@/components/pngto/upload-dropzone";
 import { Button } from "@/components/ui/button";
-import { Sparkles } from "lucide-react";
+import { AppLogo } from "@/components/pngto/app-logo";
 import { renderWithProviders } from "@/test/test-utils";
 
 /**
@@ -16,7 +16,7 @@ describe("buttons › index-workspace", () => {
     const onClick = vi.fn();
     renderWithProviders(
       <Button disabled onClick={onClick}>
-        <Sparkles className="h-4 w-4" aria-hidden />
+        <AppLogo size="xs" className="rounded-md" />
         Generate HTML
       </Button>,
     );
@@ -28,7 +28,7 @@ describe("buttons › index-workspace", () => {
     const onClick = vi.fn();
     renderWithProviders(
       <Button onClick={onClick}>
-        <Sparkles className="h-4 w-4" aria-hidden />
+        <AppLogo size="xs" className="rounded-md" />
         Generate HTML
       </Button>,
     );
