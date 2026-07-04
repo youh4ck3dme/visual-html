@@ -1,3 +1,5 @@
+import { APP_THEME_COLOR } from "@/lib/app-brand";
+
 export type Theme = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
 
@@ -17,7 +19,7 @@ export function resolveTheme(theme: Theme, prefersDark: boolean): ResolvedTheme 
 }
 
 export function themeColorMeta(resolved: ResolvedTheme): string {
-  return resolved === "dark" ? "#000000" : "#f4f4f6";
+  return resolved === "dark" ? APP_THEME_COLOR : "#f4f4f6";
 }
 
 export function nextThemeInCycle(current: Theme): Theme {
@@ -74,4 +76,4 @@ export function applyThemeToDocument(
   doc.defaultView?.setTimeout(() => root.classList.remove("theme-animate"), THEME_TRANSITION_MS);
 }
 
-export const themeInitScript = `(function(){try{var t=localStorage.getItem("${STORAGE_KEY}")||"dark";var d=t==="dark"||(t==="system"&&matchMedia("(prefers-color-scheme:dark)").matches);var r=document.documentElement;r.classList.toggle("dark",d);r.style.colorScheme=d?"dark":"light";var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",d?"#000000":"#f4f4f6")}catch(e){document.documentElement.classList.add("dark")}})();`;
+export const themeInitScript = `(function(){try{var t=localStorage.getItem("${STORAGE_KEY}")||"dark";var d=t==="dark"||(t==="system"&&matchMedia("(prefers-color-scheme:dark)").matches);var r=document.documentElement;r.classList.toggle("dark",d);r.style.colorScheme=d?"dark":"light";var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",d?"${APP_THEME_COLOR}":"#f4f4f6")}catch(e){document.documentElement.classList.add("dark")}})();`;

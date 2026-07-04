@@ -13,6 +13,13 @@ export const APP_ICON = {
 /** Bump when replacing favicon/PWA assets so browsers pick up the new pack. */
 export const APP_ICON_VERSION = "4";
 
+/** iOS 26 / iPhone 17 Air — edge-to-edge PWA with Dynamic Island safe areas */
+export const APP_VIEWPORT =
+  "width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content";
+
+/** Warm dark brown shell — matches .dark --shell (#221a14). */
+export const APP_THEME_COLOR = "#221a14";
+
 export function appIconHref(path: string): string {
   return `${path}?v=${APP_ICON_VERSION}`;
 }
@@ -31,7 +38,7 @@ export const APP_PWA_META = [
   { name: "mobile-web-app-capable", content: "yes" },
   { name: "apple-mobile-web-app-capable", content: "yes" },
   { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-  { name: "msapplication-TileColor", content: "#000000" },
+  { name: "msapplication-TileColor", content: APP_THEME_COLOR },
   { name: "msapplication-TileImage", content: appIconHref(APP_ICON.android512) },
 ] as const;
 

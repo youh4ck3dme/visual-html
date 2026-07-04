@@ -30,7 +30,7 @@ describe("theme tokens", () => {
   });
 
   it("maps meta theme-color per resolved theme", () => {
-    expect(themeColorMeta("dark")).toBe("#000000");
+    expect(themeColorMeta("dark")).toBe("#221a14");
     expect(themeColorMeta("light")).toBe("#f4f4f6");
   });
 
@@ -69,7 +69,7 @@ describe("applyThemeToDocument", () => {
     applyThemeToDocument(doc, "dark", { animate: false });
     expect(doc.documentElement.classList.contains("dark")).toBe(true);
     expect(doc.documentElement.style.colorScheme).toBe("dark");
-    expect(meta.getAttribute("content")).toBe("#000000");
+    expect(meta.getAttribute("content")).toBe("#221a14");
 
     applyThemeToDocument(doc, "light", { animate: false });
     expect(doc.documentElement.classList.contains("dark")).toBe(false);
