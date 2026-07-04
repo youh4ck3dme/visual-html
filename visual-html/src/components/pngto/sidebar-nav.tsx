@@ -26,17 +26,26 @@ const BOTTOM_ITEMS = [
 
 type NavTo = "/" | "/projects" | "/builder";
 
-function navButtonClass(active: boolean, disabled: boolean, compact?: boolean) {
+function navButtonBaseClass(compact?: boolean) {
   return cn(
     "group relative flex items-center justify-center rounded-lg font-medium transition-colors",
     compact
       ? "h-11 min-w-11 flex-col gap-0.5 px-2 text-[9px]"
       : "flex-col gap-1 px-2 py-2.5 text-[10px]",
+  );
+}
+
+function navButtonStateClass(active: boolean, disabled: boolean) {
+  return cn(
     active
-      ? "bg-primary text-primary-foreground shadow-sm"
+      ? "bg-primary/12 font-semibold text-primary shadow-sm ring-1 ring-inset ring-primary/25 dark:bg-primary/25 dark:text-primary-foreground dark:ring-primary/40"
       : "text-shell-muted hover:bg-shell-hover hover:text-foreground",
     disabled && !active && "cursor-not-allowed opacity-40 hover:bg-transparent",
   );
+}
+
+function navButtonClass(active: boolean, disabled: boolean, compact?: boolean) {
+  return cn(navButtonBaseClass(compact), navButtonStateClass(active, disabled));
 }
 
 function NavLink({
@@ -60,7 +69,7 @@ function NavLink({
       className={navButtonClass(false, false, compact)}
       activeProps={{
         className: navButtonClass(true, false, compact),
-        "aria-current": "page",
+        "aria-current": "page" as const,
       }}
       inactiveProps={{
         className: navButtonClass(false, false, compact),
