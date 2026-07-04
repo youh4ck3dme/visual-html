@@ -17,8 +17,8 @@ export const APP_ICON_VERSION = "4";
 export const APP_VIEWPORT =
   "width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content";
 
-/** Warm dark brown shell — matches .dark --shell (#221a14). */
-export const APP_THEME_COLOR = "#221a14";
+/** VibeCraft mobile studio shell — matches .dark --shell (#0f0f0f). */
+export const APP_THEME_COLOR = "#0f0f0f";
 
 export function appIconHref(path: string): string {
   return `${path}?v=${APP_ICON_VERSION}`;

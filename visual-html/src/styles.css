@@ -11,7 +11,7 @@
  * .dark  = dark theme
  *
  * Shell tokens (--shell-*): outer chrome (sidebar, background, marketing cards)
- * Workspace tokens (--workspace-*): inner “app window” canvas (light in :root, warm brown in .dark)
+ * Workspace tokens (--workspace-*): inner “app window” canvas (light in :root, warm charcoal in .dark)
  */
 
 @theme inline {
@@ -153,33 +153,33 @@
   --primary-foreground: oklch(0.985 0.005 250);
   --info: oklch(0.66 0.17 255);
 
-  --shell: oklch(0.18 0.032 58);
-  --shell-sidebar: oklch(0.18 0.032 58);
-  --shell-elevated: oklch(0.23 0.038 56);
-  --shell-border: oklch(0.55 0.04 58 / 0.22);
-  --shell-muted: oklch(0.72 0.045 68);
-  --shell-subtle: oklch(0.52 0.04 62);
-  --shell-hover: oklch(0.25 0.036 56);
-  --shell-shadow: 0 8px 32px oklch(0.08 0.02 58 / 0.45);
-  --shell-sidebar-shadow: 1px 0 0 oklch(0.35 0.04 58 / 0.5);
+  --shell: #0f0f0f;
+  --shell-sidebar: #0f0f0f;
+  --shell-elevated: #171614;
+  --shell-border: #2d2d2d;
+  --shell-muted: #9aa0a6;
+  --shell-subtle: #6f7378;
+  --shell-hover: #1a1a1a;
+  --shell-shadow: 0 8px 32px rgb(0 0 0 / 0.45);
+  --shell-sidebar-shadow: 1px 0 0 #2d2d2d;
 
-  --workspace: oklch(0.18 0.032 58);
+  --workspace: #151515;
   --workspace-foreground: oklch(0.985 0.005 250);
-  --workspace-surface: oklch(0.18 0.032 58);
-  --workspace-border: oklch(0.55 0.04 58 / 0.22);
-  --workspace-muted: oklch(0.72 0.045 68);
-  --workspace-tabs: oklch(0.2 0.034 57);
+  --workspace-surface: #161616;
+  --workspace-border: #2d2d2d;
+  --workspace-muted: #9aa0a6;
+  --workspace-tabs: #181818;
   --workspace-shadow: none;
 
   --background: var(--shell);
   --foreground: oklch(0.985 0.005 250);
-  --card: oklch(0.24 0.035 56 / 0.55);
+  --card: #171614;
   --card-foreground: oklch(0.985 0.005 250);
-  --popover: oklch(0.22 0.034 57);
+  --popover: #171614;
   --popover-foreground: oklch(0.985 0.005 250);
-  --secondary: oklch(0.26 0.033 56);
+  --secondary: #1a1a1a;
   --secondary-foreground: oklch(0.985 0.005 250);
-  --muted: oklch(0.26 0.033 56);
+  --muted: #1a1a1a;
   --muted-foreground: var(--shell-muted);
   --accent: oklch(0.78 0.15 200);
   --accent-foreground: oklch(0 0 0);

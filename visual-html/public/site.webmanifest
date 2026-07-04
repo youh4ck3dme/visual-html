@@ -8,8 +8,8 @@
   "display": "standalone",
   "orientation": "any",
   "lang": "en",
-  "theme_color": "#221a14",
-  "background_color": "#221a14",
+  "theme_color": "#0f0f0f",
+  "background_color": "#0f0f0f",
   "categories": ["productivity", "developer tools", "utilities"],
   "icons": [
     {
