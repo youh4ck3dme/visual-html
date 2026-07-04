@@ -100,9 +100,7 @@ describe("buttons › input-mode-panels", () => {
     const file = new File(["not-json"], "broken.json", { type: "application/json" });
     await user.upload(input, file);
 
-    await waitFor(() =>
-      expect(onError).toHaveBeenCalledWith("Invalid or empty project file."),
-    );
+    await waitFor(() => expect(onError).toHaveBeenCalledWith("Invalid or empty project file."));
   });
 
   it("Import panel — valid project file calls onImported", async () => {

@@ -1,4 +1,11 @@
-import { APP_ICON, APP_PWA_META, appHeadLinkTags, appIconHref } from "./app-brand";
+import {
+  APP_ICON,
+  APP_PWA_META,
+  APP_THEME_COLOR,
+  APP_VIEWPORT,
+  appHeadLinkTags,
+  appIconHref,
+} from "./app-brand";
 
 export function renderErrorPage(): string {
   return `<!doctype html>
@@ -6,8 +13,8 @@ export function renderErrorPage(): string {
   <head>
     <meta charset="utf-8" />
     <title>This page didn't load</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="viewport" content="${APP_VIEWPORT}" />
+    <meta name="theme-color" content="${APP_THEME_COLOR}" />
 ${APP_PWA_META.map((meta) => `    <meta name="${meta.name}" content="${meta.content}" />`).join("\n")}
 ${appHeadLinkTags()}
     <style>

@@ -7,9 +7,7 @@ export type BuilderTemplateSearch = {
   template?: string;
 };
 
-export function parseBuilderTemplateSearch(
-  search: Record<string, unknown>,
-): BuilderTemplateSearch {
+export function parseBuilderTemplateSearch(search: Record<string, unknown>): BuilderTemplateSearch {
   const raw = typeof search.template === "string" ? search.template.trim() : "";
   if (raw && promptLibrary.some((item) => item.id === raw)) {
     return { template: raw };

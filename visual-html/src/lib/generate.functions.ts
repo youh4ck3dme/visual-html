@@ -227,7 +227,11 @@ export const fetchImageFromUrl = createServerFn({ method: "POST" })
       if (!["http:", "https:"].includes(parsed.protocol)) {
         return {
           ok: false,
-          error: createApiError("INVALID_FILE", "Only HTTP(S) image URLs are supported", "validating"),
+          error: createApiError(
+            "INVALID_FILE",
+            "Only HTTP(S) image URLs are supported",
+            "validating",
+          ),
         };
       }
 
@@ -274,8 +278,7 @@ export const fetchImageFromUrl = createServerFn({ method: "POST" })
         };
       }
 
-      const ext =
-        mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "jpg";
+      const ext = mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "jpg";
       const pathName = parsed.pathname.split("/").pop() || `remote-image.${ext}`;
       const fileName = pathName.includes(".") ? pathName : `${pathName}.${ext}`;
 

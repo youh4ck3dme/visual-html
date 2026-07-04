@@ -21,16 +21,19 @@ describe("buttons › home-workspace", () => {
     expect(upload).toHaveAttribute("aria-current", "page");
   });
 
-  it.each(["url", "text", "import"] as const)("%s tab — enabled and switches mode", async (mode) => {
-    const user = userEvent.setup();
-    const onChange = vi.fn();
-    renderWithProviders(<ModeTabs value="upload" onChange={onChange} />);
+  it.each(["url", "text", "import"] as const)(
+    "%s tab — enabled and switches mode",
+    async (mode) => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+      renderWithProviders(<ModeTabs value="upload" onChange={onChange} />);
 
-    const tab = screen.getByRole("tab", { name: TAB_LABELS[mode] });
-    expect(tab).toBeEnabled();
-    await user.click(tab);
-    expect(onChange).toHaveBeenCalledWith(mode);
-  });
+      const tab = screen.getByRole("tab", { name: TAB_LABELS[mode] });
+      expect(tab).toBeEnabled();
+      await user.click(tab);
+      expect(onChange).toHaveBeenCalledWith(mode);
+    },
+  );
 
   it("Theme Light — click sets light theme", async () => {
     const user = userEvent.setup();

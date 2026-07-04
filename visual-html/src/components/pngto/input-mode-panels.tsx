@@ -47,13 +47,7 @@ export function UrlInputPanel({
         return;
       }
 
-      const draft = uploadedImageFromBase64(
-        result.base64,
-        result.mimeType,
-        result.fileName,
-        1,
-        1,
-      );
+      const draft = uploadedImageFromBase64(result.base64, result.mimeType, result.fileName, 1, 1);
       const optimized = await optimizeUpload(draft.file);
       const img = await loadImage(optimized.dataUrl);
       onFile({ ...optimized, width: img.naturalWidth, height: img.naturalHeight });

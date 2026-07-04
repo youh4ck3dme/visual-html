@@ -1,15 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  AlertTriangle,
-  Crosshair,
-  FileSearch,
-  Loader2,
-  Scan,
-  Sparkles,
-  Target,
-  X,
-} from "lucide-react";
+import { AlertTriangle, Crosshair, FileSearch, Loader2, Scan, Target, X } from "lucide-react";
 
+import { AppLogo } from "@/components/pngto/app-logo";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
@@ -381,7 +373,7 @@ export function ForensicLightbox({
                   onClick={() => triggerGenerate("full")}
                   data-testid="forensic-generate-full"
                 >
-                  <Sparkles className="h-4 w-4" />
+                  <AppLogo size="xs" className="rounded-md" />
                   {t("forensic.generateFull")}
                 </Button>
               </div>

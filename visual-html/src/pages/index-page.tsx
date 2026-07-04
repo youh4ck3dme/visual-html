@@ -67,9 +67,9 @@ export function IndexPage() {
 
   const handleDescription = useCallback(
     (description: string) => {
-      setOptions((prev) => ({ ...prev, additionalInstructions: description }));
+      setOptions({ ...options, additionalInstructions: description });
     },
-    [setOptions],
+    [options, setOptions],
   );
 
   const handleImportProjects = useCallback(
@@ -115,10 +115,7 @@ export function IndexPage() {
                     onDescription={handleDescription}
                   />
                 ) : (
-                  <ImportInputPanel
-                    onImported={handleImportProjects}
-                    onError={onUploadError}
-                  />
+                  <ImportInputPanel onImported={handleImportProjects} onError={onUploadError} />
                 )}
 
                 <AdvancedSettings>

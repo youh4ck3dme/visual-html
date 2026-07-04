@@ -50,7 +50,12 @@ const TEMPLATE_PREVIEW: Record<string, string> = {
 };
 
 const MENU_ITEMS = [
-  { id: "projects", labelKey: "nav.projects" as MessageKey, icon: FolderKanban, to: "/projects" as const },
+  {
+    id: "projects",
+    labelKey: "nav.projects" as MessageKey,
+    icon: FolderKanban,
+    to: "/projects" as const,
+  },
   { id: "new", labelKey: "nav.new" as MessageKey, icon: Plus, to: "/" as const },
   { id: "builder", labelKey: "nav.builder" as MessageKey, icon: Wand2, to: "/builder" as const },
 ] as const;
@@ -194,7 +199,11 @@ export function BuilderMobileStudio({
       </header>
 
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-        <SheetContent side="left" className="border-shell-border bg-shell-elevated" data-testid="builder-mobile-menu">
+        <SheetContent
+          side="left"
+          className="border-shell-border bg-shell-elevated"
+          data-testid="builder-mobile-menu"
+        >
           <SheetHeader>
             <SheetTitle>{t("builder.mobile.navTitle")}</SheetTitle>
             <SheetDescription>{t("nav.appAria")}</SheetDescription>
@@ -244,7 +253,9 @@ export function BuilderMobileStudio({
           <div className="flex gap-3">
             <AppLogo size="sm" className="rounded-lg" />
             <div>
-              <p className="text-sm font-semibold text-foreground">{t("builder.mobile.aiReadyTitle")}</p>
+              <p className="text-sm font-semibold text-foreground">
+                {t("builder.mobile.aiReadyTitle")}
+              </p>
               <p className="mt-1 text-[11px] leading-relaxed text-shell-muted">
                 {t("builder.mobile.aiReadyHint")}
               </p>
@@ -348,7 +359,9 @@ export function BuilderMobileStudio({
                       </span>
                     )}
                   </div>
-                  <p className="line-clamp-2 px-2 py-2 text-[10px] font-semibold leading-snug">{title}</p>
+                  <p className="line-clamp-2 px-2 py-2 text-[10px] font-semibold leading-snug">
+                    {title}
+                  </p>
                 </button>
               );
             })}
@@ -359,7 +372,9 @@ export function BuilderMobileStudio({
           <div className="vibecraft-studio-elevated flex items-center gap-2 rounded-xl border border-shell-border/80 px-3 py-2">
             <div className="h-10 w-10 shrink-0 rounded-lg bg-gradient-to-br from-amber-900 to-stone-950" />
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold uppercase text-shell-muted">{t("builder.mobile.activeProject")}</p>
+              <p className="text-[10px] font-bold uppercase text-shell-muted">
+                {t("builder.mobile.activeProject")}
+              </p>
               <p className="truncate text-xs font-semibold">
                 {activeTemplateTitle ?? t("builder.mobile.untitledProject")}
               </p>
@@ -384,7 +399,9 @@ export function BuilderMobileStudio({
               data-testid="builder-tab-preview"
               className={cn(
                 "flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[9px] font-semibold uppercase",
-                previewTab === "preview" ? "border-b-2 border-primary text-primary" : "text-shell-muted",
+                previewTab === "preview"
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-shell-muted",
               )}
             >
               <Eye className="h-3.5 w-3.5" />
@@ -396,7 +413,9 @@ export function BuilderMobileStudio({
               data-testid="builder-tab-code"
               className={cn(
                 "flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[9px] font-semibold uppercase",
-                previewTab === "code" ? "border-b-2 border-primary text-primary" : "text-shell-muted",
+                previewTab === "code"
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-shell-muted",
               )}
             >
               <Code className="h-3.5 w-3.5" />
@@ -500,13 +519,18 @@ export function BuilderMobileStudio({
         onSubmit={onSubmit}
       >
         <div className="relative">
-          <AppLogo size="xs" className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-md" />
+          <AppLogo
+            size="xs"
+            className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-md"
+          />
           <Input
             value={inputVal}
             onChange={(e) => onInputChange(e.target.value)}
             disabled={isGenerating || isCancelling}
             placeholder={
-              isGenerating || isCancelling ? t("builder.inputWorking") : t("builder.inputPlaceholder")
+              isGenerating || isCancelling
+                ? t("builder.inputWorking")
+                : t("builder.inputPlaceholder")
             }
             className="h-11 border-shell-border bg-shell pl-10 pr-12 text-sm"
           />
