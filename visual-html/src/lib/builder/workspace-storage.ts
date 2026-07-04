@@ -1,3 +1,4 @@
+import { getLocalStorage } from "@/lib/browser-env";
 import type { GenerationMode, OutputSource, VersionRecord } from "@/types/builder";
 
 export type BuilderChatMessage = { id: string; sender: "user" | "ai"; text: string };
@@ -14,8 +15,10 @@ export interface StoredWorkspace {
 export const WORKSPACE_STORAGE_KEY = "vibecraft_workspace_v1";
 
 export function readStoredWorkspace(): StoredWorkspace | null {
+  const storage = getLocalStorage();
+  if (!storage) return null;
   try {
-    const raw = localStorage.getItem(WORKSPACE_STORAGE_KEY);
+    const raw = storage.getItem(WORKSPACE_STORAGE_KEY);
     if (!raw) return null;
     const p = JSON.parse(raw) as Partial<StoredWorkspace>;
     if (!Array.isArray(p.messages)) return null;
@@ -33,5 +36,7 @@ export function readStoredWorkspace(): StoredWorkspace | null {
 }
 
 export function writeStoredWorkspace(data: StoredWorkspace): void {
-  localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(data));
+  const storage = getLocalStorage();
+  if (!storage) return;
+  storage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(data));
 }
