@@ -1,0 +1,8 @@
+{
+  "installCommand": "cd visual-html && bun install",
+  "buildCommand": "cd visual-html && NITRO_PRESET=vercel bun run build",
+  "framework": null,
+  "env": {
+    "NITRO_PRESET": "vercel"
+  }
+}
