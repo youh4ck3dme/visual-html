@@ -6,8 +6,17 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+const electronDev = process.env.ELECTRON === "1";
+
 export default defineConfig({
   vite: {
+    server: electronDev
+      ? {
+          host: "127.0.0.1",
+          port: 5173,
+          strictPort: true,
+        }
+      : undefined,
     build: {
       rolldownOptions: {
         external: ["@vercel/nft"],
