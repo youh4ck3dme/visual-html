@@ -2,8 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestIP } from "@tanstack/react-start/server";
 
 import {
+  ALLOWED_MIME,
   continueInputSchema,
   generateInputSchema,
+  imageUrlInputSchema,
+  MAX_UPLOAD_BYTES,
   ocrInputSchema,
   refineInputSchema,
   type GenerateOutput,
@@ -14,6 +17,15 @@ import type { ApiError, ApiErrorCode, GenerationPhase } from "@/types/generation
 export type ServerResult = { ok: true; data: GenerateOutput } | { ok: false; error: ApiError };
 
 export type OcrResult = { ok: true; ocrMarkdown: string } | { ok: false; error: ApiError };
+
+export type FetchImageResult =
+  | {
+      ok: true;
+      base64: string;
+      mimeType: (typeof ALLOWED_MIME)[number];
+      fileName: string;
+    }
+  | { ok: false; error: ApiError };
 
 const RATE_LIMITED_MESSAGE = "Too many requests. Please slow down and try again shortly.";
 
@@ -193,6 +205,96 @@ export const continueHtml = createServerFn({ method: "POST" })
       return {
         ok: false,
         error: createApiError("SERVER_ERROR", "Unexpected server error", "synthesizing"),
+      };
+    }
+  });
+
+export const fetchImageFromUrl = createServerFn({ method: "POST" })
+  .validator((input: unknown) => imageUrlInputSchema.parse(input))
+  .handler(async ({ data }): Promise<FetchImageResult> => {
+    const { checkRateLimit } = await import("@/lib/rate-limit.server");
+
+    const limit = await checkRateLimit(getClientIp(), "ocr");
+    if (!limit.success) {
+      return {
+        ok: false,
+        error: createApiError("RATE_LIMITED", RATE_LIMITED_MESSAGE, "rate_limited_check"),
+      };
+    }
+
+    try {
+      const parsed = new URL(data.url);
+      if (!["http:", "https:"].includes(parsed.protocol)) {
+        return {
+          ok: false,
+          error: createApiError("INVALID_FILE", "Only HTTP(S) image URLs are supported", "validating"),
+        };
+      }
+
+      const response = await fetch(parsed.toString(), {
+        headers: { Accept: "image/png,image/jpeg,image/webp,*/*" },
+        signal: AbortSignal.timeout(15_000),
+        redirect: "follow",
+      });
+
+      if (!response.ok) {
+        return {
+          ok: false,
+          error: createApiError(
+            "INVALID_FILE",
+            `Could not fetch image (HTTP ${response.status})`,
+            "validating",
+          ),
+        };
+      }
+
+      const mimeType = response.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase();
+      if (!mimeType || !(ALLOWED_MIME as readonly string[]).includes(mimeType)) {
+        return {
+          ok: false,
+          error: createApiError(
+            "INVALID_FILE",
+            "URL must point to a PNG, JPG, or WebP image",
+            "validating",
+          ),
+        };
+      }
+
+      const buffer = await response.arrayBuffer();
+      if (buffer.byteLength === 0) {
+        return {
+          ok: false,
+          error: createApiError("INVALID_FILE", "Image file is empty", "validating"),
+        };
+      }
+      if (buffer.byteLength > MAX_UPLOAD_BYTES) {
+        return {
+          ok: false,
+          error: createApiError("INVALID_FILE", "Image exceeds size limit", "validating"),
+        };
+      }
+
+      const ext =
+        mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "jpg";
+      const pathName = parsed.pathname.split("/").pop() || `remote-image.${ext}`;
+      const fileName = pathName.includes(".") ? pathName : `${pathName}.${ext}`;
+
+      return {
+        ok: true,
+        base64: Buffer.from(buffer).toString("base64"),
+        mimeType: mimeType as (typeof ALLOWED_MIME)[number],
+        fileName,
+      };
+    } catch (err) {
+      const message =
+        err instanceof Error && err.name === "TimeoutError"
+          ? "Image download timed out"
+          : err instanceof Error
+            ? err.message
+            : "Could not fetch image";
+      return {
+        ok: false,
+        error: createApiError("INVALID_FILE", message, "validating"),
       };
     }
   });

@@ -1,5 +1,8 @@
-import { getRouteApi, Link } from "@tanstack/react-router";
-import { AlertTriangle, RotateCcw, Sparkles } from "lucide-react";
+import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
+import { AlertTriangle, RotateCcw } from "lucide-react";
+import { useCallback, useState } from "react";
+
+import { AppLogo } from "@/components/pngto/app-logo";
 
 import { useT } from "@/hooks/use-t";
 import { useGenerationWorkflow } from "@/hooks/use-generation-workflow";
@@ -13,22 +16,32 @@ import {
 import { CapabilityCards, TrustStrip } from "@/components/pngto/capability-cards";
 import { AdvancedSettings, AppWindow, TopCreditBar } from "@/components/pngto/home-workspace";
 import { VisualSidebar } from "@/components/pngto/sidebar-nav";
+import {
+  ImportInputPanel,
+  TextInputPanel,
+  UrlInputPanel,
+} from "@/components/pngto/input-mode-panels";
 import { UploadDropzone } from "@/components/pngto/upload-dropzone";
+import { useProjects } from "@/hooks/use-projects";
+import type { InputMode } from "@/lib/input-mode";
+import type { SavedProject } from "@/types/project";
 import { ImagePreview } from "@/components/pngto/image-preview";
 import { GenerationOptionsPanel } from "@/components/pngto/generation-options";
 import { ResultTabs } from "@/components/pngto/result-tabs";
 import { RefinementBox } from "@/components/pngto/refinement-box";
 import { LoadingSteps } from "@/components/pngto/loading-steps";
 import { Button } from "@/components/ui/button";
-import type { SavedProject } from "@/types/project";
 import type { ApiError } from "@/types/generation";
 
 const indexRouteApi = getRouteApi("/");
 
 export function IndexPage() {
   const { t } = useT();
+  const navigate = useNavigate();
+  const { importProjects } = useProjects();
   const { project: projectIdFromUrl } = indexRouteApi.useSearch();
   const workflow = useGenerationWorkflow(projectIdFromUrl);
+  const [inputMode, setInputMode] = useState<InputMode>("upload");
 
   const {
     image,
@@ -52,6 +65,24 @@ export function IndexPage() {
     onRefine,
   } = workflow;
 
+  const handleDescription = useCallback(
+    (description: string) => {
+      setOptions((prev) => ({ ...prev, additionalInstructions: description }));
+    },
+    [setOptions],
+  );
+
+  const handleImportProjects = useCallback(
+    async (projects: SavedProject[]) => {
+      const projectId = await importProjects(projects);
+      if (projectId) {
+        void navigate({ to: "/", search: { project: projectId } });
+      }
+      return projectId;
+    },
+    [importProjects, navigate],
+  );
+
   return (
     <div className="visual-shell min-h-dvh">
       <VisualSidebar />
@@ -61,7 +92,7 @@ export function IndexPage() {
 
         <main className="mx-auto max-w-5xl px-4 py-6 pb-8 sm:px-6 sm:py-10 sm:pb-16">
           <div className="relative">
-            <AppWindow>
+            <AppWindow mode={inputMode} onModeChange={setInputMode}>
               <div className="space-y-5">
                 {image ? (
                   <ImagePreview
@@ -73,8 +104,21 @@ export function IndexPage() {
                   />
                 ) : loadedProject ? (
                   <LoadedProjectBanner project={loadedProject} onClear={resetForNewImage} />
-                ) : (
+                ) : inputMode === "upload" ? (
                   <UploadDropzone onFile={onFileUploaded} onError={onUploadError} />
+                ) : inputMode === "url" ? (
+                  <UrlInputPanel onFile={onFileUploaded} onError={onUploadError} />
+                ) : inputMode === "text" ? (
+                  <TextInputPanel
+                    onFile={onFileUploaded}
+                    onError={onUploadError}
+                    onDescription={handleDescription}
+                  />
+                ) : (
+                  <ImportInputPanel
+                    onImported={handleImportProjects}
+                    onError={onUploadError}
+                  />
                 )}
 
                 <AdvancedSettings>
@@ -88,7 +132,7 @@ export function IndexPage() {
                   data-testid="generate-html"
                   onClick={onPrimaryAction}
                 >
-                  <Sparkles className="h-4 w-4" aria-hidden />
+                  <AppLogo size="xs" className="rounded-md" />
                   {primaryButtonLabel}
                 </Button>
 

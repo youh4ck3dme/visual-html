@@ -11,10 +11,12 @@ import { toast } from "sonner";
 
 import { useT } from "@/hooks/use-t";
 import { isBrowser } from "@/lib/browser-env";
+import { mergeImportedProjects } from "@/lib/project-import";
 import {
   createThumbnailDataUrl,
   deleteProjectById,
   renameProjectById,
+  trimProjectsToLimit,
   upsertProject,
 } from "@/lib/projects-store";
 import {
@@ -49,6 +51,7 @@ type ProjectsContextValue = {
   saveFromGeneration: (input: SaveFromGenerationInput) => Promise<string | null>;
   renameProject: (id: string, name: string) => Promise<boolean>;
   deleteProject: (id: string) => Promise<boolean>;
+  importProjects: (incoming: SavedProject[]) => Promise<string | null>;
   refresh: () => Promise<void>;
 };
 
@@ -174,6 +177,19 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     [notifyPersistFailed, persist, projects],
   );
 
+  const importProjects = useCallback(
+    async (incoming: SavedProject[]) => {
+      if (incoming.length === 0) return null;
+      const next = trimProjectsToLimit(mergeImportedProjects(projects, incoming));
+      if (!(await persist(next))) {
+        notifyPersistFailed();
+        return null;
+      }
+      return incoming[0]?.id ?? null;
+    },
+    [notifyPersistFailed, persist, projects],
+  );
+
   const value = useMemo(
     () => ({
       projects,
@@ -183,6 +199,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       saveFromGeneration,
       renameProject,
       deleteProject,
+      importProjects,
       refresh,
     }),
     [
@@ -192,6 +209,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       saveFromGeneration,
       renameProject,
       deleteProject,
+      importProjects,
       refresh,
     ],
   );

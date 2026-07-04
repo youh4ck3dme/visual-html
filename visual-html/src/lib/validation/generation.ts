@@ -30,6 +30,15 @@ export const ocrInputSchema = z.object({
   mimeType: z.enum(ALLOWED_MIME),
 });
 
+export const imageUrlInputSchema = z.object({
+  url: z
+    .string()
+    .trim()
+    .url("Invalid URL")
+    .max(2000)
+    .refine((value) => /^https?:\/\//i.test(value), "Only HTTP(S) URLs are supported"),
+});
+
 export const generateInputSchema = z.object({
   imageBase64: imageBase64Schema,
   mimeType: z.enum(ALLOWED_MIME),

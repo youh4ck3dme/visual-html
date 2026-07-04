@@ -25,10 +25,21 @@ beforeEach(() => {
 
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
     drawImage: vi.fn(),
+    fillRect: vi.fn(),
+    strokeRect: vi.fn(),
+    fillText: vi.fn(),
+    measureText: vi.fn((text: string) => ({ width: text.length * 8 })),
   } as unknown as CanvasRenderingContext2D);
   vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue(
     "data:image/jpeg;base64,dGVzdA==",
   );
+  vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation(function (
+    this: HTMLCanvasElement,
+    callback: BlobCallback,
+    type?: string,
+  ) {
+    callback(new Blob(["test"], { type: type ?? "image/png" }));
+  });
 
   localStorage.clear();
   localStorage.setItem("pngto-locale", "en");
@@ -37,7 +48,7 @@ beforeEach(() => {
   vi.stubGlobal(
     "matchMedia",
     vi.fn().mockImplementation((query: string) => ({
-      matches: query.includes("dark"),
+      matches: query.includes("dark") || /\(\s*min-width:\s*768px\s*\)/.test(query),
       media: query,
       onchange: null,
       addListener: vi.fn(),

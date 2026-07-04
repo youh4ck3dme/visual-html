@@ -6,6 +6,9 @@ import { SAMPLE_GENERATE_RESULT } from "@/test/mocks/sample-image";
 const DEFAULT_OCR_MARKDOWN = "# Mock OCR\n\nNav | Home | About";
 const DEFAULT_BUILDER_HTML = "<!DOCTYPE html><html><body>AI</body></html>";
 
+const SAMPLE_PNG_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
 type ServerFnMockBag = {
   runOcr: Mock;
   generateHtml: Mock;
@@ -13,6 +16,7 @@ type ServerFnMockBag = {
   continueHtml: Mock;
   builderChat: Mock;
   builderAiStatus: Mock;
+  fetchImageFromUrl: Mock;
 };
 
 function requireMocks(): ServerFnMockBag {
@@ -43,6 +47,14 @@ export function applyDefaultServerFnMocks(mocks: ServerFnMockBag): void {
 
   mocks.builderAiStatus.mockReset();
   mocks.builderAiStatus.mockResolvedValue({ serverKeysConfigured: false });
+
+  mocks.fetchImageFromUrl.mockReset();
+  mocks.fetchImageFromUrl.mockResolvedValue({
+    ok: true,
+    base64: SAMPLE_PNG_BASE64,
+    mimeType: "image/png",
+    fileName: "remote-image.png",
+  });
 }
 
 export function resetServerFnMocks(): void {
@@ -82,6 +94,12 @@ export const continueHtmlMock = {
 export const builderChatMock = {
   get mock() {
     return requireMocks().builderChat;
+  },
+};
+
+export const fetchImageFromUrlMock = {
+  get mock() {
+    return requireMocks().fetchImageFromUrl;
   },
 };
 

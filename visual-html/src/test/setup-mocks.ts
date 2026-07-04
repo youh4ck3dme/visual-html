@@ -1,7 +1,13 @@
 import { vi, type Mock } from "vitest";
 
 import { builderAiStatus, builderChat } from "@/lib/builder.functions";
-import { continueHtml, generateHtml, refineHtml, runOcr } from "@/lib/generate.functions";
+import {
+  continueHtml,
+  fetchImageFromUrl,
+  generateHtml,
+  refineHtml,
+  runOcr,
+} from "@/lib/generate.functions";
 import { applyDefaultServerFnMocks } from "@/test/mocks/server-fns";
 
 type ServerFnMockBag = {
@@ -11,6 +17,7 @@ type ServerFnMockBag = {
   continueHtml: Mock;
   builderChat: Mock;
   builderAiStatus: Mock;
+  fetchImageFromUrl: Mock;
 };
 
 declare global {
@@ -27,6 +34,7 @@ vi.hoisted(() => {
     continueHtml: vi.fn(),
     builderChat: vi.fn(),
     builderAiStatus: vi.fn(),
+    fetchImageFromUrl: vi.fn(),
   };
 
   globalThis.__PNGTO_TEST_SERVER_FN_MOCKS__ = mocks;
@@ -85,6 +93,7 @@ function ensureServerFnRegistry(): Map<unknown, Mock> {
     [continueHtml, mocks.continueHtml],
     [builderChat, mocks.builderChat],
     [builderAiStatus, mocks.builderAiStatus],
+    [fetchImageFromUrl, mocks.fetchImageFromUrl],
   ]);
 
   globalThis.__PNGTO_TEST_SERVER_FN_REGISTRY__ = registry;
