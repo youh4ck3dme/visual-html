@@ -12,6 +12,17 @@ Súvisiaca docs: [DEVELOPER.md](./DEVELOPER.md) (Builder background generation, 
 
 ## 1. Git clean / sync gate
 
+**Jedným príkazom (odporúčané):**
+
+```bash
+cd /home/asterix/Dokumenty/Projekty/PNGtoHTMLapp
+./scripts/github-release-gate.sh              # git + GitHub PR stav
+./scripts/github-release-gate.sh --full       # + testy + production HTTP
+# alebo: npm run github:gate / npm run github:gate:full
+```
+
+Manuálne kroky:
+
 ```bash
 cd /home/asterix/Dokumenty/Projekty/PNGtoHTMLapp
 git fetch origin
