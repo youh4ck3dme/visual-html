@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
@@ -23,7 +23,7 @@ import {
   Save,
   Settings,
   Shield,
-  Sparkles,
+
   Trash2,
   Wrench,
   X,
@@ -40,7 +40,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useT } from "@/hooks/use-t";
+import { BuilderMobileStudio } from "@/components/builder/builder-mobile-studio";
 import { BuilderGenerationTracePanel } from "@/components/builder/builder-generation-trace";
 import { BuilderOrchestrationModeSelect } from "@/components/builder/builder-orchestration-mode-select";
 import { BuilderQualityProfileSelect } from "@/components/builder/builder-quality-profile-select";
@@ -63,6 +65,7 @@ import {
 import { promptCategories, promptLibrary, type PromptItem } from "@/lib/builder/prompt-library";
 import { scanGeneratedHtml } from "@/lib/builder/risk-scanner";
 import type { MessageKey } from "@/lib/i18n/messages";
+import { AppLogo } from "@/components/pngto/app-logo";
 import { PreviewFrame } from "@/components/pngto/preview-frame";
 import { cn } from "@/lib/utils";
 import { buildSingleFileHtml } from "@/lib/utils/build-single-file-html";
@@ -168,8 +171,14 @@ const readStored = (): StoredWorkspace | null => {
   }
 };
 
-export function BuilderWorkspace() {
+type BuilderWorkspaceProps = {
+  /** Deep-linked starter template from /builder?template=… (e.g. empty projects CTA). */
+  startTemplateId?: string;
+};
+
+export function BuilderWorkspace({ startTemplateId }: BuilderWorkspaceProps = {}) {
   const { t } = useT();
+  const isMobile = useIsMobile();
   const [hydrated, setHydrated] = useState(false);
   const [currentCategory, setCurrentCategory] = useState("portfolios");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -203,9 +212,11 @@ export function BuilderWorkspace() {
     null,
   );
   const [showKeys, setShowKeys] = useState(false);
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const generationAbortRef = useRef<AbortController | null>(null);
+  const starterLaunchRef = useRef(false);
   const chatFn = useServerFn(builderChat);
   const statusFn = useServerFn(builderAiStatus);
   const hasAiAccess = hasByokAccess || serverAiConfigured;
@@ -292,16 +303,29 @@ export function BuilderWorkspace() {
   });
 
   useEffect(() => {
-    const s = readStored();
-    if (s) {
-      setCurrentCategory(s.currentCategory);
-      setMessages(s.messages);
-      setGeneratedCode(s.generatedCode);
-      setOutputSource(s.outputSource);
-      setVersions(s.versions);
-      setGenerationMode(s.generationMode);
-    } else {
+    const linkedStarter = startTemplateId
+      ? promptLibrary.find((item) => item.id === startTemplateId)
+      : undefined;
+
+    if (linkedStarter) {
+      setCurrentCategory(linkedStarter.category);
       setMessages([{ id: "greet", sender: "ai", text: t("builder.chat.greet") }]);
+      setGeneratedCode("");
+      setOutputSource("empty");
+      setVersions([]);
+      setGenerationMode("build");
+    } else {
+      const s = readStored();
+      if (s) {
+        setCurrentCategory(s.currentCategory);
+        setMessages(s.messages);
+        setGeneratedCode(s.generatedCode);
+        setOutputSource(s.outputSource);
+        setVersions(s.versions);
+        setGenerationMode(s.generationMode);
+      } else {
+        setMessages([{ id: "greet", sender: "ai", text: t("builder.chat.greet") }]);
+      }
     }
     const keys = getBuilderMistralKeys();
     setKey1(keys[0] || "");
@@ -452,10 +476,20 @@ export function BuilderWorkspace() {
   };
 
   const handleSelectPrompt = (p: PromptItem) => {
+    setActiveTemplateId(p.id);
     setInputVal(p.prompt);
     setGenerationMode("build");
     void handleSendPrompt(p.prompt, "build", p.id);
   };
+
+  useEffect(() => {
+    if (!hydrated || !startTemplateId || starterLaunchRef.current) return;
+    const prompt = promptLibrary.find((item) => item.id === startTemplateId);
+    if (!prompt) return;
+    starterLaunchRef.current = true;
+    handleSelectPrompt(prompt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-time deep link launch
+  }, [hydrated, startTemplateId]);
   const handleNewChat = () => {
     if (isGenerating) cancelActiveGeneration();
     setMessages([{ id: "new", sender: "ai", text: t("builder.chat.newWorkspace") }]);
@@ -465,6 +499,7 @@ export function BuilderWorkspace() {
     setVersions([]);
     setGenerationMode("build");
     setInputVal("");
+    setActiveTemplateId(null);
     setError(null);
     setCurrentGenerationTrace(null);
     setLastGenerationMetrics(null);
@@ -479,14 +514,48 @@ export function BuilderWorkspace() {
   };
 
   const sourceLabel = (source: OutputSource) => t(`builder.source.${source}`);
+  const activeTemplateTitle = activeTemplateId
+    ? t(`builder.template.${activeTemplateId}.title` as MessageKey)
+    : null;
+
+  const handlePromptSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (inputVal.trim() && !isGenerating && !isCancelling) {
+      void handleSendPrompt(inputVal.trim());
+    }
+  };
 
   return (
-    <div className="flex min-h-[calc(100dvh-3rem)] w-full overflow-hidden border border-shell-border bg-shell text-foreground">
-      <aside className="flex w-56 shrink-0 flex-col border-r border-shell-border bg-shell-elevated">
+    <>
+      {isMobile ? (
+        <div className="flex min-h-[calc(100dvh-4.5rem)] w-full">
+          <BuilderMobileStudio
+            prompts={prompts}
+            allPrompts={promptLibrary}
+            activeTemplateId={activeTemplateId}
+            activeTemplateTitle={activeTemplateTitle}
+            generationMode={generationMode}
+            previewTab={previewTab}
+            generatedCode={generatedCode}
+            previewDoc={previewDoc}
+            previewAllowJs={previewAllowJs}
+            previewHasJs={previewHasJs}
+            isGenerating={isGenerating}
+            isCancelling={isCancelling}
+            inputVal={inputVal}
+            hasAiAccess={hasAiAccess}
+            onSelectPrompt={handleSelectPrompt}
+            onPreviewTab={setPreviewTab}
+            onInputChange={setInputVal}
+            onSubmit={handlePromptSubmit}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
+        </div>
+      ) : (
+      <div className="vibecraft-studio-surface flex min-h-[calc(100dvh-3rem)] w-full overflow-hidden border border-shell-border/80 text-foreground">
+      <aside className="vibecraft-studio-elevated flex w-56 shrink-0 flex-col border-r border-shell-border/80">
         <div className="flex items-center gap-2 border-b border-shell-border px-3 py-4">
-          <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
-            <Sparkles className="h-4 w-4" />
-          </div>
+          <AppLogo size="sm" />
           <div>
             <p className="text-sm font-bold">{t("builder.brand")}</p>
             <p className="text-[10px] font-semibold uppercase text-shell-muted">
@@ -585,8 +654,8 @@ export function BuilderWorkspace() {
         </div>
       </aside>
 
-      <section className="flex min-w-0 flex-1 flex-col bg-shell">
-        <header className="flex items-center justify-between border-b border-shell-border bg-shell-elevated px-4 py-3">
+      <section className="vibecraft-studio-surface flex min-w-0 flex-1 flex-col">
+        <header className="vibecraft-studio-elevated flex items-center justify-between border-b border-shell-border/80 px-4 py-3">
           <div>
             <h2 className="text-sm font-bold">{t("builder.workspaceTitle")}</h2>
             <p className="text-[11px] text-shell-muted">{modeHint ? t(modeHint) : ""}</p>
@@ -678,15 +747,7 @@ export function BuilderWorkspace() {
           )}
           <div ref={messagesEndRef} />
         </div>
-        <form
-          className="border-t border-shell-border bg-shell-elevated p-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (inputVal.trim() && !isGenerating && !isCancelling) {
-              void handleSendPrompt(inputVal.trim());
-            }
-          }}
-        >
+        <form className="vibecraft-studio-elevated border-t border-shell-border/80 p-4" onSubmit={handlePromptSubmit}>
           <div className="mb-2 flex gap-1 rounded-lg border border-shell-border bg-shell p-1">
             {MODES.map(({ mode, labelKey, hintKey }) => {
               const off = (mode !== "build" && !generatedCode) || isGenerating || isCancelling;
@@ -740,8 +801,8 @@ export function BuilderWorkspace() {
         </form>
       </section>
 
-      <section className="flex min-w-0 flex-1 flex-col border-l border-shell-border bg-shell-elevated">
-        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-shell-border px-3 py-2">
+      <section className="vibecraft-studio-elevated flex min-w-0 flex-1 flex-col border-l border-shell-border/80">
+        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-shell-border/80 px-3 py-2">
           <div className="flex gap-1 rounded-lg border border-shell-border bg-shell p-0.5">
             {(["preview", "code"] as const).map((tab) => (
               <button
@@ -920,6 +981,8 @@ export function BuilderWorkspace() {
           )}
         </div>
       </section>
+      </div>
+      )}
 
       <Dialog
         open={settingsOpen}
@@ -1041,6 +1104,6 @@ export function BuilderWorkspace() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

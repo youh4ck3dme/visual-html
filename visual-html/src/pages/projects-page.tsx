@@ -9,6 +9,10 @@ import { VisualSidebar } from "@/components/pngto/sidebar-nav";
 import { Button } from "@/components/ui/button";
 import { useProjects } from "@/hooks/use-projects";
 import { useT } from "@/hooks/use-t";
+import {
+  FIRST_PROJECT_STARTER_TEMPLATE_ID,
+  builderTemplateSearch,
+} from "@/lib/builder/first-project-starter";
 import { filterProjects, sortProjects } from "@/lib/projects-store";
 import type { ProjectSort } from "@/types/project";
 
@@ -79,7 +83,12 @@ export function ProjectsPage() {
                 {t("projects.empty.description")}
               </p>
               <Button asChild variant="outline" className="mt-6" data-testid="create-first-project">
-                <Link to="/">{t("projects.empty.cta")}</Link>
+                <Link
+                  to="/builder"
+                  search={builderTemplateSearch(FIRST_PROJECT_STARTER_TEMPLATE_ID)}
+                >
+                  {t("projects.empty.cta")}
+                </Link>
               </Button>
             </section>
           ) : visible.length === 0 ? (

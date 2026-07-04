@@ -29,6 +29,13 @@ describe("buttons › builder-workspace", () => {
     localStorage.removeItem("vibecraft_workspace_v1");
   });
 
+  it("startTemplateId photo-portfolio — auto-starts Photographer Lightbox generation", async () => {
+    renderWithProviders(<BuilderWorkspace startTemplateId="photo-portfolio" />);
+    await waitFor(() => expect(screen.getByTitle("VibeCraft Preview")).toBeInTheDocument(), {
+      timeout: 5000,
+    });
+  });
+
   it("New Application — resets workspace messages", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BuilderWorkspace />);
