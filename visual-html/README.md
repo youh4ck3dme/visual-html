@@ -2,7 +2,19 @@
 
 AI web app for turning UI screenshots into clean, semantic HTML with a live preview and refinement loop. Includes an integrated **VibeCraft** prompt-to-HTML builder and a local **Projects** library.
 
-Business and monetization strategy is documented in [docs/business/README.md](docs/business/README.md).
+**Produkcia:** [visual-html.vercel.app](https://visual-html.vercel.app)
+
+## Dokumentácia
+
+| Dokument | Obsah |
+| -------- | ----- |
+| [docs/DEVELOPER.md](docs/DEVELOPER.md) | **Kompletná technická dokumentácia** — API, architektúra, testy, deploy |
+| [docs/README.md](docs/README.md) | Index dokumentácie |
+| [docs/business/README.md](docs/business/README.md) | Biznis a monetizácia |
+| [src/routes/README.md](src/routes/README.md) | TanStack routing konvencie |
+| [AGENTS.md](AGENTS.md) | Pravidlá pre AI agentov (Lovable) |
+
+**Cesta projektu:** `/home/asterix/Dokumenty/Projekty/PNGtoHTMLapp/visual-html`
 
 ## Unified app
 
@@ -520,7 +532,74 @@ npm run build:dev
 npm run preview
 npm run lint
 npm run format
+npm run typecheck
+npm test
+npm run test:watch
+npm run test:integrity:fast
+npm run test:integrity
 ```
+
+## Testovanie
+
+Všetky príkazy spúšťaj z tohto adresára:
+
+```text
+/home/asterix/Dokumenty/Projekty/PNGtoHTMLapp/visual-html
+```
+
+### Hlavné príkazy
+
+```bash
+cd /home/asterix/Dokumenty/Projekty/PNGtoHTMLapp/visual-html && npm test
+cd /home/asterix/Dokumenty/Projekty/PNGtoHTMLapp/visual-html && npm run test:integrity:fast
+cd /home/asterix/Dokumenty/Projekty/PNGtoHTMLapp/visual-html && npm run test:integrity
+```
+
+| Príkaz | Kontroly |
+| ------ | -------- |
+| `npm test` | Vitest — ~558 testov (buttons, PWA, builder, integrácia) |
+| `npm run test:integrity:fast` | tsc + vitest + eslint + Vercel build + PWA artifacts + prod HTTP |
+| `npm run test:integrity` | fast + env check + Upstash rate-limit + E2E smoke AI |
+
+### Skupiny testov
+
+```bash
+cd /home/asterix/Dokumenty/Projekty/PNGtoHTMLapp/visual-html
+npx vitest run src/test/buttons/          # UI tlačidlá
+npx vitest run src/test/pwa/              # PWA + iPhone 17 Air
+npx vitest run src/lib/builder/           # Builder engine
+```
+
+Odporúčané pred pushom:
+
+```bash
+cd /home/asterix/Dokumenty/Projekty/PNGtoHTMLapp/visual-html && npm test && npm run test:integrity:fast
+```
+
+Detailný popis API, integrity suite a štruktúry testov: [docs/DEVELOPER.md](docs/DEVELOPER.md).
+
+## Server API (prehľad)
+
+TanStack Start **server functions** (nie klasické REST). Implementácia v `src/lib/generate.functions.ts` a `src/lib/builder.functions.ts`.
+
+### Screenshot pipeline
+
+| Funkcia | Účel |
+| ------- | ---- |
+| `runOcr` | Upload + Mistral OCR → markdown |
+| `generateHtml` | Syntéza HTML/CSS z obrázka + OCR |
+| `refineHtml` | Refinement podľa inštrukcie |
+| `continueHtml` | Dokončenie prerušeného výstupu |
+| `fetchImageFromUrl` | Stiahnutie obrázka z URL |
+
+### VibeCraft builder
+
+| Funkcia | Účel |
+| ------- | ---- |
+| `builderAiStatus` | Stav server-side Mistral kľúčov |
+| `builderChat` | AI chat pre builder orchestráciu |
+
+Vstupy/výstupy, rate limiting a chybové kódy: [docs/DEVELOPER.md#server-api-tanstack-start-server-functions](docs/DEVELOPER.md#server-api-tanstack-start-server-functions).
 
 ## Environment variables
 
