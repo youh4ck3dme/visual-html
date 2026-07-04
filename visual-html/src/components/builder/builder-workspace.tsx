@@ -9,7 +9,6 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   AlertCircle,
@@ -47,29 +46,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useBuilderWorkspace } from "@/hooks/use-builder-workspace-consumer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useT } from "@/hooks/use-t";
 import { BuilderMobileStudio } from "@/components/builder/builder-mobile-studio";
 import { BuilderGenerationTracePanel } from "@/components/builder/builder-generation-trace";
 import { BuilderOrchestrationModeSelect } from "@/components/builder/builder-orchestration-mode-select";
 import { BuilderQualityProfileSelect } from "@/components/builder/builder-quality-profile-select";
-import { builderAiStatus, builderChat } from "@/lib/builder.functions";
 import {
   clearBuilderSettings,
-  generateBuilderCode,
   getBuilderMistralKeys,
   getBuilderMistralModel,
   hasBuilderAiAccess,
-  isAbortError,
-  isBuilderOrchestrationError,
-  isTimeoutError,
   saveBuilderSettings,
 } from "@/lib/builder/generate";
-import {
-  getBuilderOrchestrationMode,
-  type BuilderOrchestrationMode,
-} from "@/lib/builder/orchestration-mode";
-import { promptCategories, promptLibrary, type PromptItem } from "@/lib/builder/prompt-library";
+import { promptCategories, promptLibrary } from "@/lib/builder/prompt-library";
 import { scanGeneratedHtml } from "@/lib/builder/risk-scanner";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { AppLogo } from "@/components/pngto/app-logo";
@@ -77,30 +68,8 @@ import { PreviewFrame } from "@/components/pngto/preview-frame";
 import { cn } from "@/lib/utils";
 import { buildSingleFileHtml } from "@/lib/utils/build-single-file-html";
 import { downloadTextFile } from "@/lib/utils/download";
-import {
-  createMetricsFromTrace,
-  type BuilderGenerationMetrics,
-} from "@/lib/builder/generation-metrics";
-import type { HtmlHealthCheckResult } from "@/lib/builder/html-health-check";
 import { APPLE_GLASS_QUALITY_POLISH_FIX_PROMPT } from "@/lib/builder/quality-fix-prompts";
-import {
-  getBuilderQualityProfileId,
-  type BuilderQualityProfileId,
-} from "@/lib/builder/quality-profiles";
-import type { BuilderGenerationTrace } from "@/lib/builder/generation-trace";
-import type { GenerationMode, OutputSource, VersionRecord } from "@/types/builder";
-
-type ChatMessage = { id: string; sender: "user" | "ai"; text: string };
-interface StoredWorkspace {
-  currentCategory: string;
-  messages: ChatMessage[];
-  generatedCode: string;
-  outputSource: OutputSource;
-  versions: VersionRecord[];
-  generationMode: GenerationMode;
-}
-
-const WORKSPACE_STORAGE_KEY = "vibecraft_workspace_v1";
+import type { GenerationMode, OutputSource } from "@/types/builder";
 
 const MODES: Array<{ mode: GenerationMode; labelKey: MessageKey; hintKey: MessageKey }> = [
   { mode: "build", labelKey: "builder.mode.build", hintKey: "builder.mode.buildHint" },
@@ -115,29 +84,6 @@ const STEP_KEYS: MessageKey[] = [
   "builder.step.css",
   "builder.step.scripts",
 ];
-
-const STATUS_KEYS: Record<string, MessageKey> = {
-  "Initializing build...": "builder.status.initializingBuild",
-  "Connecting...": "builder.status.connecting",
-  "Building a new app...": "builder.status.building",
-  "Preparing current app for refinement...": "builder.status.preparingRefine",
-  "Inspecting current app for targeted fixes...": "builder.status.inspectingFix",
-  "Reading current app for explanation...": "builder.status.readingExplain",
-  "Generating HTML...": "builder.status.generatingHtml",
-  "Planning architecture...": "builder.status.planningArchitecture",
-  "Building HTML...": "builder.status.buildingHtml",
-  "Reviewing and repairing...": "builder.status.reviewingRepairing",
-  "Building candidate variants...": "builder.status.buildingVariants",
-  "Judging candidates...": "builder.status.judgingCandidates",
-  Cancelled: "builder.status.cancelled",
-  "Preparing explanation...": "builder.status.preparingExplanation",
-  "Finalizing...": "builder.status.finalizing",
-  "Complete!": "builder.status.complete",
-  Done: "builder.status.done",
-  Failed: "builder.status.failed",
-  "Loading offline template...": "builder.status.loadingTemplate",
-  "Explanation ready.": "builder.status.explanationReady",
-};
 
 const RISK_LABEL_KEYS: Record<string, MessageKey> = {
   "External script": "builder.risk.externalScript",
@@ -160,25 +106,6 @@ const CAT_ICON: Record<string, ReactNode> = {
   LayoutDashboard: <LayoutDashboard className="h-4 w-4" />,
 };
 
-const readStored = (): StoredWorkspace | null => {
-  try {
-    const raw = localStorage.getItem(WORKSPACE_STORAGE_KEY);
-    if (!raw) return null;
-    const p = JSON.parse(raw) as Partial<StoredWorkspace>;
-    if (!Array.isArray(p.messages)) return null;
-    return {
-      currentCategory: p.currentCategory || "portfolios",
-      messages: p.messages,
-      generatedCode: p.generatedCode || "",
-      outputSource: p.outputSource || (p.generatedCode ? "demo" : "empty"),
-      versions: Array.isArray(p.versions) ? p.versions : [],
-      generationMode: p.generationMode || (p.generatedCode ? "refine" : "build"),
-    };
-  } catch {
-    return null;
-  }
-};
-
 type BuilderWorkspaceProps = {
   /** Deep-linked starter template from /builder?template=… (e.g. empty projects CTA). */
   startTemplateId?: string;
@@ -187,22 +114,49 @@ type BuilderWorkspaceProps = {
 export function BuilderWorkspace({ startTemplateId }: BuilderWorkspaceProps = {}) {
   const { t } = useT();
   const isMobile = useIsMobile();
-  const [hydrated, setHydrated] = useState(false);
-  const [currentCategory, setCurrentCategory] = useState("portfolios");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [generatedCode, setGeneratedCode] = useState("");
-  const [outputSource, setOutputSource] = useState<OutputSource>("empty");
-  const [versions, setVersions] = useState<VersionRecord[]>([]);
-  const [generationMode, setGenerationMode] = useState<GenerationMode>("build");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isCancelling, setIsCancelling] = useState(false);
-  const [showCancelledNotice, setShowCancelledNotice] = useState(false);
-  const [activeStep, setActiveStep] = useState(0);
-  const [stepStatusText, setStepStatusText] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [inputVal, setInputVal] = useState("");
-  const [hasByokAccess, setHasByokAccess] = useState(false);
-  const [serverAiConfigured, setServerAiConfigured] = useState(false);
+  const {
+    hydrated,
+    currentCategory,
+    setCurrentCategory,
+    messages,
+    generatedCode,
+    setGeneratedCode,
+    outputSource,
+    setOutputSource,
+    versions,
+    setVersions,
+    generationMode,
+    setGenerationMode,
+    isGenerating,
+    isCancelling,
+    showCancelledNotice,
+    activeStep,
+    stepStatusText,
+    error,
+    inputVal,
+    setInputVal,
+    hasByokAccess,
+    setHasByokAccess,
+    serverAiConfigured,
+    orchestrationMode,
+    setOrchestrationMode,
+    qualityProfileId,
+    setQualityProfileId,
+    currentGenerationTrace,
+    lastGenerationMetrics,
+    lastHtmlHealthCheck,
+    activeTemplateId,
+    hasAiAccess,
+    cancelActiveGeneration,
+    handleCancelGeneration,
+    handleSendPrompt,
+    handleSelectPrompt,
+    handleNewChat,
+    handleRestore,
+    resetForTemplateDeepLink,
+    makeVersionRecord,
+  } = useBuilderWorkspace();
+
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [previewTab, setPreviewTab] = useState<"preview" | "code">("preview");
   const [previewAllowJs, setPreviewAllowJs] = useState(false);
@@ -210,24 +164,10 @@ export function BuilderWorkspace({ startTemplateId }: BuilderWorkspaceProps = {}
   const [key1, setKey1] = useState("");
   const [key2, setKey2] = useState("");
   const [model, setModel] = useState("mistral-large-latest");
-  const [orchestrationMode, setOrchestrationMode] = useState<BuilderOrchestrationMode>("pro");
-  const [qualityProfileId, setQualityProfileId] = useState<BuilderQualityProfileId>("auto");
-  const [currentGenerationTrace, setCurrentGenerationTrace] =
-    useState<BuilderGenerationTrace | null>(null);
-  const [lastGenerationMetrics, setLastGenerationMetrics] =
-    useState<BuilderGenerationMetrics | null>(null);
-  const [lastHtmlHealthCheck, setLastHtmlHealthCheck] = useState<HtmlHealthCheckResult | null>(
-    null,
-  );
   const [showKeys, setShowKeys] = useState(false);
-  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const generationAbortRef = useRef<AbortController | null>(null);
   const starterLaunchRef = useRef(false);
-  const chatFn = useServerFn(builderChat);
-  const statusFn = useServerFn(builderAiStatus);
-  const hasAiAccess = hasByokAccess || serverAiConfigured;
   const risks = useMemo(() => scanGeneratedHtml(generatedCode), [generatedCode]);
   const previewHasJs = useMemo(() => /<script\b/i.test(generatedCode), [generatedCode]);
   const previewDoc = useMemo(
@@ -241,20 +181,6 @@ export function BuilderWorkspace({ startTemplateId }: BuilderWorkspaceProps = {}
   const prompts = promptLibrary.filter((p) => p.category === currentCategory);
   const hasUnsaved = Boolean(generatedCode) && generatedCode !== (versions.at(-1)?.code || "");
   const modeHint = MODES.find((m) => m.mode === generationMode)?.hintKey;
-  const id = () => crypto.randomUUID();
-
-  const localizeStatus = useCallback(
-    (status: string): string => {
-      const startingMatch = status.match(/^Starting (\w+)\.\.\.$/);
-      if (startingMatch) {
-        const mode = startingMatch[1] as GenerationMode;
-        return t("builder.status.starting", { mode: t(`builder.mode.${mode}`) });
-      }
-      const key = STATUS_KEYS[status];
-      return key ? t(key) : status;
-    },
-    [t],
-  );
 
   const localizeRisk = useCallback(
     (label: string, detail: string): { label: string; detail: string } => {
@@ -283,243 +209,26 @@ export function BuilderWorkspace({ startTemplateId }: BuilderWorkspaceProps = {}
     [t],
   );
 
-  const versionLabel = useCallback(
-    (mode: GenerationMode, online: boolean): string => {
-      if (mode === "fix") return t("builder.version.aiFix");
-      if (mode === "refine") return t("builder.version.aiRefinement");
-      return online ? t("builder.version.aiGeneration") : t("builder.version.demoTemplate");
-    },
-    [t],
-  );
-
-  const aiReplyText = useCallback(
-    (mode: GenerationMode, online: boolean): string => {
-      if (mode === "fix") return t("builder.chat.fixReply");
-      if (mode === "refine") return t("builder.chat.refineReply");
-      if (online) return t("builder.chat.generateOnline");
-      return t("builder.chat.generateOffline");
-    },
-    [t],
-  );
-
-  const makeVersion = (code: string, source: OutputSource, label: string): VersionRecord => ({
-    id: id(),
-    label,
-    source,
-    code,
-    createdAt: new Date().toISOString(),
-  });
-
   useEffect(() => {
-    const linkedStarter = startTemplateId
-      ? promptLibrary.find((item) => item.id === startTemplateId)
-      : undefined;
-
-    if (linkedStarter) {
-      setCurrentCategory(linkedStarter.category);
-      setMessages([{ id: "greet", sender: "ai", text: t("builder.chat.greet") }]);
-      setGeneratedCode("");
-      setOutputSource("empty");
-      setVersions([]);
-      setGenerationMode("build");
-    } else {
-      const s = readStored();
-      if (s) {
-        setCurrentCategory(s.currentCategory);
-        setMessages(s.messages);
-        setGeneratedCode(s.generatedCode);
-        setOutputSource(s.outputSource);
-        setVersions(s.versions);
-        setGenerationMode(s.generationMode);
-      } else {
-        setMessages([{ id: "greet", sender: "ai", text: t("builder.chat.greet") }]);
-      }
-    }
     const keys = getBuilderMistralKeys();
     setKey1(keys[0] || "");
     setKey2(keys[1] || "");
     setModel(getBuilderMistralModel());
-    setOrchestrationMode(getBuilderOrchestrationMode());
-    setQualityProfileId(getBuilderQualityProfileId());
-    setHasByokAccess(hasBuilderAiAccess());
-    void statusFn()
-      .then((status) => setServerAiConfigured(status.serverKeysConfigured))
-      .catch(() => setServerAiConfigured(false));
-    setHydrated(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-time workspace hydration
   }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    localStorage.setItem(
-      WORKSPACE_STORAGE_KEY,
-      JSON.stringify({
-        currentCategory,
-        messages,
-        generatedCode,
-        outputSource,
-        versions,
-        generationMode,
-      } satisfies StoredWorkspace),
-    );
-  }, [hydrated, currentCategory, messages, generatedCode, outputSource, versions, generationMode]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isGenerating, stepStatusText]);
-
-  const addAi = (text: string) => setMessages((p) => [...p, { id: id(), sender: "ai", text }]);
-
-  const cancelActiveGeneration = useCallback(() => {
-    generationAbortRef.current?.abort();
-    generationAbortRef.current = null;
-  }, []);
-
-  const handleCancelGeneration = useCallback(() => {
-    if (!isGenerating || isCancelling) return;
-    setIsCancelling(true);
-    setStepStatusText(t("builder.status.cancelling"));
-    cancelActiveGeneration();
-  }, [cancelActiveGeneration, isCancelling, isGenerating, t]);
-
-  useEffect(() => {
-    if (!showCancelledNotice) return;
-    const timer = globalThis.setTimeout(() => setShowCancelledNotice(false), 4000);
-    return () => globalThis.clearTimeout(timer);
-  }, [showCancelledNotice]);
-
-  const handleSendPrompt = async (
-    promptText: string,
-    requestedMode = generationMode,
-    templateId?: string,
-  ) => {
-    if (!promptText.trim()) return;
-    cancelActiveGeneration();
-    const controller = new AbortController();
-    generationAbortRef.current = controller;
-    setCurrentGenerationTrace(null);
-    setLastGenerationMetrics(null);
-    setLastHtmlHealthCheck(null);
-    setShowCancelledNotice(false);
-    setIsCancelling(false);
-    setError(null);
-    setInputVal("");
-    setMessages((p) => [...p, { id: id(), sender: "user", text: promptText }]);
-    setIsGenerating(true);
-    setActiveStep(0);
-    setStepStatusText(
-      requestedMode === "build"
-        ? t("builder.status.initializingBuild")
-        : t("builder.status.starting", { mode: t(`builder.mode.${requestedMode}`) }),
-    );
-    try {
-      const prev = requestedMode === "build" ? undefined : generatedCode.trim() || undefined;
-      let useServerAi = serverAiConfigured;
-      try {
-        const status = await statusFn();
-        useServerAi = status.serverKeysConfigured;
-        setServerAiConfigured(status.serverKeysConfigured);
-      } catch {
-        // keep last known server status
-      }
-      const result = await generateBuilderCode(
-        promptText,
-        (s, status) => {
-          setActiveStep(s);
-          setStepStatusText(localizeStatus(status));
-        },
-        (args) => {
-          const { signal: _omit, ...data } = args;
-          return chatFn({ data, signal: controller.signal });
-        },
-        prev,
-        requestedMode,
-        templateId,
-        {
-          preferServerAi: useServerAi,
-          orchestrationMode,
-          qualityProfileId,
-          signal: controller.signal,
-          onTraceUpdate: (trace) => {
-            setCurrentGenerationTrace(trace);
-            setLastGenerationMetrics(createMetricsFromTrace(trace));
-          },
-          onHealthCheckUpdate: setLastHtmlHealthCheck,
-        },
-      );
-      if (result.type === "explanation") {
-        addAi(result.content);
-        return;
-      }
-      const code = result.content;
-      const online = result.via === "ai";
-      const src: OutputSource = online ? "ai" : "demo";
-      setGeneratedCode(code);
-      setPreviewAllowJs(false);
-      setOutputSource(src);
-      setGenerationMode("refine");
-      setVersions((p) => [...p, makeVersion(code, src, versionLabel(requestedMode, online))]);
-      addAi(aiReplyText(requestedMode, online));
-    } catch (err) {
-      if (isAbortError(err)) {
-        setShowCancelledNotice(true);
-        setStepStatusText(t("builder.status.cancelled"));
-        return;
-      }
-      if (isBuilderOrchestrationError(err)) {
-        const stepLabel = t(`builder.error.step.${err.step}`);
-        const detail = isTimeoutError(err.cause) ? t("builder.error.timeout") : err.message;
-        setError(`${stepLabel}: ${detail}`);
-      } else {
-        setError(err instanceof Error ? err.message : "Unexpected error.");
-      }
-      addAi(t("builder.chat.generationFailed"));
-    } finally {
-      if (generationAbortRef.current === controller) {
-        generationAbortRef.current = null;
-      }
-      setIsCancelling(false);
-      setIsGenerating(false);
-    }
-  };
-
-  const handleSelectPrompt = (p: PromptItem) => {
-    setActiveTemplateId(p.id);
-    setInputVal(p.prompt);
-    setGenerationMode("build");
-    void handleSendPrompt(p.prompt, "build", p.id);
-  };
 
   useEffect(() => {
     if (!hydrated || !startTemplateId || starterLaunchRef.current) return;
     const prompt = promptLibrary.find((item) => item.id === startTemplateId);
     if (!prompt) return;
     starterLaunchRef.current = true;
+    resetForTemplateDeepLink(prompt.category);
     handleSelectPrompt(prompt);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one-time deep link launch
   }, [hydrated, startTemplateId]);
-  const handleNewChat = () => {
-    if (isGenerating) cancelActiveGeneration();
-    setMessages([{ id: "new", sender: "ai", text: t("builder.chat.newWorkspace") }]);
-    setGeneratedCode("");
-    setPreviewAllowJs(false);
-    setOutputSource("empty");
-    setVersions([]);
-    setGenerationMode("build");
-    setInputVal("");
-    setActiveTemplateId(null);
-    setError(null);
-    setCurrentGenerationTrace(null);
-    setLastGenerationMetrics(null);
-    setLastHtmlHealthCheck(null);
-  };
-  const handleRestore = (vid: string) => {
-    const v = versions.find((x) => x.id === vid);
-    if (!v) return;
-    setGeneratedCode(v.code);
-    setOutputSource(v.source);
-    addAi(t("builder.chat.restored", { label: v.label }));
-  };
 
   const sourceLabel = (source: OutputSource) => t(`builder.source.${source}`);
   const activeTemplateTitle = activeTemplateId
@@ -529,15 +238,26 @@ export function BuilderWorkspace({ startTemplateId }: BuilderWorkspaceProps = {}
   const handlePromptSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (inputVal.trim() && !isGenerating && !isCancelling) {
+      setPreviewAllowJs(false);
       void handleSendPrompt(inputVal.trim());
     }
+  };
+
+  const onSelectPrompt = (prompt: (typeof promptLibrary)[number]) => {
+    setPreviewAllowJs(false);
+    handleSelectPrompt(prompt);
+  };
+
+  const onNewChat = () => {
+    setPreviewAllowJs(false);
+    handleNewChat();
   };
 
   const handleApplyQualityPolishFix = useCallback(() => {
     if (!generatedCode.trim() || isGenerating || isCancelling) return;
     setGenerationMode("fix");
     setInputVal(APPLE_GLASS_QUALITY_POLISH_FIX_PROMPT);
-  }, [generatedCode, isCancelling, isGenerating]);
+  }, [generatedCode, isCancelling, isGenerating, setGenerationMode, setInputVal]);
 
   return (
     <>
@@ -561,7 +281,7 @@ export function BuilderWorkspace({ startTemplateId }: BuilderWorkspaceProps = {}
             showCancelledNotice={showCancelledNotice}
             inputVal={inputVal}
             hasAiAccess={hasAiAccess}
-            onSelectPrompt={handleSelectPrompt}
+            onSelectPrompt={onSelectPrompt}
             onPreviewTab={setPreviewTab}
             onInputChange={setInputVal}
             onSubmit={handlePromptSubmit}
@@ -587,7 +307,7 @@ export function BuilderWorkspace({ startTemplateId }: BuilderWorkspaceProps = {}
               <Button
                 className="w-full"
                 size="sm"
-                onClick={handleNewChat}
+                onClick={onNewChat}
                 data-testid="builder-new-application"
               >
                 <Plus className="h-4 w-4" /> {t("builder.newApplication")}
@@ -622,7 +342,7 @@ export function BuilderWorkspace({ startTemplateId }: BuilderWorkspaceProps = {}
                 <button
                   key={p.id}
                   type="button"
-                  onClick={() => handleSelectPrompt(p)}
+                  onClick={() => onSelectPrompt(p)}
                   className="w-full rounded-lg border border-shell-border bg-shell p-2 text-left hover:border-primary/40 hover:bg-shell-hover"
                   data-testid={`builder-template-${p.id}`}
                 >
@@ -918,7 +638,11 @@ export function BuilderWorkspace({ startTemplateId }: BuilderWorkspaceProps = {}
                         onClick={() =>
                           setVersions((p) => [
                             ...p,
-                            makeVersion(generatedCode, "manual", t("builder.version.manualEdit")),
+                            makeVersionRecord(
+                              generatedCode,
+                              "manual",
+                              t("builder.version.manualEdit"),
+                            ),
                           ])
                         }
                         data-testid="builder-save-manual"

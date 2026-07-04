@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render } from "@testing-library/react";
 
 import { Toaster } from "@/components/ui/sonner";
+import { BuilderWorkspaceProvider } from "@/hooks/use-builder-workspace";
 import { LocaleProvider } from "@/hooks/use-locale";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ProjectsProvider } from "@/hooks/use-projects";
@@ -26,7 +27,14 @@ function createTestQueryClient() {
   });
 }
 
-const rootRoute = createRootRoute({ component: () => <Outlet /> });
+const rootRoute = createRootRoute({
+  component: () => (
+    <BuilderWorkspaceProvider>
+      <Outlet />
+      <Toaster />
+    </BuilderWorkspaceProvider>
+  ),
+});
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -67,7 +75,6 @@ export async function renderPageAt(path: string) {
         <ThemeProvider>
           <ProjectsProvider>
             <RouterProvider router={router} />
-            <Toaster />
           </ProjectsProvider>
         </ThemeProvider>
       </LocaleProvider>

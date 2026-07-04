@@ -9,6 +9,7 @@ import { render, type RenderOptions } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
 
 import { Toaster } from "@/components/ui/sonner";
+import { BuilderWorkspaceProvider } from "@/hooks/use-builder-workspace";
 import { LocaleProvider } from "@/hooks/use-locale";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ProjectsProvider } from "@/hooks/use-projects";
@@ -51,8 +52,12 @@ function AllProviders({
     <QueryClientProvider client={queryClient}>
       <LocaleProvider>
         <ThemeProvider>
-          <RouterContextProvider router={router}>{inner}</RouterContextProvider>
-          <Toaster />
+          <RouterContextProvider router={router}>
+            <BuilderWorkspaceProvider>
+              {inner}
+              <Toaster />
+            </BuilderWorkspaceProvider>
+          </RouterContextProvider>
         </ThemeProvider>
       </LocaleProvider>
     </QueryClientProvider>
