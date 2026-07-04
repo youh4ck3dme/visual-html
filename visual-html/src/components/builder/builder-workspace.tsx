@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import {
   AlertCircle,
   AlertTriangle,
@@ -39,7 +40,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useT } from "@/hooks/use-t";
-import { builderChat } from "@/lib/builder.functions";
+import { builderAiStatus, builderChat } from "@/lib/builder.functions";
 import {
   clearBuilderSettings,
   generateBuilderCode,
@@ -154,7 +155,8 @@ export function BuilderWorkspace() {
   const [stepStatusText, setStepStatusText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [inputVal, setInputVal] = useState("");
-  const [hasAiAccess, setHasAiAccess] = useState(false);
+  const [hasByokAccess, setHasByokAccess] = useState(false);
+  const [serverAiConfigured, setServerAiConfigured] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [previewTab, setPreviewTab] = useState<"preview" | "code">("preview");
   const [previewAllowJs, setPreviewAllowJs] = useState(false);
@@ -166,6 +168,8 @@ export function BuilderWorkspace() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatFn = useServerFn(builderChat);
+  const statusFn = useServerFn(builderAiStatus);
+  const hasAiAccess = hasByokAccess || serverAiConfigured;
   const risks = useMemo(() => scanGeneratedHtml(generatedCode), [generatedCode]);
   const previewHasJs = useMemo(() => /<script\b/i.test(generatedCode), [generatedCode]);
   const previewDoc = useMemo(
@@ -264,7 +268,10 @@ export function BuilderWorkspace() {
     setKey1(keys[0] || "");
     setKey2(keys[1] || "");
     setModel(getBuilderMistralModel());
-    setHasAiAccess(hasBuilderAiAccess());
+    setHasByokAccess(hasBuilderAiAccess());
+    void statusFn()
+      .then((status) => setServerAiConfigured(status.serverKeysConfigured))
+      .catch(() => setServerAiConfigured(false));
     setHydrated(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one-time workspace hydration
   }, []);
@@ -290,7 +297,11 @@ export function BuilderWorkspace() {
 
   const addAi = (text: string) => setMessages((p) => [...p, { id: id(), sender: "ai", text }]);
 
-  const handleSendPrompt = async (promptText: string, requestedMode = generationMode) => {
+  const handleSendPrompt = async (
+    promptText: string,
+    requestedMode = generationMode,
+    templateId?: string,
+  ) => {
     if (!promptText.trim()) return;
     setError(null);
     setInputVal("");
@@ -304,7 +315,14 @@ export function BuilderWorkspace() {
     );
     try {
       const prev = requestedMode === "build" ? undefined : generatedCode.trim() || undefined;
-      const online = hasBuilderAiAccess();
+      let useServerAi = serverAiConfigured;
+      try {
+        const status = await statusFn();
+        useServerAi = status.serverKeysConfigured;
+        setServerAiConfigured(status.serverKeysConfigured);
+      } catch {
+        // keep last known server status
+      }
       const result = await generateBuilderCode(
         promptText,
         (s, status) => {
@@ -314,12 +332,15 @@ export function BuilderWorkspace() {
         (args) => chatFn({ data: args }),
         prev,
         requestedMode,
+        templateId,
+        useServerAi,
       );
       if (result.type === "explanation") {
         addAi(result.content);
         return;
       }
       const code = result.content;
+      const online = result.via === "ai";
       const src: OutputSource = online ? "ai" : "demo";
       setGeneratedCode(code);
       setPreviewAllowJs(false);
@@ -338,7 +359,7 @@ export function BuilderWorkspace() {
   const handleSelectPrompt = (p: PromptItem) => {
     setInputVal(p.prompt);
     setGenerationMode("build");
-    void handleSendPrompt(p.prompt, "build");
+    void handleSendPrompt(p.prompt, "build", p.id);
   };
   const handleNewChat = () => {
     setMessages([{ id: "new", sender: "ai", text: t("builder.chat.newWorkspace") }]);
@@ -436,10 +457,20 @@ export function BuilderWorkspace() {
             />
             <div>
               <p className="text-[11px] font-semibold">
-                {hasAiAccess ? t("builder.byokReady") : t("builder.demoMode")}
+                {serverAiConfigured
+                  ? t("builder.serverAiReady")
+                  : hasByokAccess
+                    ? t("builder.byokReady")
+                    : t("builder.demoMode")}
               </p>
               <p className="text-[9px] text-shell-muted">
-                {hasAiAccess ? t("builder.mistralKeysSet") : t("builder.templatesOnly")}
+                {serverAiConfigured
+                  ? hasByokAccess
+                    ? t("builder.serverWithOptionalByok")
+                    : t("builder.serverKeysConfigured")
+                  : hasByokAccess
+                    ? t("builder.mistralKeysSet")
+                    : t("builder.templatesOnly")}
               </p>
             </div>
           </div>
@@ -761,6 +792,15 @@ export function BuilderWorkspace() {
             </DialogTitle>
             <DialogDescription>{t("builder.settings.description")}</DialogDescription>
           </DialogHeader>
+          <div className="rounded-lg border border-shell-border bg-shell px-3 py-2 text-[11px] text-shell-muted">
+            {serverAiConfigured
+              ? hasByokAccess
+                ? t("builder.settings.statusServerWithByok")
+                : t("builder.settings.statusServer")
+              : hasByokAccess
+                ? t("builder.settings.statusByok")
+                : t("builder.settings.statusDemo")}
+          </div>
           <div className="space-y-3">
             <div className="space-y-1.5">
               <Label htmlFor="k1">{t("builder.settings.key1")}</Label>
@@ -815,7 +855,7 @@ export function BuilderWorkspace() {
                 clearBuilderSettings();
                 setKey1("");
                 setKey2("");
-                setHasAiAccess(false);
+                setHasByokAccess(false);
               }}
             >
               <Trash2 className="h-4 w-4" />
@@ -826,9 +866,14 @@ export function BuilderWorkspace() {
             <Button
               type="button"
               onClick={() => {
+                if (!key1.trim()) {
+                  toast.error(t("builder.settings.saveMissingKey"));
+                  return;
+                }
                 saveBuilderSettings({ key1, key2, model });
-                setHasAiAccess(hasBuilderAiAccess());
+                setHasByokAccess(hasBuilderAiAccess());
                 setSettingsOpen(false);
+                toast.success(t("builder.settings.saveSuccess"));
               }}
               data-testid="builder-settings-save"
             >

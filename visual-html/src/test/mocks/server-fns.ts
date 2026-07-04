@@ -12,6 +12,7 @@ type ServerFnMockBag = {
   refineHtml: Mock;
   continueHtml: Mock;
   builderChat: Mock;
+  builderAiStatus: Mock;
 };
 
 function requireMocks(): ServerFnMockBag {
@@ -39,6 +40,9 @@ export function applyDefaultServerFnMocks(mocks: ServerFnMockBag): void {
 
   mocks.builderChat.mockReset();
   mocks.builderChat.mockResolvedValue({ ok: true, content: DEFAULT_BUILDER_HTML });
+
+  mocks.builderAiStatus.mockReset();
+  mocks.builderAiStatus.mockResolvedValue({ serverKeysConfigured: false });
 }
 
 export function resetServerFnMocks(): void {

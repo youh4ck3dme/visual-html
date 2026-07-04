@@ -6,6 +6,7 @@ import { memoryGamePrompt } from "./memoryGame";
 import { pomodoroTimerPrompt } from "./pomodoroTimer";
 import { photoPortfolioPrompt } from "./photoPortfolio";
 import { kanbanBoardPrompt } from "./kanbanBoard";
+import { wordpressLandingPrompt } from "./wordpressLanding";
 
 export type { PromptCategory, PromptItem } from "./types";
 export { promptCategories };
@@ -17,4 +18,5 @@ export const promptLibrary: PromptItem[] = [
   pomodoroTimerPrompt,
   photoPortfolioPrompt,
   kanbanBoardPrompt,
+  wordpressLandingPrompt,
 ];

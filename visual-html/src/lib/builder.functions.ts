@@ -12,9 +12,20 @@ const builderChatSchema = z.object({
 
 export type BuilderChatResult = { ok: true; content: string } | { ok: false; message: string };
 
+export type BuilderAiStatusResult = {
+  serverKeysConfigured: boolean;
+};
+
 function getClientIp(): string {
   return getRequestIP({ xForwardedFor: true }) ?? "unknown";
 }
+
+export const builderAiStatus = createServerFn({ method: "POST" }).handler(
+  async (): Promise<BuilderAiStatusResult> => {
+    const { getMistralKeyPool } = await import("@/lib/ai/mistral-keys");
+    return { serverKeysConfigured: getMistralKeyPool("chat").length > 0 };
+  },
+);
 
 export const builderChat = createServerFn({ method: "POST" })
   .validator((input: unknown) => builderChatSchema.parse(input))

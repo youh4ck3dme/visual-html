@@ -10,6 +10,7 @@ const promptMatchRules: Array<{ id: string; keywords: string[] }> = [
   { id: "pomodoro-timer", keywords: ["pomodoro", "timer"] },
   { id: "photo-portfolio", keywords: ["photo", "gallery"] },
   { id: "kanban-board", keywords: ["kanban", "task"] },
+  { id: "wordpress-landing", keywords: ["wordpress", "landing", "marketing"] },
 ];
 
 export function getPromptMock(promptText: string): string {

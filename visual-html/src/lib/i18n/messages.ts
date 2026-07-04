@@ -358,8 +358,11 @@ export const messages = {
     "builder.categories": "Categories",
     "builder.starterTemplates": "Starter Templates",
     "builder.byokReady": "BYOK Ready",
+    "builder.serverAiReady": "Server AI ready",
     "builder.demoMode": "Demo Mode",
     "builder.mistralKeysSet": "Mistral keys set",
+    "builder.serverKeysConfigured": "MISTRAL_API_KEY from server env",
+    "builder.serverWithOptionalByok": "Server env active — browser BYOK is optional",
     "builder.templatesOnly": "Templates only",
     "builder.settingsAria": "Settings",
     "builder.workspaceTitle": "Workspace Studio",
@@ -421,6 +424,9 @@ export const messages = {
     "builder.template.kanban-board.title": "Flow Kanban Task Board",
     "builder.template.kanban-board.description":
       "A workspace tracker with drag-like button moves, dynamic task creation, and responsive layout.",
+    "builder.template.wordpress-landing.title": "WordPress Marketing Landing",
+    "builder.template.wordpress-landing.description":
+      "Semantic WordPress-style page with header nav, hero CTA, feature blocks, testimonial strip, and footer menu.",
 
     // Builder steps & status
     "builder.step.connect": "Connect & analyze",
@@ -465,7 +471,16 @@ export const messages = {
     // Builder settings dialog
     "builder.settings.title": "Mistral BYOK",
     "builder.settings.description":
-      "Keys stored in localStorage. Server keys also work when configured.",
+      "Optional browser keys (BYOK). If MISTRAL_API_KEY is in .env.local, server AI is used automatically.",
+    "builder.settings.statusByok": "BYOK keys active in this browser.",
+    "builder.settings.statusServer":
+      "Server AI is active from .env.local — BYOK in this dialog is optional.",
+    "builder.settings.statusServerWithByok":
+      "Server AI from .env.local is used first. Clear invalid BYOK keys below to avoid 401 errors.",
+    "builder.settings.statusDemo":
+      "No AI keys detected. Add MISTRAL_API_KEY to .env.local or paste a Mistral key below.",
+    "builder.settings.saveSuccess": "Mistral keys saved for this browser.",
+    "builder.settings.saveMissingKey": "Enter API Key 1 before saving.",
     "builder.settings.key1": "API Key 1",
     "builder.settings.key2": "API Key 2 (fallback)",
     "builder.settings.key2Hint": "Used if Key 1 fails.",
@@ -994,8 +1009,11 @@ export const messages = {
     "builder.categories": "Kategórie",
     "builder.starterTemplates": "Štartovacie šablóny",
     "builder.byokReady": "BYOK pripravené",
+    "builder.serverAiReady": "Serverové AI pripravené",
     "builder.demoMode": "Demo režim",
     "builder.mistralKeysSet": "Mistral kľúče nastavené",
+    "builder.serverKeysConfigured": "MISTRAL_API_KEY zo server env",
+    "builder.serverWithOptionalByok": "Server env aktívne — BYOK v prehliadači je voliteľné",
     "builder.templatesOnly": "Len šablóny",
     "builder.settingsAria": "Nastavenia",
     "builder.workspaceTitle": "Workspace Studio",
@@ -1057,6 +1075,9 @@ export const messages = {
     "builder.template.kanban-board.title": "Flow Kanban tabuľa",
     "builder.template.kanban-board.description":
       "Task tracker s presunom tlačidlami, tvorbou úloh a responzívnym layoutom.",
+    "builder.template.wordpress-landing.title": "WordPress marketing landing",
+    "builder.template.wordpress-landing.description":
+      "WordPress štýl so sémantickou hlavičkou, hero CTA, blokmi funkcií, testimonial pásom a footer menu.",
 
     // Builder steps & status
     "builder.step.connect": "Pripojenie a analýza",
@@ -1101,7 +1122,16 @@ export const messages = {
     // Builder settings dialog
     "builder.settings.title": "Mistral BYOK",
     "builder.settings.description":
-      "Kľúče v localStorage. Serverové kľúče fungujú tiež, ak sú nastavené.",
+      "Voliteľné kľúče v prehliadači (BYOK). Ak je MISTRAL_API_KEY v .env.local, serverové AI sa použije automaticky.",
+    "builder.settings.statusByok": "BYOK kľúče sú aktívne v tomto prehliadači.",
+    "builder.settings.statusServer":
+      "Serverové AI je aktívne z .env.local — BYOK v tomto dialógu je voliteľné.",
+    "builder.settings.statusServerWithByok":
+      "Serverové AI z .env.local sa používa ako prvé. Vymažte neplatné BYOK kľúče nižšie, aby ste predišli chybám 401.",
+    "builder.settings.statusDemo":
+      "Nenašli sa žiadne AI kľúče. Pridajte MISTRAL_API_KEY do .env.local alebo vložte Mistral kľúč nižšie.",
+    "builder.settings.saveSuccess": "Mistral kľúče uložené pre tento prehliadač.",
+    "builder.settings.saveMissingKey": "Pred uložením zadajte API kľúč 1.",
     "builder.settings.key1": "API kľúč 1",
     "builder.settings.key2": "API kľúč 2 (záložný)",
     "builder.settings.key2Hint": "Použije sa, ak kľúč 1 zlyhá.",

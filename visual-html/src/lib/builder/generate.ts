@@ -1,12 +1,17 @@
+import { promptLibrary } from "@/lib/builder";
 import { getPromptMock } from "@/lib/builder/prompt-library";
 import type { GenerationMode } from "@/types/builder";
 
+export type BuilderGenerateVia = "ai" | "offline";
+
 export type BuilderGenerateResult =
-  { type: "code"; content: string } | { type: "explanation"; content: string };
+  | { type: "code"; content: string; via: BuilderGenerateVia }
+  | { type: "explanation"; content: string; via: BuilderGenerateVia };
 
 const BUILDER_MISTRAL_KEY_1 = "builder_mistral_api_key_1";
 const BUILDER_MISTRAL_KEY_2 = "builder_mistral_api_key_2";
 const BUILDER_MISTRAL_MODEL = "builder_mistral_model";
+const BUILDER_MAX_TOKENS = 8000;
 
 const modeLabels: Record<GenerationMode, string> = {
   build: "Building a new app...",
@@ -15,11 +20,15 @@ const modeLabels: Record<GenerationMode, string> = {
   explain: "Reading current app for explanation...",
 };
 
+export function sanitizeBuilderApiKey(key: string): string {
+  return key.trim().replace(/^["']+|["']+$/g, "");
+}
+
 export function getBuilderMistralKeys(): string[] {
   if (typeof window === "undefined") return [];
   return [
-    localStorage.getItem(BUILDER_MISTRAL_KEY_1)?.trim(),
-    localStorage.getItem(BUILDER_MISTRAL_KEY_2)?.trim(),
+    sanitizeBuilderApiKey(localStorage.getItem(BUILDER_MISTRAL_KEY_1) ?? ""),
+    sanitizeBuilderApiKey(localStorage.getItem(BUILDER_MISTRAL_KEY_2) ?? ""),
   ].filter((key): key is string => Boolean(key));
 }
 
@@ -33,8 +42,8 @@ export function hasBuilderAiAccess(): boolean {
 }
 
 export function saveBuilderSettings(keys: { key1: string; key2: string; model: string }) {
-  localStorage.setItem(BUILDER_MISTRAL_KEY_1, keys.key1.trim());
-  localStorage.setItem(BUILDER_MISTRAL_KEY_2, keys.key2.trim());
+  localStorage.setItem(BUILDER_MISTRAL_KEY_1, sanitizeBuilderApiKey(keys.key1));
+  localStorage.setItem(BUILDER_MISTRAL_KEY_2, sanitizeBuilderApiKey(keys.key2));
   localStorage.setItem(BUILDER_MISTRAL_MODEL, keys.model.trim() || "mistral-large-latest");
 }
 
@@ -52,14 +61,28 @@ type ServerChat = (args: {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const codeSystemPrompt = `You are a world-class frontend web developer.
-Build a single-file, highly functional, visually stunning web page/application.
-Use modern dark aesthetics, glassmorphic cards, responsive layout, rich interactions.
-All CSS in <style>, all JS in <script>. NO placeholders — complete mock data and mechanics.
+Build exactly what the user asks for in one self-contained HTML file.
+Use semantic HTML, accessible patterns, and responsive CSS in a <style> block.
+Put interactivity in a <script> block when needed. Use complete realistic content — no placeholder filler.
+Honor the requested visual style (light marketing pages, dark apps, games, dashboards, etc.) — do not force a theme the user did not ask for.
 If existing HTML is provided, modify it per the request while preserving unrelated features.
-Output ONLY raw HTML starting with <!DOCTYPE html>. No markdown fences.`;
+Output ONLY raw HTML starting with <!DOCTYPE html>. No markdown fences, no commentary.`;
 
 const explainSystemPrompt = `You are a concise frontend code reviewer.
 Explain the provided single-file HTML app clearly. Do not rewrite code or output HTML.`;
+
+export function enrichBuildPrompt(promptText: string, templateId?: string): string {
+  if (!templateId) return promptText.trim();
+  const template = promptLibrary.find((item) => item.id === templateId);
+  if (!template) return promptText.trim();
+
+  return `${template.prompt.trim()}
+
+Starter template: "${template.title}".
+Deliver a complete, production-quality single-file page that fulfills the description above.
+Include realistic copy, working UI mechanics, and polished styling appropriate to this template.
+Do not return a generic placeholder card or unrelated layout.`;
+}
 
 function normalizeGeneratedHtml(rawCode: string): string {
   let code = rawCode.trim();
@@ -71,6 +94,15 @@ function normalizeGeneratedHtml(rawCode: string): string {
     code = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Generated App</title></head><body>${code}</body></html>`;
   }
   return code;
+}
+
+async function readMistralError(response: Response): Promise<string> {
+  try {
+    const body = (await response.json()) as { message?: string; error?: { message?: string } };
+    return body.message || body.error?.message || response.statusText || `HTTP ${response.status}`;
+  } catch {
+    return response.statusText || `HTTP ${response.status}`;
+  }
 }
 
 async function generateWithMistralBrowser(
@@ -92,6 +124,7 @@ async function generateWithMistralBrowser(
         body: JSON.stringify({
           model: modelName,
           temperature: 0.2,
+          max_tokens: BUILDER_MAX_TOKENS,
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
@@ -99,19 +132,84 @@ async function generateWithMistralBrowser(
         }),
       });
       if (!response.ok) {
-        throw new Error(`Mistral key ${index + 1} failed: ${response.status}`);
+        const detail = await readMistralError(response);
+        throw new Error(`Mistral key ${index + 1} failed (${response.status}): ${detail}`);
       }
       const data = (await response.json()) as {
         choices?: Array<{ message?: { content?: string } }>;
       };
       const content = data.choices?.[0]?.message?.content;
-      if (!content) throw new Error("Empty Mistral response");
+      if (!content?.trim()) throw new Error("Empty Mistral response");
       return content;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error("Mistral API error");
     }
   }
   throw lastError || new Error("No browser Mistral keys configured");
+}
+
+async function generateWithServer(
+  serverChat: ServerChat,
+  systemPrompt: string,
+  userPrompt: string,
+): Promise<string> {
+  const result = await serverChat({
+    systemPrompt,
+    userPrompt,
+    model: getBuilderMistralModel(),
+  });
+  if (!result.ok) {
+    throw new Error(result.message);
+  }
+  if (!result.content.trim()) {
+    throw new Error("Empty server AI response");
+  }
+  return result.content;
+}
+
+async function generateWithAi(
+  systemPrompt: string,
+  userPrompt: string,
+  serverChat: ServerChat,
+  preferServerAi = false,
+): Promise<string> {
+  const errors: string[] = [];
+  const hasBrowserKeys = getBuilderMistralKeys().length > 0;
+
+  if (preferServerAi) {
+    try {
+      return await generateWithServer(serverChat, systemPrompt, userPrompt);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Server Mistral failed";
+      throw new Error(
+        `Server AI failed. Check MISTRAL_API_KEY in visual-html/.env.local and restart npm run dev. ${message}`,
+      );
+    }
+  }
+
+  const attempts: Array<() => Promise<string>> = [
+    () => generateWithServer(serverChat, systemPrompt, userPrompt),
+    ...(hasBrowserKeys
+      ? [() => generateWithMistralBrowser(systemPrompt, userPrompt)]
+      : []),
+  ];
+
+  for (const attempt of attempts) {
+    try {
+      return await attempt();
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : "AI request failed");
+    }
+  }
+
+  const hasUnauthorized = errors.some((message) => /401|unauthorized/i.test(message));
+  if (hasUnauthorized) {
+    throw new Error(
+      `Mistral API key rejected (401 Unauthorized). Use a valid key from console.mistral.ai in Settings or set MISTRAL_API_KEY in .env.local. ${errors.join(" | ")}`,
+    );
+  }
+
+  throw new Error(errors.join(" | "));
 }
 
 async function runOfflineDemo(
@@ -124,6 +222,7 @@ async function runOfflineDemo(
     onStepChange(4, "Explanation ready.");
     return {
       type: "explanation",
+      via: "offline",
       content: hasExistingCode
         ? "Demo mode: standalone HTML in sandbox. Add BYOK Mistral keys or configure server keys for AI."
         : "No app to explain yet.",
@@ -135,7 +234,7 @@ async function runOfflineDemo(
   onStepChange(2, "Loading offline template...");
   await sleep(600);
   onStepChange(4, "Complete!");
-  return { type: "code", content: getPromptMock(promptText) };
+  return { type: "code", via: "offline", content: getPromptMock(promptText) };
 }
 
 export async function generateBuilderCode(
@@ -144,9 +243,12 @@ export async function generateBuilderCode(
   serverChat: ServerChat,
   previousCode?: string,
   mode: GenerationMode = previousCode?.trim() ? "refine" : "build",
+  templateId?: string,
+  preferServerAi = false,
 ): Promise<BuilderGenerateResult> {
   const hasBrowserKeys = getBuilderMistralKeys().length > 0;
   const hasExistingCode = Boolean(previousCode?.trim());
+  const effectivePrompt = enrichBuildPrompt(promptText, templateId);
 
   onStepChange(0, "Connecting...");
   await sleep(200);
@@ -156,10 +258,10 @@ export async function generateBuilderCode(
   }
 
   const userPromptByMode: Record<GenerationMode, string> = {
-    build: `Build a new standalone single-file app:\n${promptText}`,
-    refine: `Update this app:\n${promptText}\n\nExisting HTML:\n${previousCode}`,
-    fix: `Fix this app:\n${promptText}\n\nExisting HTML:\n${previousCode}`,
-    explain: `Question:\n${promptText}\n\nExisting HTML:\n${previousCode}`,
+    build: `Build a new standalone single-file app:\n${effectivePrompt}`,
+    refine: `Update this app:\n${effectivePrompt}\n\nExisting HTML:\n${previousCode}`,
+    fix: `Fix this app:\n${effectivePrompt}\n\nExisting HTML:\n${previousCode}`,
+    explain: `Question:\n${effectivePrompt}\n\nExisting HTML:\n${previousCode}`,
   };
 
   const systemPrompt = mode === "explain" ? explainSystemPrompt : codeSystemPrompt;
@@ -169,35 +271,36 @@ export async function generateBuilderCode(
     onStepChange(1, modeLabels[mode]);
     onStepChange(2, mode === "explain" ? "Preparing explanation..." : "Generating HTML...");
 
-    let responseText: string;
-    if (hasBrowserKeys) {
-      responseText = await generateWithMistralBrowser(systemPrompt, userPrompt);
-    } else {
-      const result = await serverChat({
-        systemPrompt,
-        userPrompt,
-        model: getBuilderMistralModel(),
-      });
-      if (!result.ok) throw new Error(result.message);
-      responseText = result.content;
-    }
+    const responseText = await generateWithAi(systemPrompt, userPrompt, serverChat, preferServerAi);
 
     onStepChange(3, "Finalizing...");
     await sleep(300);
 
     if (mode === "explain") {
       onStepChange(4, "Done");
-      return { type: "explanation", content: responseText.trim() || "No explanation returned." };
+      return {
+        type: "explanation",
+        via: "ai",
+        content: responseText.trim() || "No explanation returned.",
+      };
     }
 
     onStepChange(4, "Complete!");
-    return { type: "code", content: normalizeGeneratedHtml(responseText) };
+    return { type: "code", via: "ai", content: normalizeGeneratedHtml(responseText) };
   } catch (error) {
-    try {
-      return await runOfflineDemo(promptText, mode, hasExistingCode, onStepChange);
-    } catch {
-      onStepChange(4, "Failed");
-      throw error instanceof Error ? error : new Error("Builder generation failed");
+    if (!hasBrowserKeys) {
+      try {
+        return await runOfflineDemo(effectivePrompt, mode, hasExistingCode, onStepChange);
+      } catch {
+        onStepChange(4, "Failed");
+        throw error instanceof Error ? error : new Error("Builder generation failed");
+      }
     }
+
+    onStepChange(4, "Failed");
+    const message = error instanceof Error ? error.message : "Builder generation failed";
+    throw new Error(
+      `Mistral generation failed. Check your API keys, model, and network connection. ${message}`,
+    );
   }
 }

@@ -51,12 +51,21 @@ describe("buttons › builder-workspace", () => {
     },
   );
 
-  it("category Landing Pages — has no starter templates (empty library)", async () => {
+  it("category Landing Pages — shows WordPress marketing landing starter", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BuilderWorkspace />);
     await user.click(screen.getByRole("button", { name: "Landing Pages" }));
-    const templates = screen.getByText("Starter Templates").parentElement!;
-    expect(within(templates).queryAllByRole("button")).toHaveLength(0);
+    expect(screen.getByRole("button", { name: /WordPress Marketing Landing/i })).toBeInTheDocument();
+  });
+
+  it("shows Server AI ready when server env keys are configured", async () => {
+    const { builderAiStatus } = getServerFnMocks();
+    builderAiStatus.mockResolvedValueOnce({ serverKeysConfigured: true });
+    renderWithProviders(<BuilderWorkspace />);
+    await waitFor(() =>
+      expect(screen.getByText("Server AI ready")).toBeInTheDocument(),
+    );
+    expect(screen.getByText(/MISTRAL_API_KEY from server env/i)).toBeInTheDocument();
   });
 
   it("Settings — opens BYOK dialog", async () => {
