@@ -1,3 +1,5 @@
+import { APP_ICON, APP_PWA_META, appHeadLinkTags, appIconHref } from "./app-brand";
+
 export function renderErrorPage(): string {
   return `<!doctype html>
 <html lang="en">
@@ -5,13 +7,13 @@ export function renderErrorPage(): string {
     <meta charset="utf-8" />
     <title>This page didn't load</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=2" />
-    <link rel="manifest" href="/site.webmanifest?v=2" />
+    <meta name="theme-color" content="#000000" />
+${APP_PWA_META.map((meta) => `    <meta name="${meta.name}" content="${meta.content}" />`).join("\n")}
+${appHeadLinkTags()}
     <style>
       body { font: 15px/1.5 system-ui, -apple-system, sans-serif; background: #fafafa; color: #111; display: grid; place-items: center; min-height: 100vh; margin: 0; padding: 1.5rem; }
       .card { max-width: 28rem; width: 100%; text-align: center; padding: 2rem; }
+      .logo { width: 3rem; height: 3rem; border-radius: 0.5rem; object-fit: cover; box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); margin: 0 auto 1.25rem; display: block; }
       h1 { font-size: 1.25rem; margin: 0 0 0.5rem; }
       p { color: #4b5563; margin: 0 0 1.5rem; }
       .actions { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
@@ -22,6 +24,7 @@ export function renderErrorPage(): string {
   </head>
   <body>
     <div class="card">
+      <img class="logo" src="${appIconHref(APP_ICON.android512)}" width="48" height="48" alt="" aria-hidden="true" />
       <h1>This page didn't load</h1>
       <p>Something went wrong on our end. You can try refreshing or head back home.</p>
       <div class="actions">

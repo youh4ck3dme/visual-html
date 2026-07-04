@@ -153,13 +153,13 @@
   --primary-foreground: oklch(0.985 0.005 250);
   --info: oklch(0.66 0.17 255);
 
-  --shell: oklch(0.145 0.02 265);
-  --shell-sidebar: oklch(0.17 0.01 265);
-  --shell-elevated: oklch(0.21 0.01 265);
-  --shell-border: oklch(0.3 0.015 265);
+  --shell: oklch(0 0 0);
+  --shell-sidebar: oklch(0 0 0);
+  --shell-elevated: oklch(0.16 0.008 265);
+  --shell-border: oklch(1 0 0 / 0.1);
   --shell-muted: oklch(0.62 0.025 255);
   --shell-subtle: oklch(0.42 0.02 260);
-  --shell-hover: oklch(0.24 0.012 265);
+  --shell-hover: oklch(0.18 0.008 265);
   --shell-shadow: 0 8px 32px oklch(0 0 0 / 0.35);
   --shell-sidebar-shadow: 1px 0 0 oklch(0.3 0.015 265 / 0.85);
 
@@ -183,7 +183,7 @@
   --muted: oklch(0.24 0.02 265);
   --muted-foreground: var(--shell-muted);
   --accent: oklch(0.78 0.15 200);
-  --accent-foreground: oklch(0.145 0.02 265);
+  --accent-foreground: oklch(0 0 0);
   --destructive: oklch(0.68 0.22 20);
   --destructive-foreground: oklch(0.985 0.005 250);
   --border: oklch(1 0 0 / 0.12);
@@ -307,4 +307,32 @@
   border: 1px solid var(--workspace-border);
   border-radius: var(--radius-md);
   color: var(--workspace-foreground);
+}
+
+/* VibeCraft studio — subtle PCB / chip pattern inspired by app icon */
+@utility vibecraft-studio {
+  position: relative;
+  background-color: var(--shell);
+  background-image:
+    radial-gradient(ellipse 90% 55% at 50% -5%, oklch(0.72 0.11 85 / 0.1), transparent 68%),
+    radial-gradient(ellipse 70% 45% at 85% 100%, oklch(0.68 0.09 85 / 0.06), transparent 60%),
+    url("/vibecraft-circuit.svg?v=4");
+  background-size:
+    100% 100%,
+    100% 100%,
+    200px 200px;
+  background-repeat: no-repeat, no-repeat, repeat;
+  background-position: center, center, center;
+}
+
+@utility vibecraft-studio-surface {
+  background: oklch(from var(--shell) l c h / 0.78);
+  backdrop-filter: blur(6px) saturate(115%);
+  -webkit-backdrop-filter: blur(6px) saturate(115%);
+}
+
+@utility vibecraft-studio-elevated {
+  background: oklch(from var(--shell-elevated) l c h / 0.86);
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
 }
