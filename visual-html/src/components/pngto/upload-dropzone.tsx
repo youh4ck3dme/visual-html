@@ -98,7 +98,7 @@ export function UploadDropzone({
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="mt-2 inline-flex items-center rounded-md border border-workspace-border bg-workspace-surface px-3 py-1.5 text-xs font-medium text-workspace-foreground hover:bg-workspace-tabs"
+        className="mt-2 inline-flex min-h-11 items-center rounded-md border border-workspace-border bg-workspace-surface px-4 py-2 text-sm font-medium text-workspace-foreground hover:bg-workspace-tabs"
         data-testid="upload-choose-file"
       >
         {t("upload.chooseFile")}

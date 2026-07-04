@@ -62,6 +62,50 @@ visual-html/
 
 ---
 
+## Lovable editor architecture (P0–P6)
+
+Refactor tracker: `public/editor-refactor-dashboard.html` (localStorage `pngto-editor-refactor-v1`).
+
+The app is migrating from a sidebar shell (`VisualSidebar` + `AppShell`) to a **Lovable-style split editor**: fixed `h-dvh` column layout with chat on the left, live preview on the right, and a mobile stack (preview → chat → bottom prompt bar).
+
+| Phase | Focus | Key deliverables |
+| ----- | ----- | ---------------- |
+| **P0 — Editor shell** | MVP layout | `EditorLayout`, `EditorHeader`, `--editor-*` CSS tokens, desktop split (chat ~380–420px) + mobile stack |
+| **P1 — Studio mode** | Builder in split | `EditorChatPanel`, `EditorPreviewStage`, `EditorDeviceFrame`, `EditorPromptBar`, `OutputPanel` variants, `use-editor-studio.ts` |
+| **P2 — Screenshot mode** | `/` in split | `EditorModeScreenshot`, `useGenerationWorkflow`, input mode tabs, `LoadingSteps` in chat, `RefinementBox` in prompt bar, `OutputPanel variant="generation"` |
+| **P3 — Projects mode** | `/projects` in split | `EditorModeProjects`, compact `ProjectCard`, detail + `ResultTabs` in preview, open-in-editor → `/?project=id` |
+| **P4 — Console + Fix with AI** | Preview debugging | `preview-console-bridge.ts`, `EditorConsolePanel`, Fix-with-AI wired to `refineHtml` / builder chat |
+| **P5 — Model picker + polish** | Header + UX | Model dropdown in `EditorHeader`, `model-pricing.ts`, Shiki code blocks, cache layer, keyboard shortcuts |
+| **P6 — Multi-provider** | Future | Gemini stub, provider router, JSX validation stub, token usage UI |
+
+### File map
+
+```text
+src/components/editor/
+├── editor-layout.tsx          # Split shell (SettingsProvider, header, chat | preview | promptBar)
+├── editor-header.tsx          # Logo, nav tabs, model picker, locale/theme/settings
+├── editor-mode-screenshot.tsx # P2 — Screenshot workflow
+├── editor-mode-projects.tsx   # P3 — Projects list + detail
+├── editor-chat-panel.tsx      # Scrollable chat column
+├── editor-preview-stage.tsx   # Preview column wrapper
+├── editor-device-frame.tsx    # Mobile device chrome for empty preview
+├── editor-prompt-bar.tsx      # Bottom prompt / Build strip (mobile)
+└── editor-console-panel.tsx   # P4 — iframe console stream
+
+src/routes/_editor.tsx         # Pathless layout (<Outlet />); mode components own EditorLayout today
+src/pages/index-page.tsx       # → <EditorModeScreenshot projectId={…} />
+src/pages/projects-page.tsx    # → <EditorModeProjects />
+src/pages/project-detail-page.tsx # → <EditorModeProjects initialProjectId={…} />
+src/components/builder/builder-studio-view.tsx  # P1 studio UI (exported as BuilderWorkspace)
+src/hooks/use-editor-studio.ts # Builder state, orchestration, persistence
+```
+
+### Routing note
+
+`src/routes/_editor.tsx` is a **pathless layout** placeholder. Child routes are not nested under it yet — each page component renders its own `EditorLayout`. To centralize the shell, move `index.tsx`, `projects.tsx`, and `builder.tsx` under `routes/_editor/` so they inherit this layout.
+
+---
+
 ## Routy
 
 | URL | Súbor | Účel |

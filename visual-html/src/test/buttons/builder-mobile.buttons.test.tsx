@@ -6,7 +6,7 @@ import { BuilderWorkspace } from "@/components/builder/builder-workspace";
 import { promptLibrary } from "@/lib/builder/prompt-library";
 import { getServerFnMocks } from "@/test/mocks/server-fns";
 import { setMobileViewport } from "@/test/helpers/viewport";
-import { renderWithProviders } from "@/test/test-utils";
+import { renderBuilderWorkspace } from "@/test/test-utils";
 
 async function waitForMobileStudio() {
   await waitFor(() => expect(screen.getByTestId("builder-mobile-studio")).toBeInTheDocument());
@@ -36,31 +36,31 @@ describe("buttons › builder-mobile", () => {
     setMobileViewport();
   });
 
-  it("builder-settings — opens BYOK dialog", async () => {
+  it("nav-settings — opens BYOK dialog", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await waitForMobileStudio();
-    await user.click(screen.getByTestId("builder-settings"));
+    await user.click(screen.getByTestId("nav-settings"));
     expect(await screen.findByText("Mistral BYOK")).toBeInTheDocument();
   });
 
   it("builder-template-snake-game — starts generation", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await waitForMobileStudio();
     await loadSnakePreview(user);
     expect(screen.getByTitle("VibeCraft Preview")).toBeInTheDocument();
   });
 
   it("builder-send — disabled when input empty", async () => {
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await waitForMobileStudio();
     expect(screen.getByTestId("builder-send")).toBeDisabled();
   });
 
   it("builder-send — enabled with text", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await waitForMobileStudio();
     await user.type(
       screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
@@ -71,7 +71,7 @@ describe("buttons › builder-mobile", () => {
 
   it("builder-tab-preview — switches to preview tab", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await waitForMobileStudio();
     await loadSnakePreview(user);
     await user.click(screen.getByTestId("builder-tab-code"));
@@ -81,7 +81,7 @@ describe("buttons › builder-mobile", () => {
 
   it("builder-tab-code — switches to code tab", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await waitForMobileStudio();
     await loadSnakePreview(user);
     await user.click(screen.getByTestId("builder-tab-code"));
@@ -91,7 +91,7 @@ describe("buttons › builder-mobile", () => {
 
   it("Run preview — switches to preview when code exists", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await waitForMobileStudio();
     await loadSnakePreview(user);
     await user.click(screen.getByTestId("builder-tab-code"));
@@ -102,7 +102,7 @@ describe("buttons › builder-mobile", () => {
 
   it("Refresh preview — remounts preview frame", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await waitForMobileStudio();
     await loadSnakePreview(user);
     const before = screen.getByTestId("preview-frame-iframe");
@@ -111,27 +111,17 @@ describe("buttons › builder-mobile", () => {
     expect(after).not.toBe(before);
   });
 
-  it("Settings tab — opens BYOK dialog", async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<BuilderWorkspace />);
+  it("header nav — shows primary routes", async () => {
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await waitForMobileStudio();
-    await user.click(screen.getByTestId("builder-tab-settings"));
-    expect(await screen.findByText("Mistral BYOK")).toBeInTheDocument();
-  });
-
-  it("Menu — opens navigation sheet", async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<BuilderWorkspace />);
-    await waitForMobileStudio();
-    await user.click(screen.getByTestId("builder-mobile-menu-trigger"));
-    const menu = await screen.findByTestId("builder-mobile-menu");
-    expect(within(menu).getByLabelText("Projects")).toBeInTheDocument();
-    expect(within(menu).getByLabelText("VibeCraft")).toBeInTheDocument();
+    const nav = screen.getByLabelText("Application navigation");
+    expect(within(nav).getByLabelText("Projects")).toBeInTheDocument();
+    expect(within(nav).getByLabelText("Studio")).toBeInTheDocument();
   });
 
   it("View all — shows every starter template", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await waitForMobileStudio();
     await user.click(screen.getByTestId("builder-mobile-view-all"));
     for (const prompt of promptLibrary) {
@@ -140,7 +130,7 @@ describe("buttons › builder-mobile", () => {
   });
 
   it("Files tab — disabled with coming soon title", async () => {
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await waitForMobileStudio();
     const filesTab = screen.getByTestId("builder-tab-files");
     expect(filesTab).toBeDisabled();
@@ -150,7 +140,7 @@ describe("buttons › builder-mobile", () => {
   it("Copy code — copies generated HTML on code tab", async () => {
     const user = userEvent.setup();
     const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue();
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await waitForMobileStudio();
     await loadSnakePreview(user);
     await user.click(screen.getByTestId("builder-tab-code"));
@@ -162,7 +152,7 @@ describe("buttons › builder-mobile", () => {
   it("Copy code — shows toast when clipboard fails", async () => {
     const user = userEvent.setup();
     vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(new Error("denied"));
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await waitForMobileStudio();
     await loadSnakePreview(user);
     await user.click(screen.getByTestId("builder-tab-code"));
@@ -197,7 +187,7 @@ describe("buttons › builder-mobile", () => {
 
     it("shows HTML health panel on mobile after generation", async () => {
       const user = userEvent.setup();
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       await waitForMobileStudio();
       await generatePolishTriggerPage(user);
 
@@ -210,7 +200,7 @@ describe("buttons › builder-mobile", () => {
 
     it("apply polish fix — loads Fix prompt on mobile", async () => {
       const user = userEvent.setup();
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       await waitForMobileStudio();
       await generatePolishTriggerPage(user);
 
@@ -251,7 +241,7 @@ describe("buttons › builder-mobile", () => {
 
     it("shows status strip while generating", async () => {
       const user = userEvent.setup();
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       await waitForMobileStudio();
       await startHangingGeneration(user);
       expect(screen.getByTestId("builder-generation-status")).toHaveTextContent(
@@ -261,7 +251,7 @@ describe("buttons › builder-mobile", () => {
 
     it("shows Cancel generation button during generation", async () => {
       const user = userEvent.setup();
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       await waitForMobileStudio();
       await startHangingGeneration(user);
       const cancel = screen.getByTestId("builder-cancel-generation");
@@ -271,7 +261,7 @@ describe("buttons › builder-mobile", () => {
 
     it("clicking Cancel aborts generation and shows cancelled notice", async () => {
       const user = userEvent.setup();
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       await waitForMobileStudio();
       await startHangingGeneration(user);
 
@@ -293,7 +283,7 @@ describe("buttons › builder-mobile", () => {
 
     it("user can send another prompt after cancellation", async () => {
       const user = userEvent.setup();
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       await waitForMobileStudio();
       await startHangingGeneration(user);
       await user.click(screen.getByTestId("builder-cancel-generation"));
@@ -315,7 +305,7 @@ describe("buttons › builder-mobile", () => {
       builderChat.mockReset();
       builderChat.mockResolvedValue({ ok: false, message: "planner boom" });
 
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       await waitForMobileStudio();
       await user.type(
         screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
@@ -337,7 +327,7 @@ describe("buttons › builder-mobile", () => {
       builderChat.mockReset();
       builderChat.mockResolvedValue({ ok: false, message: "planner boom" });
 
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       await waitForMobileStudio();
       await user.type(
         screen.getByPlaceholderText(/Build, refine, fix, or explain/i),

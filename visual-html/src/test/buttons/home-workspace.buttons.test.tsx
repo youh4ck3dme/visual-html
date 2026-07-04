@@ -35,24 +35,8 @@ describe("buttons › home-workspace", () => {
     },
   );
 
-  it("Theme Light — click sets light theme", async () => {
-    const user = userEvent.setup();
+  it("TopCreditBar — renders credit strip", () => {
     renderWithProviders(<TopCreditBar />);
-    await user.click(screen.getByLabelText("Light"));
-    expect(localStorage.getItem("pngto-theme")).toBe("light");
-  });
-
-  it("Theme Dark — click sets dark theme", async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<TopCreditBar />);
-    await user.click(screen.getByLabelText("Dark"));
-    expect(localStorage.getItem("pngto-theme")).toBe("dark");
-  });
-
-  it("Theme System — click sets system theme", async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<TopCreditBar />);
-    await user.click(screen.getByLabelText(/System/));
-    expect(localStorage.getItem("pngto-theme")).toBe("system");
+    expect(screen.getByText(/Mistral OCR/i)).toBeInTheDocument();
   });
 });

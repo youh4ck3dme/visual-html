@@ -10,8 +10,17 @@
  * :root  = light theme
  * .dark  = dark theme
  *
- * Shell tokens (--shell-*): outer chrome (sidebar, background, marketing cards)
- * Workspace tokens (--workspace-*): inner “app window” canvas (light in :root, warm charcoal in .dark)
+ * Shell tokens (--shell-*): outer chrome (sidebar, page background, marketing cards).
+ *   Prefer shell-* for navigation, page layout, and elevated panels outside the editor canvas.
+ *
+ * Workspace tokens (--workspace-*): inner “app window” canvas (light in :root, warm charcoal in .dark).
+ *   Use workspace-* for the PNG→HTML editor surface and in-app panels that sit on the canvas.
+ *
+ * VibeCraft studio utilities (vibecraft-studio-*): builder route overlays — semi-transparent
+ *   layers on top of shell tokens with backdrop blur. vibecraft-studio-elevated maps to
+ *   shell-elevated with opacity/blur; prefer shell-elevated when blur is not needed.
+ *
+ * Shadcn aliases (--card, --border, --muted-foreground, etc.) resolve to shell tokens in both themes.
  */
 
 @theme inline {
@@ -144,6 +153,27 @@
   --sidebar-accent-foreground: var(--foreground);
   --sidebar-border: var(--shell-border);
   --sidebar-ring: var(--primary);
+
+  /* Layout — mobile bottom nav + safe area (viewport-fit=cover) */
+  --shell-nav-height: 4.5rem;
+  --shell-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --shell-mobile-nav-total: calc(var(--shell-nav-height) + var(--shell-safe-bottom));
+
+  /* Lovable-style editor chrome */
+  --editor-bg: var(--shell);
+  --editor-panel: var(--shell-elevated);
+  --editor-border: var(--shell-border);
+  --editor-accent: var(--primary);
+  --editor-fg: var(--foreground);
+  --editor-muted: var(--shell-muted);
+  --editor-hover: var(--shell-hover);
+  --editor-accent-dim: color-mix(in oklch, var(--primary) 12%, transparent);
+  --editor-chat-width: 400px;
+  --editor-chat-min: 380px;
+  --editor-chat-max: 420px;
+  --editor-header-height: 3rem;
+  --editor-safe-top: env(safe-area-inset-top, 0px);
+  --editor-safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* ── Dark theme ──────────────────────────────────────────────── */
@@ -205,6 +235,21 @@
   --sidebar-accent-foreground: oklch(0.78 0.03 255);
   --sidebar-border: var(--shell-border);
   --sidebar-ring: var(--primary);
+
+  --editor-bg: #0f0f0f;
+  --editor-panel: #161616;
+  --editor-border: rgba(255, 255, 255, 0.08);
+  --editor-accent: var(--primary);
+  --editor-fg: var(--foreground);
+  --editor-muted: var(--shell-muted);
+  --editor-hover: var(--shell-hover);
+  --editor-accent-dim: color-mix(in oklch, var(--primary) 18%, transparent);
+  --editor-chat-width: 400px;
+  --editor-chat-min: 380px;
+  --editor-chat-max: 420px;
+  --editor-header-height: 3rem;
+  --editor-safe-top: env(safe-area-inset-top, 0px);
+  --editor-safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 @layer base {
@@ -214,6 +259,7 @@
 
   html {
     color-scheme: light;
+    overflow-x: clip;
   }
 
   html.dark {
@@ -224,6 +270,7 @@
     background-color: var(--shell);
     color: var(--foreground);
     min-height: 100dvh;
+    overflow-x: clip;
   }
 
   /* Smooth theme switch — View Transitions API (when supported) */
@@ -263,6 +310,15 @@
   background-color: var(--shell);
   color: var(--foreground);
   min-height: 100dvh;
+  overflow-x: clip;
+}
+
+@utility shell-mobile-pad {
+  padding-bottom: var(--shell-mobile-nav-total);
+}
+
+@utility shell-safe-bottom {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
 }
 
 @utility shell-card {
@@ -308,7 +364,7 @@
   color: var(--workspace-foreground);
 }
 
-/* VibeCraft studio — subtle PCB / chip pattern inspired by app icon */
+/* VibeCraft studio — subtle PCB / chip pattern; elevated/surface layers alias shell tokens */
 @utility vibecraft-studio {
   position: relative;
   background-color: var(--shell);
@@ -325,13 +381,22 @@
 }
 
 @utility vibecraft-studio-surface {
+  /* shell canvas with translucency — same base as --shell */
   background: oklch(from var(--shell) l c h / 0.78);
   backdrop-filter: blur(6px) saturate(115%);
   -webkit-backdrop-filter: blur(6px) saturate(115%);
 }
 
 @utility vibecraft-studio-elevated {
+  /* shell-elevated with translucency — prefer shell-card when blur is unnecessary */
   background: oklch(from var(--shell-elevated) l c h / 0.86);
   backdrop-filter: blur(8px) saturate(120%);
   -webkit-backdrop-filter: blur(8px) saturate(120%);
+}
+
+@utility editor-layout {
+  background: var(--editor-bg);
+  color: var(--editor-fg);
+  height: 100dvh;
+  max-height: 100dvh;
 }

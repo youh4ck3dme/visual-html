@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f0f0f" />
+  <title>PNGtoHTML — Lovable Editor Refactor Dashboard</title>
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --panel: #161616;
+      --elevated: #1c1c1e;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #f4f4f5;
+      --muted: #a1a1aa;
+      --primary: #7c3aed;
+      --primary-dim: rgba(124, 58, 237, 0.2);
+      --success: #22c55e;
+      --radius: 12px;
+      --touch: 44px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { height: 100%; }
+    body {
+      min-height: 100dvh;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      font-size: 14px;
+      overflow-x: clip;
+    }
+    .app {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      padding: calc(12px + var(--safe-top)) 16px calc(16px + var(--safe-bottom));
+      max-width: 960px;
+      margin: 0 auto;
+      gap: 16px;
+    }
+    header.dash-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .brand { font-weight: 700; font-size: 1.125rem; }
+    .brand span { color: var(--primary); }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    button {
+      min-height: var(--touch);
+      padding: 0 16px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--elevated);
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    button.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    button:active { opacity: 0.85; }
+    .overall {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+    .overall-label { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+    .bar { height: 8px; background: var(--elevated); border-radius: 99px; overflow: hidden; }
+    .bar-fill { height: 100%; background: linear-gradient(90deg, var(--primary), #a78bfa); border-radius: 99px; transition: width 0.3s ease; }
+    .phase {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .phase-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 14px 16px;
+      cursor: pointer;
+      min-height: var(--touch);
+      user-select: none;
+    }
+    .phase-head:hover { background: rgba(255,255,255,0.03); }
+    .phase-title { font-weight: 600; font-size: 15px; }
+    .phase-meta { font-size: 12px; color: var(--muted); }
+    .phase-bar { margin: 0 16px 12px; }
+    .phase-body { padding: 0 16px 16px; display: none; }
+    .phase.open .phase-body { display: block; }
+    .task {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 0;
+      border-top: 1px solid var(--border);
+      min-height: var(--touch);
+    }
+    .task:first-child { border-top: none; }
+    .task input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+      margin-top: 2px;
+      accent-color: var(--primary);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .task label { flex: 1; cursor: pointer; font-size: 14px; }
+    .task.done label { color: var(--muted); text-decoration: line-through; }
+    .task-id { font-size: 11px; color: var(--primary); font-weight: 600; display: block; margin-bottom: 2px; }
+    .note {
+      width: 100%;
+      margin-top: 6px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      resize: vertical;
+      min-height: 36px;
+    }
+    footer.dash-footer { text-align: center; font-size: 12px; color: var(--muted); padding-top: 8px; }
+    @media (min-width: 640px) {
+      .app { padding-left: 24px; padding-right: 24px; }
+      button { min-height: 40px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="dash-header">
+      <div class="brand">PNGto<span>HTML</span> Refactor</div>
+      <div class="actions">
+        <button type="button" id="copyBtn">Copy progress</button>
+        <button type="button" id="resetBtn">Reset</button>
+        <button type="button" class="primary" id="expandBtn">Expand all</button>
+      </div>
+    </header>
+
+    <section class="overall">
+      <div class="overall-label">
+        <span>Celkový progress</span>
+        <span id="overallPct">0%</span>
+      </div>
+      <div class="bar"><div class="bar-fill" id="overallBar" style="width:0%"></div></div>
+    </section>
+
+    <div id="phases"></div>
+
+    <footer class="dash-footer">
+      Pin this page · localStorage: pngto-editor-refactor-v1 · Dev: /editor-refactor-dashboard.html
+    </footer>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "pngto-editor-refactor-v1";
+
+    const PHASES = [
+      {
+        id: "p0",
+        title: "P0 — Editor Shell (MVP layout)",
+        tasks: [
+          { id: "p0.1", text: "Vytvoriť editor-layout.tsx (h-dvh, flex col, overflow hidden)" },
+          { id: "p0.2", text: "Vytvoriť editor-header.tsx (logo, tabs, locale, theme, settings)" },
+          { id: "p0.3", text: "Pridať layout route _editor + Outlet" },
+          { id: "p0.4", text: "Presunúť index, builder, projects pod editor layout" },
+          { id: "p0.5", text: "Nahradiť AppShell + VisualSidebar hlavným headerom" },
+          { id: "p0.6", text: "Desktop: split chat 380–420px | preview flex-1" },
+          { id: "p0.7", text: "Mobile: stack preview 55% | chat | prompt bottom" },
+          { id: "p0.8", text: "CSS tokeny --editor-* v styles.css" },
+          { id: "p0.9", text: "Odstrániť data-studio-mode hack" },
+          { id: "p0.10", text: "Aktualizovať page-router + test selektory" },
+          { id: "p0.11", text: "typecheck + npm test green" },
+          { id: "p0.12", text: "Manuálny QA: 390px, 768px, 1440px" },
+        ],
+      },
+      {
+        id: "p1",
+        title: "P1 — Studio mode (Lovable split)",
+        tasks: [
+          { id: "p1.1", text: "Extrahovať editor-chat-panel.tsx z builder-workspace" },
+          { id: "p1.2", text: "editor-preview-stage + editor-device-frame" },
+          { id: "p1.3", text: "editor-prompt-bar (Ask PNGtoHTML + Build)" },
+          { id: "p1.4", text: "OutputPanel variant builder/mobile v preview stage" },
+          { id: "p1.5", text: "Kategórie/šablóny → collapsible alebo Sheet" },
+          { id: "p1.6", text: "Deprecate builder-mobile-studio.tsx" },
+          { id: "p1.7", text: "Hook use-editor-studio.ts" },
+          { id: "p1.8", text: "Zachovať orchestration, trace, health check" },
+          { id: "p1.9", text: "Builder button testy update" },
+          { id: "p1.10", text: "QA: prompt → preview v device frame" },
+        ],
+      },
+      {
+        id: "p2",
+        title: "P2 — Screenshot mode v split",
+        tasks: [
+          { id: "p2.1", text: "Upload/URL/Text/Import compact v chat paneli" },
+          { id: "p2.2", text: "use-generation-workflow → chat messages UI" },
+          { id: "p2.3", text: "Build button = Generate HTML" },
+          { id: "p2.4", text: "OCR/generate steps ako chat checklist" },
+          { id: "p2.5", text: "Preview vpravo cez OutputPanel generation" },
+          { id: "p2.6", text: "RefinementBox v prompt bar" },
+          { id: "p2.7", text: "Odstrániť starý vertikálny layout z index-page" },
+          { id: "p2.8", text: "QA: upload → generate → preview" },
+        ],
+      },
+      {
+        id: "p3",
+        title: "P3 — Projects mode v split",
+        tasks: [
+          { id: "p3.1", text: "List v ľavom paneli (ProjectCard compact)" },
+          { id: "p3.2", text: "Detail v preview stage — merge project-detail" },
+          { id: "p3.3", text: "Open in editor → Screenshot + ?project=id" },
+          { id: "p3.4", text: "Zmazať full-page detail feel" },
+          { id: "p3.5", text: "Projects testy update" },
+          { id: "p3.6", text: "QA: list → preview → editor round-trip" },
+        ],
+      },
+      {
+        id: "p4",
+        title: "P4 — Konzola + Fix with AI",
+        tasks: [
+          { id: "p4.1", text: "lib/preview-console-bridge.ts inject + postMessage" },
+          { id: "p4.2", text: "PreviewFrame listener" },
+          { id: "p4.3", text: "editor-console-panel.tsx" },
+          { id: "p4.4", text: "Fix with AI → builderChat / refineHtml" },
+          { id: "p4.5", text: "Len pri allowJs" },
+          { id: "p4.6", text: "Unit test postMessage" },
+          { id: "p4.7", text: "QA: console.error → Fix" },
+        ],
+      },
+      {
+        id: "p5",
+        title: "P5 — Model picker + polish",
+        tasks: [
+          { id: "p5.1", text: "Model dropdown v headeri (sync Settings)" },
+          { id: "p5.2", text: "lib/ai/model-pricing.ts" },
+          { id: "p5.3", text: "Shiki upgrade code-block.tsx" },
+          { id: "p5.4", text: "SHA-256 cache layer (voliteľné)" },
+          { id: "p5.5", text: "Animácie, empty states, keyboard shortcuts" },
+          { id: "p5.6", text: "npm run test:integrity:fast" },
+        ],
+      },
+      {
+        id: "p6",
+        title: "P6 — Multi-provider / budúcnosť",
+        tasks: [
+          { id: "p6.1", text: "Gemini provider stub" },
+          { id: "p6.2", text: "Edge routing Mistral/Gemini" },
+          { id: "p6.3", text: "JSX validation acorn-jsx" },
+          { id: "p6.4", text: "Token usage tracking UI" },
+          { id: "p6.5", text: "Dokumentácia DEVELOPER.md" },
+        ],
+      },
+    ];
+
+    function loadState() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      } catch {
+        return {};
+      }
+    }
+
+    function saveState(state) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    let state = loadState();
+
+    function allTasks() {
+      return PHASES.flatMap((p) => p.tasks.map((t) => ({ ...t, phaseId: p.id })));
+    }
+
+    function countDone() {
+      const tasks = allTasks();
+      const done = tasks.filter((t) => state.checked?.[t.id]).length;
+      return { done, total: tasks.length };
+    }
+
+    function updateProgress() {
+      const { done, total } = countDone();
+      const pct = total ? Math.round((done / total) * 100) : 0;
+      document.getElementById("overallPct").textContent = `${pct}% (${done}/${total})`;
+      document.getElementById("overallBar").style.width = `${pct}%`;
+
+      PHASES.forEach((phase) => {
+        const phaseTasks = phase.tasks;
+        const phaseDone = phaseTasks.filter((t) => state.checked?.[t.id]).length;
+        const phasePct = phaseTasks.length ? Math.round((phaseDone / phaseTasks.length) * 100) : 0;
+        const el = document.querySelector(`[data-phase-bar="${phase.id}"]`);
+        const meta = document.querySelector(`[data-phase-meta="${phase.id}"]`);
+        if (el) el.style.width = `${phasePct}%`;
+        if (meta) meta.textContent = `${phaseDone}/${phaseTasks.length} · ${phasePct}%`;
+      });
+    }
+
+    function render() {
+      const container = document.getElementById("phases");
+      container.innerHTML = PHASES.map(
+        (phase) => `
+        <section class="phase ${state.open?.[phase.id] !== false ? "open" : ""}" data-phase="${phase.id}">
+          <div class="phase-head" data-toggle="${phase.id}">
+            <div>
+              <div class="phase-title">${phase.title}</div>
+              <div class="phase-meta" data-phase-meta="${phase.id}"></div>
+            </div>
+            <span aria-hidden="true">▼</span>
+          </div>
+          <div class="phase-bar bar"><div class="bar-fill" data-phase-bar="${phase.id}" style="width:0%"></div></div>
+          <div class="phase-body">
+            ${phase.tasks
+              .map(
+                (task) => `
+              <div class="task ${state.checked?.[task.id] ? "done" : ""}" data-task="${task.id}">
+                <input type="checkbox" id="${task.id}" ${state.checked?.[task.id] ? "checked" : ""} />
+                <label for="${task.id}">
+                  <span class="task-id">${task.id}</span>
+                  ${task.text}
+                  <textarea class="note" data-note="${task.id}" placeholder="Poznámka / QA…" rows="1">${state.notes?.[task.id] || ""}</textarea>
+                </label>
+              </div>`,
+              )
+              .join("")}
+          </div>
+        </section>`,
+      ).join("");
+
+      container.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+        cb.addEventListener("change", () => {
+          state.checked = state.checked || {};
+          state.checked[cb.id] = cb.checked;
+          saveState(state);
+          cb.closest(".task").classList.toggle("done", cb.checked);
+          updateProgress();
+        });
+      });
+
+      container.querySelectorAll(".note").forEach((ta) => {
+        ta.addEventListener("input", () => {
+          state.notes = state.notes || {};
+          state.notes[ta.dataset.note] = ta.value;
+          saveState(state);
+        });
+      });
+
+      container.querySelectorAll("[data-toggle]").forEach((head) => {
+        head.addEventListener("click", (e) => {
+          if (e.target.closest(".note")) return;
+          const id = head.dataset.toggle;
+          state.open = state.open || {};
+          const section = head.closest(".phase");
+          const isOpen = section.classList.toggle("open");
+          state.open[id] = isOpen;
+          saveState(state);
+        });
+      });
+
+      updateProgress();
+    }
+
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      if (!confirm("Resetovať všetok progress?")) return;
+      state = { checked: {}, notes: {}, open: {} };
+      saveState(state);
+      render();
+    });
+
+    document.getElementById("expandBtn").addEventListener("click", () => {
+      const allOpen = PHASES.every((p) => state.open?.[p.id] !== false);
+      state.open = {};
+      PHASES.forEach((p) => {
+        state.open[p.id] = !allOpen;
+      });
+      saveState(state);
+      render();
+      document.getElementById("expandBtn").textContent = allOpen ? "Expand all" : "Collapse all";
+    });
+
+    document.getElementById("copyBtn").addEventListener("click", async () => {
+      const lines = ["# PNGtoHTML Editor Refactor Progress\n"];
+      PHASES.forEach((phase) => {
+        lines.push(`## ${phase.title}`);
+        phase.tasks.forEach((t) => {
+          const mark = state.checked?.[t.id] ? "x" : " ";
+          const note = state.notes?.[t.id] ? ` — ${state.notes[t.id]}` : "";
+          lines.push(`- [${mark}] ${t.id} ${t.text}${note}`);
+        });
+        lines.push("");
+      });
+      const { done, total } = countDone();
+      lines.push(`**${Math.round((done / total) * 100)}%** (${done}/${total})`);
+      try {
+        await navigator.clipboard.writeText(lines.join("\n"));
+        alert("Skopírované do schránky");
+      } catch {
+        prompt("Copy:", lines.join("\n"));
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>

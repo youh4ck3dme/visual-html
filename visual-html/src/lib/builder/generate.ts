@@ -148,6 +148,11 @@ export function getBuilderMistralModel(): string {
   return localStorage.getItem(BUILDER_MISTRAL_MODEL) || "mistral-large-latest";
 }
 
+export function saveBuilderModel(model: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(BUILDER_MISTRAL_MODEL, model.trim() || "mistral-large-latest");
+}
+
 export function hasBuilderAiAccess(): boolean {
   return getBuilderMistralKeys().length > 0;
 }

@@ -15,8 +15,11 @@ import {
   type ServerResult,
 } from "@/lib/generate.functions";
 import { createApiError, createSensor } from "@/lib/generation-diagnostics";
+import {
+  GENERATION_DEFAULTS_CHANGE_EVENT,
+  loadGenerationDefaults,
+} from "@/lib/generation-defaults";
 import { messages } from "@/lib/i18n/messages";
-import type { Locale } from "@/lib/locale";
 import type { SavedProject } from "@/types/project";
 import type {
   ApiError,
@@ -25,17 +28,7 @@ import type {
   GenerateHtmlResult,
 } from "@/types/generation";
 
-export function createDefaultGenerationOptions(locale: Locale = "en"): GenerationOptions {
-  return {
-    outputMode: "static",
-    stylingMode: "vanilla-css",
-    responsiveness: "adaptive",
-    accessibilityLevel: "strict",
-    additionalInstructions: messages[locale]["options.defaultInstructions"],
-  };
-}
-
-export const DEFAULT_GENERATION_OPTIONS = createDefaultGenerationOptions("en");
+export { createDefaultGenerationOptions, DEFAULT_GENERATION_OPTIONS } from "@/lib/generation-defaults";
 
 type RetryAction = "generate" | "continue" | "refine";
 
@@ -70,7 +63,7 @@ export function useGenerationWorkflow(projectIdFromUrl?: string): UseGenerationW
   const [loadedProject, setLoadedProject] = useState<SavedProject | null>(null);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [options, setOptions] = useState<GenerationOptions>(() =>
-    createDefaultGenerationOptions(locale),
+    loadGenerationDefaults(locale),
   );
   const [result, setResult] = useState<GenerateHtmlResult | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
@@ -96,6 +89,12 @@ export function useGenerationWorkflow(projectIdFromUrl?: string): UseGenerationW
       }
       return prev;
     });
+  }, [locale]);
+
+  useEffect(() => {
+    const syncDefaults = () => setOptions(loadGenerationDefaults(locale));
+    window.addEventListener(GENERATION_DEFAULTS_CHANGE_EVENT, syncDefaults);
+    return () => window.removeEventListener(GENERATION_DEFAULTS_CHANGE_EVENT, syncDefaults);
   }, [locale]);
 
   useEffect(() => {

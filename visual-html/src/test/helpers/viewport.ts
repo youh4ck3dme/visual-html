@@ -30,7 +30,13 @@ export function setMobileViewport() {
       if (/\(\s*max-width:\s*767px\s*\)/.test(query)) {
         return createMatchMedia(true);
       }
+      if (/\(\s*max-width:\s*1023px\s*\)/.test(query)) {
+        return createMatchMedia(true);
+      }
       if (/\(\s*min-width:\s*768px\s*\)/.test(query)) {
+        return createMatchMedia(false);
+      }
+      if (/\(\s*min-width:\s*1024px\s*\)/.test(query)) {
         return createMatchMedia(false);
       }
       return createMatchMedia(false);

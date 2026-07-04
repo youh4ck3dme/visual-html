@@ -9,6 +9,8 @@ import { render, type RenderOptions } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
 
 import { Toaster } from "@/components/ui/sonner";
+import { SettingsDialog } from "@/components/app/settings-dialog";
+import { SettingsProvider } from "@/components/app/settings-context";
 import { LocaleProvider } from "@/hooks/use-locale";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ProjectsProvider } from "@/hooks/use-projects";
@@ -69,4 +71,14 @@ export function renderWithProviders(ui: ReactElement, options?: RenderOptions & 
     ),
     ...renderOptions,
   });
+}
+
+export function renderBuilderWorkspace(ui: ReactElement, options?: RenderOptions & WrapperOptions) {
+  return renderWithProviders(
+    <SettingsProvider>
+      {ui}
+      <SettingsDialog />
+    </SettingsProvider>,
+    options,
+  );
 }
