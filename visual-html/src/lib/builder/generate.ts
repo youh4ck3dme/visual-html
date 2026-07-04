@@ -1,8 +1,63 @@
-import { promptLibrary } from "@/lib/builder";
-import { getPromptMock } from "@/lib/builder/prompt-library";
+import { enrichBuildPrompt, getPromptMock } from "@/lib/builder/prompt-library";
+import {
+  builderSystemPrompt,
+  codeSystemPrompt,
+  explainSystemPrompt,
+  judgeSystemPrompt,
+  plannerSystemPrompt,
+  reviewerSystemPrompt,
+} from "@/lib/builder/prompts";
+import {
+  createBuilderGenerationTrace,
+  emitTraceUpdate,
+  finalizeBuilderGenerationTrace,
+  markTraceStepFallbackUsed,
+  markTraceStepSkipped,
+  type BuilderGenerationTrace,
+  type BuilderTraceContext,
+} from "@/lib/builder/generation-trace";
+import {
+  abortableSleep,
+  BuilderOrchestrationError,
+  isAbortError,
+  isBuilderOrchestrationError,
+  isFallbackSafeError,
+  isTimeoutError,
+  runBuilderStep,
+} from "@/lib/builder/orchestration-error";
+import {
+  createMetricsFromTrace,
+  type BuilderGenerationMetrics,
+} from "@/lib/builder/generation-metrics";
+import { runHtmlHealthCheck, type HtmlHealthCheckResult } from "@/lib/builder/html-health-check";
+import {
+  getBuilderQualityProfileId,
+  resolveBuilderQualityProfile,
+  type BuilderQualityProfile,
+  type BuilderQualityProfileId,
+} from "@/lib/builder/quality-profiles";
+import { getStepTimeoutMs } from "@/lib/builder/step-timeout";
+export {
+  BuilderGenerationAbortedError,
+  BuilderOrchestrationError,
+  BuilderStepTimeoutError,
+  isAbortError,
+  isBuilderOrchestrationError,
+  isFallbackSafeError,
+  isTimeoutError,
+  type BuilderGenerationStep,
+} from "@/lib/builder/orchestration-error";
+import {
+  getBuilderOrchestrationMode,
+  type BuilderOrchestrationMode,
+} from "@/lib/builder/orchestration-mode";
 import type { GenerationMode } from "@/types/builder";
 
+export type { BuilderOrchestrationMode } from "@/lib/builder/orchestration-mode";
+
 export type BuilderGenerateVia = "ai" | "offline";
+export type MistralKeySlot = "primary" | "secondary" | "auto";
+export type AiRole = "planner" | "builder" | "reviewer" | "judge" | "explainer" | "fast";
 
 export type BuilderGenerateResult =
   | { type: "code"; content: string; via: BuilderGenerateVia }
@@ -13,11 +68,67 @@ const BUILDER_MISTRAL_KEY_2 = "builder_mistral_api_key_2";
 const BUILDER_MISTRAL_MODEL = "builder_mistral_model";
 const BUILDER_MAX_TOKENS = 8000;
 
+export type GenerateBuilderCodeOptions = {
+  preferServerAi?: boolean;
+  orchestrationMode?: BuilderOrchestrationMode;
+  signal?: AbortSignal;
+  onTraceUpdate?: (trace: BuilderGenerationTrace) => void;
+  onMetricsUpdate?: (metrics: BuilderGenerationMetrics) => void;
+  onHealthCheckUpdate?: (result: HtmlHealthCheckResult) => void;
+  qualityProfileId?: BuilderQualityProfileId;
+};
+
+export type {
+  BuilderQualityProfile,
+  BuilderQualityProfileId,
+} from "@/lib/builder/quality-profiles";
+export { enrichBuildPrompt } from "@/lib/builder/prompt-library";
+
+export type {
+  BuilderGenerationMetrics,
+  BuilderStepMetrics,
+} from "@/lib/builder/generation-metrics";
+export type {
+  HtmlHealthCategory,
+  HtmlHealthCheckResult,
+  HtmlHealthFinding,
+  HtmlHealthSeverity,
+} from "@/lib/builder/html-health-check";
+
+export type {
+  BuilderGenerationTrace,
+  BuilderTraceStep,
+  BuilderTraceStepId,
+  BuilderTraceStepStatus,
+} from "@/lib/builder/generation-trace";
+
 const modeLabels: Record<GenerationMode, string> = {
   build: "Building a new app...",
   refine: "Preparing current app for refinement...",
   fix: "Inspecting current app for targeted fixes...",
   explain: "Reading current app for explanation...",
+};
+
+type GenerateAiOptions = {
+  keySlot?: MistralKeySlot;
+  role?: AiRole;
+  jsonMode?: boolean;
+  signal?: AbortSignal;
+};
+
+type ServerChat = (args: {
+  systemPrompt: string;
+  userPrompt: string;
+  model?: string;
+  keySlot?: MistralKeySlot;
+  jsonMode?: boolean;
+  signal?: AbortSignal;
+}) => Promise<{ ok: true; content: string } | { ok: false; message: string }>;
+
+type JudgeResult = {
+  winner: "A" | "B";
+  reason: string;
+  repairInstructions: string[];
 };
 
 export function sanitizeBuilderApiKey(key: string): string {
@@ -52,36 +163,12 @@ export function clearBuilderSettings() {
   localStorage.removeItem(BUILDER_MISTRAL_KEY_2);
 }
 
-type ServerChat = (args: {
-  systemPrompt: string;
-  userPrompt: string;
-  model?: string;
-}) => Promise<{ ok: true; content: string } | { ok: false; message: string }>;
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const codeSystemPrompt = `You are a world-class frontend web developer.
-Build exactly what the user asks for in one self-contained HTML file.
-Use semantic HTML, accessible patterns, and responsive CSS in a <style> block.
-Put interactivity in a <script> block when needed. Use complete realistic content — no placeholder filler.
-Honor the requested visual style (light marketing pages, dark apps, games, dashboards, etc.) — do not force a theme the user did not ask for.
-If existing HTML is provided, modify it per the request while preserving unrelated features.
-Output ONLY raw HTML starting with <!DOCTYPE html>. No markdown fences, no commentary.`;
-
-const explainSystemPrompt = `You are a concise frontend code reviewer.
-Explain the provided single-file HTML app clearly. Do not rewrite code or output HTML.`;
-
-export function enrichBuildPrompt(promptText: string, templateId?: string): string {
-  if (!templateId) return promptText.trim();
-  const template = promptLibrary.find((item) => item.id === templateId);
-  if (!template) return promptText.trim();
-
-  return `${template.prompt.trim()}
-
-Starter template: "${template.title}".
-Deliver a complete, production-quality single-file page that fulfills the description above.
-Include realistic copy, working UI mechanics, and polished styling appropriate to this template.
-Do not return a generic placeholder card or unrelated layout.`;
+function orderBrowserKeys(keys: string[], slot: MistralKeySlot): string[] {
+  if (keys.length === 0 || slot === "auto") return keys;
+  const primary = keys[0];
+  const secondary = keys[1] ?? keys[0];
+  const preferred = slot === "primary" ? primary : secondary;
+  return [preferred, ...keys.filter((key) => key !== preferred)];
 }
 
 function normalizeGeneratedHtml(rawCode: string): string {
@@ -96,6 +183,89 @@ function normalizeGeneratedHtml(rawCode: string): string {
   return code;
 }
 
+function extractJsonPayload(raw: string): string {
+  const trimmed = raw.trim();
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced?.[1]) return fenced[1].trim();
+  const start = trimmed.indexOf("{");
+  const end = trimmed.lastIndexOf("}");
+  if (start >= 0 && end > start) return trimmed.slice(start, end + 1);
+  return trimmed;
+}
+
+function parseJudgeResult(raw: string): JudgeResult {
+  try {
+    const parsed = JSON.parse(extractJsonPayload(raw)) as Partial<JudgeResult>;
+    return {
+      winner: parsed.winner === "B" ? "B" : "A",
+      reason: parsed.reason?.trim() || "Selected best candidate.",
+      repairInstructions: Array.isArray(parsed.repairInstructions)
+        ? parsed.repairInstructions.filter((item): item is string => typeof item === "string")
+        : [],
+    };
+  } catch {
+    return {
+      winner: "A",
+      reason: "Judge parse failed; defaulting to candidate A.",
+      repairInstructions: [],
+    };
+  }
+}
+
+function buildBuilderPrompt(userPrompt: string, planText: string): string {
+  return `Original user request:
+${userPrompt}
+
+Planning JSON:
+${planText}
+
+Generate the complete final HTML document now.`;
+}
+
+function buildReviewPrompt(
+  userPrompt: string,
+  planText: string,
+  draftHtml: string,
+  repairInstructions: string[] = [],
+): string {
+  const repairBlock =
+    repairInstructions.length > 0
+      ? `\n\nRepair instructions:\n${repairInstructions.map((item) => `- ${item}`).join("\n")}`
+      : "";
+
+  return `Original user request:
+${userPrompt}
+
+Planning JSON:
+${planText}
+
+Generated HTML:
+${draftHtml}
+
+Audit and repair the HTML. Return only the final corrected HTML.${repairBlock}`;
+}
+
+function buildJudgePrompt(
+  userPrompt: string,
+  planText: string,
+  draftA: string,
+  draftB: string,
+): string {
+  return `Original user request:
+${userPrompt}
+
+Planning JSON:
+${planText}
+
+Candidate A:
+${draftA}
+
+Candidate B:
+${draftB}
+
+Choose the better candidate and return JSON only.`;
+}
+
 async function readMistralError(response: Response): Promise<string> {
   try {
     const body = (await response.json()) as { message?: string; error?: { message?: string } };
@@ -108,8 +278,9 @@ async function readMistralError(response: Response): Promise<string> {
 async function generateWithMistralBrowser(
   systemPrompt: string,
   userPrompt: string,
+  options: GenerateAiOptions = {},
 ): Promise<string> {
-  const keys = getBuilderMistralKeys();
+  const keys = orderBrowserKeys(getBuilderMistralKeys(), options.keySlot ?? "auto");
   const modelName = getBuilderMistralModel();
   let lastError: Error | null = null;
 
@@ -121,10 +292,12 @@ async function generateWithMistralBrowser(
           Authorization: `Bearer ${keys[index]}`,
           "Content-Type": "application/json",
         },
+        signal: options.signal,
         body: JSON.stringify({
           model: modelName,
           temperature: 0.2,
           max_tokens: BUILDER_MAX_TOKENS,
+          ...(options.jsonMode ? { response_format: { type: "json_object" } } : {}),
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
@@ -152,11 +325,14 @@ async function generateWithServer(
   serverChat: ServerChat,
   systemPrompt: string,
   userPrompt: string,
+  options: GenerateAiOptions = {},
 ): Promise<string> {
   const result = await serverChat({
     systemPrompt,
     userPrompt,
     model: getBuilderMistralModel(),
+    keySlot: options.keySlot,
+    jsonMode: options.jsonMode,
   });
   if (!result.ok) {
     throw new Error(result.message);
@@ -172,24 +348,20 @@ async function generateWithAi(
   userPrompt: string,
   serverChat: ServerChat,
   preferServerAi = false,
+  options: GenerateAiOptions = {},
 ): Promise<string> {
   const errors: string[] = [];
   const hasBrowserKeys = getBuilderMistralKeys().length > 0;
 
   if (preferServerAi) {
-    try {
-      return await generateWithServer(serverChat, systemPrompt, userPrompt);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Server Mistral failed";
-      throw new Error(
-        `Server AI failed. Check MISTRAL_API_KEY in visual-html/.env.local and restart npm run dev. ${message}`,
-      );
-    }
+    return generateWithServer(serverChat, systemPrompt, userPrompt, options);
   }
 
   const attempts: Array<() => Promise<string>> = [
-    () => generateWithServer(serverChat, systemPrompt, userPrompt),
-    ...(hasBrowserKeys ? [() => generateWithMistralBrowser(systemPrompt, userPrompt)] : []),
+    () => generateWithServer(serverChat, systemPrompt, userPrompt, options),
+    ...(hasBrowserKeys
+      ? [() => generateWithMistralBrowser(systemPrompt, userPrompt, options)]
+      : []),
   ];
 
   for (const attempt of attempts) {
@@ -208,6 +380,257 @@ async function generateWithAi(
   }
 
   throw new Error(errors.join(" | "));
+}
+
+function traceStep(
+  traceContext: BuilderTraceContext | undefined,
+  stepId: BuilderTraceContext["stepId"],
+): BuilderTraceContext | undefined {
+  if (!traceContext) return undefined;
+  return {
+    ...traceContext,
+    stepId,
+    timeoutMs: getStepTimeoutMs(stepId, traceContext.trace.mode),
+  };
+}
+
+async function runFastPipeline(
+  userPrompt: string,
+  serverChat: ServerChat,
+  preferServerAi: boolean,
+  onStepChange: (step: number, status: string) => void,
+  orchestrationMode: BuilderOrchestrationMode,
+  signal?: AbortSignal,
+  traceContext?: BuilderTraceContext,
+): Promise<string> {
+  onStepChange(2, "Generating HTML...");
+  return runBuilderStep(
+    "building",
+    orchestrationMode,
+    signal,
+    (attemptSignal) =>
+      generateWithAi(codeSystemPrompt, userPrompt, serverChat, preferServerAi, {
+        keySlot: "secondary",
+        role: "fast",
+        signal: attemptSignal,
+      }),
+    traceStep(traceContext, "building"),
+  );
+}
+
+async function runProPipeline(
+  userPrompt: string,
+  serverChat: ServerChat,
+  preferServerAi: boolean,
+  onStepChange: (step: number, status: string) => void,
+  orchestrationMode: BuilderOrchestrationMode,
+  signal?: AbortSignal,
+  traceContext?: BuilderTraceContext,
+): Promise<string> {
+  onStepChange(2, "Planning architecture...");
+  const planText = await runBuilderStep(
+    "planning",
+    orchestrationMode,
+    signal,
+    (attemptSignal) =>
+      generateWithAi(plannerSystemPrompt, userPrompt, serverChat, preferServerAi, {
+        keySlot: "primary",
+        role: "planner",
+        jsonMode: true,
+        signal: attemptSignal,
+      }),
+    traceStep(traceContext, "planning"),
+  );
+
+  onStepChange(2, "Building HTML...");
+  const draftHtml = await runBuilderStep(
+    "building",
+    orchestrationMode,
+    signal,
+    (attemptSignal) =>
+      generateWithAi(
+        builderSystemPrompt,
+        buildBuilderPrompt(userPrompt, planText),
+        serverChat,
+        preferServerAi,
+        { keySlot: "secondary", role: "builder", signal: attemptSignal },
+      ),
+    traceStep(traceContext, "building"),
+  );
+
+  onStepChange(3, "Reviewing and repairing...");
+  return runBuilderStep(
+    "reviewing",
+    orchestrationMode,
+    signal,
+    (attemptSignal) =>
+      generateWithAi(
+        reviewerSystemPrompt,
+        buildReviewPrompt(userPrompt, planText, draftHtml),
+        serverChat,
+        preferServerAi,
+        { keySlot: "primary", role: "reviewer", signal: attemptSignal },
+      ),
+    traceStep(traceContext, "reviewing"),
+  );
+}
+
+async function runBeastPipeline(
+  userPrompt: string,
+  serverChat: ServerChat,
+  preferServerAi: boolean,
+  onStepChange: (step: number, status: string) => void,
+  orchestrationMode: BuilderOrchestrationMode,
+  signal?: AbortSignal,
+  traceContext?: BuilderTraceContext,
+): Promise<string> {
+  onStepChange(2, "Planning architecture...");
+  const planText = await runBuilderStep(
+    "planning",
+    orchestrationMode,
+    signal,
+    (attemptSignal) =>
+      generateWithAi(plannerSystemPrompt, userPrompt, serverChat, preferServerAi, {
+        keySlot: "primary",
+        role: "planner",
+        jsonMode: true,
+        signal: attemptSignal,
+      }),
+    traceStep(traceContext, "planning"),
+  );
+
+  onStepChange(2, "Building candidate variants...");
+  const builderPrompt = buildBuilderPrompt(userPrompt, planText);
+  const [draftA, draftB] = await Promise.all([
+    runBuilderStep(
+      "building",
+      orchestrationMode,
+      signal,
+      (attemptSignal) =>
+        generateWithAi(builderSystemPrompt, builderPrompt, serverChat, preferServerAi, {
+          keySlot: "primary",
+          role: "builder",
+          signal: attemptSignal,
+        }),
+      traceStep(traceContext, "buildingA"),
+      { maxRetries: 0, failSoft: true },
+    ),
+    runBuilderStep(
+      "building",
+      orchestrationMode,
+      signal,
+      (attemptSignal) =>
+        generateWithAi(builderSystemPrompt, builderPrompt, serverChat, preferServerAi, {
+          keySlot: "secondary",
+          role: "builder",
+          signal: attemptSignal,
+        }),
+      traceStep(traceContext, "buildingB"),
+      { maxRetries: 0, failSoft: true },
+    ),
+  ]);
+
+  if (!draftA && !draftB) {
+    throw new BuilderOrchestrationError(
+      "Both builder candidates failed.",
+      "building",
+      orchestrationMode,
+    );
+  }
+
+  let winnerDraft: string;
+  let repairInstructions: string[] = [];
+
+  if (draftA && draftB) {
+    onStepChange(3, "Judging candidates...");
+    const judgeRaw = await runBuilderStep(
+      "judging",
+      orchestrationMode,
+      signal,
+      (attemptSignal) =>
+        generateWithAi(
+          judgeSystemPrompt,
+          buildJudgePrompt(userPrompt, planText, draftA, draftB),
+          serverChat,
+          preferServerAi,
+          { keySlot: "primary", role: "judge", jsonMode: true, signal: attemptSignal },
+        ),
+      traceStep(traceContext, "judging"),
+    );
+    const judge = parseJudgeResult(judgeRaw);
+    winnerDraft = judge.winner === "B" ? draftB : draftA;
+    repairInstructions = judge.repairInstructions;
+  } else {
+    winnerDraft = draftA ?? draftB!;
+    if (traceContext) {
+      markTraceStepSkipped(traceContext.trace, "judging", traceContext.onTraceUpdate);
+    }
+  }
+
+  onStepChange(3, "Reviewing and repairing...");
+  return runBuilderStep(
+    "reviewing",
+    orchestrationMode,
+    signal,
+    (attemptSignal) =>
+      generateWithAi(
+        reviewerSystemPrompt,
+        buildReviewPrompt(userPrompt, planText, winnerDraft, repairInstructions),
+        serverChat,
+        preferServerAi,
+        { keySlot: "primary", role: "reviewer", signal: attemptSignal },
+      ),
+    traceStep(traceContext, "reviewing"),
+  );
+}
+
+function normalizeGenerateOptions(
+  options?: GenerateBuilderCodeOptions | boolean,
+): GenerateBuilderCodeOptions {
+  if (typeof options === "boolean") return { preferServerAi: options };
+  return options ?? {};
+}
+
+async function runOrchestratedPipeline(
+  userPrompt: string,
+  serverChat: ServerChat,
+  preferServerAi: boolean,
+  onStepChange: (step: number, status: string) => void,
+  orchestrationMode: BuilderOrchestrationMode,
+  signal?: AbortSignal,
+  traceContext?: BuilderTraceContext,
+): Promise<string> {
+  if (orchestrationMode === "fast") {
+    return runFastPipeline(
+      userPrompt,
+      serverChat,
+      preferServerAi,
+      onStepChange,
+      orchestrationMode,
+      signal,
+      traceContext,
+    );
+  }
+  if (orchestrationMode === "beast") {
+    return runBeastPipeline(
+      userPrompt,
+      serverChat,
+      preferServerAi,
+      onStepChange,
+      orchestrationMode,
+      signal,
+      traceContext,
+    );
+  }
+  return runProPipeline(
+    userPrompt,
+    serverChat,
+    preferServerAi,
+    onStepChange,
+    orchestrationMode,
+    signal,
+    traceContext,
+  );
 }
 
 async function runOfflineDemo(
@@ -230,7 +653,7 @@ async function runOfflineDemo(
     throw new Error("Refine/fix requires AI. Use Build mode for offline templates.");
   }
   onStepChange(2, "Loading offline template...");
-  await sleep(600);
+  await new Promise((resolve) => setTimeout(resolve, 600));
   onStepChange(4, "Complete!");
   return { type: "code", via: "offline", content: getPromptMock(promptText) };
 }
@@ -242,18 +665,33 @@ export async function generateBuilderCode(
   previousCode?: string,
   mode: GenerationMode = previousCode?.trim() ? "refine" : "build",
   templateId?: string,
-  preferServerAi = false,
+  options?: GenerateBuilderCodeOptions | boolean,
 ): Promise<BuilderGenerateResult> {
+  const {
+    preferServerAi = false,
+    orchestrationMode = getBuilderOrchestrationMode(),
+    signal,
+    onTraceUpdate,
+    onMetricsUpdate,
+    onHealthCheckUpdate,
+    qualityProfileId = getBuilderQualityProfileId(),
+  } = normalizeGenerateOptions(options);
+  const notifyTrace = (nextTrace: BuilderGenerationTrace) => {
+    onTraceUpdate?.(nextTrace);
+    onMetricsUpdate?.(createMetricsFromTrace(nextTrace));
+  };
   const hasBrowserKeys = getBuilderMistralKeys().length > 0;
   const hasExistingCode = Boolean(previousCode?.trim());
-  const effectivePrompt = enrichBuildPrompt(promptText, templateId);
-
-  onStepChange(0, "Connecting...");
-  await sleep(200);
-
-  if ((mode === "refine" || mode === "fix" || mode === "explain") && !hasExistingCode) {
-    throw new Error(`${mode} needs an existing app first.`);
-  }
+  const resolvedQualityProfile = resolveBuilderQualityProfile(qualityProfileId, promptText);
+  const effectivePrompt = enrichBuildPrompt(promptText, templateId, resolvedQualityProfile);
+  const notifyHealthCheck = (html: string) => {
+    const result = runHtmlHealthCheck(html, {
+      userPrompt: effectivePrompt,
+      qualityProfile: resolvedQualityProfile,
+    });
+    onHealthCheckUpdate?.(result);
+    return result;
+  };
 
   const userPromptByMode: Record<GenerationMode, string> = {
     build: `Build a new standalone single-file app:\n${effectivePrompt}`,
@@ -262,19 +700,43 @@ export async function generateBuilderCode(
     explain: `Question:\n${effectivePrompt}\n\nExisting HTML:\n${previousCode}`,
   };
 
-  const systemPrompt = mode === "explain" ? explainSystemPrompt : codeSystemPrompt;
   const userPrompt = userPromptByMode[mode];
+  const usesOrchestrationTrace = mode !== "explain";
+  let trace: BuilderGenerationTrace | undefined;
+
+  if (usesOrchestrationTrace) {
+    trace = createBuilderGenerationTrace(orchestrationMode);
+    trace.startedAt = Date.now();
+    notifyTrace(trace);
+  }
+
+  const traceContext: BuilderTraceContext | undefined = trace
+    ? { trace, stepId: "building", onTraceUpdate: notifyTrace }
+    : undefined;
 
   try {
+    onStepChange(0, "Connecting...");
+    await abortableSleep(200, signal, "connecting", orchestrationMode);
+
+    if ((mode === "refine" || mode === "fix" || mode === "explain") && !hasExistingCode) {
+      throw new Error(`${mode} needs an existing app first.`);
+    }
+
     onStepChange(1, modeLabels[mode]);
-    onStepChange(2, mode === "explain" ? "Preparing explanation..." : "Generating HTML...");
-
-    const responseText = await generateWithAi(systemPrompt, userPrompt, serverChat, preferServerAi);
-
-    onStepChange(3, "Finalizing...");
-    await sleep(300);
 
     if (mode === "explain") {
+      onStepChange(2, "Preparing explanation...");
+      const responseText = await runBuilderStep(
+        "explaining",
+        orchestrationMode,
+        signal,
+        (attemptSignal) =>
+          generateWithAi(explainSystemPrompt, userPrompt, serverChat, preferServerAi, {
+            keySlot: "primary",
+            role: "explainer",
+            signal: attemptSignal,
+          }),
+      );
       onStepChange(4, "Done");
       return {
         type: "explanation",
@@ -283,16 +745,68 @@ export async function generateBuilderCode(
       };
     }
 
+    const responseText = await runOrchestratedPipeline(
+      userPrompt,
+      serverChat,
+      preferServerAi,
+      onStepChange,
+      orchestrationMode,
+      signal,
+      traceContext,
+    );
+
+    onStepChange(3, "Finalizing...");
+    await runBuilderStep(
+      "finalizing",
+      orchestrationMode,
+      signal,
+      (attemptSignal) => abortableSleep(300, attemptSignal, "finalizing", orchestrationMode),
+      traceStep(traceContext, "finalizing"),
+    );
+    if (trace) {
+      finalizeBuilderGenerationTrace(trace);
+      notifyTrace(trace);
+    }
     onStepChange(4, "Complete!");
-    return { type: "code", via: "ai", content: normalizeGeneratedHtml(responseText) };
+    const finalHtml = normalizeGeneratedHtml(responseText);
+    notifyHealthCheck(finalHtml);
+    return { type: "code", via: "ai", content: finalHtml };
   } catch (error) {
-    if (!hasBrowserKeys) {
+    if (isAbortError(error)) {
+      if (trace) {
+        finalizeBuilderGenerationTrace(trace);
+        notifyTrace(trace);
+      }
+      onStepChange(4, "Cancelled");
+      throw error;
+    }
+
+    if (!hasBrowserKeys && mode === "build" && isFallbackSafeError(error)) {
+      if (trace) {
+        markTraceStepFallbackUsed(trace, notifyTrace);
+        finalizeBuilderGenerationTrace(trace);
+        notifyTrace(trace);
+      }
       try {
-        return await runOfflineDemo(effectivePrompt, mode, hasExistingCode, onStepChange);
+        const offlineResult = await runOfflineDemo(
+          effectivePrompt,
+          mode,
+          hasExistingCode,
+          onStepChange,
+        );
+        if (offlineResult.type === "code") {
+          notifyHealthCheck(offlineResult.content);
+        }
+        return offlineResult;
       } catch {
         onStepChange(4, "Failed");
         throw error instanceof Error ? error : new Error("Builder generation failed");
       }
+    }
+
+    if (isBuilderOrchestrationError(error)) {
+      onStepChange(4, "Failed");
+      throw error;
     }
 
     onStepChange(4, "Failed");
