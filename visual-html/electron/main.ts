@@ -20,7 +20,7 @@ function appRoot(): string {
 }
 
 function preloadPath(): string {
-  return path.join(__dirname, "preload.js");
+  return path.join(__dirname, "preload.cjs");
 }
 
 async function waitForUrl(url: string, timeoutMs = 60_000): Promise<void> {
