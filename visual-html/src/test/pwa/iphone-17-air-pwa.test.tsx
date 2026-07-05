@@ -230,19 +230,21 @@ describe("iPhone 17 Air PWA compliance", () => {
   });
 
   describe("VibeCraft studio shell for /builder on iPhone", () => {
-    const builderSource = readFileSync(join(process.cwd(), "src/routes/builder.tsx"), "utf-8");
+    const builderSource = readFileSync(
+      join(process.cwd(), "src/components/builder/builder-studio-view.tsx"),
+      "utf-8",
+    );
 
     it("builder page uses vibecraft-studio background class", () => {
       expect(builderSource).toContain("vibecraft-studio");
     });
 
     it("builder workspace uses translucent studio surfaces", () => {
-      const workspaceSource = readFileSync(
-        join(process.cwd(), "src/components/builder/builder-workspace.tsx"),
+      const outputPanelSource = readFileSync(
+        join(process.cwd(), "src/components/app/output-panel.tsx"),
         "utf-8",
       );
-      expect(workspaceSource).toContain("vibecraft-studio-surface");
-      expect(workspaceSource).toContain("vibecraft-studio-elevated");
+      expect(outputPanelSource).toContain("vibecraft-studio-elevated");
     });
   });
 

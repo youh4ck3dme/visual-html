@@ -15,7 +15,12 @@ type ProjectCardProps = {
   onSelect?: (projectId: string) => void;
 };
 
-export function ProjectCard({ project, compact = false, selected = false, onSelect }: ProjectCardProps) {
+export function ProjectCard({
+  project,
+  compact = false,
+  selected = false,
+  onSelect,
+}: ProjectCardProps) {
   const { t } = useT();
   const stats = projectSummaryStats(project.result);
 
@@ -36,7 +41,9 @@ export function ProjectCard({ project, compact = false, selected = false, onSele
       <div
         className={cn(
           "relative shrink-0 overflow-hidden bg-shell",
-          compact ? "h-12 w-12 rounded-md border border-[var(--editor-border)]" : "aspect-[16/10] border-b border-shell-border",
+          compact
+            ? "h-12 w-12 rounded-md border border-[var(--editor-border)]"
+            : "aspect-[16/10] border-b border-shell-border",
         )}
       >
         {project.thumbnailDataUrl ? (
@@ -57,7 +64,9 @@ export function ProjectCard({ project, compact = false, selected = false, onSele
       <div className={cn("min-w-0 flex-1", compact ? "py-0.5" : "flex flex-col gap-2 p-4")}>
         <div className="min-w-0">
           <h3 className="truncate text-sm font-medium text-foreground">{project.name}</h3>
-          {!compact && <p className="mt-0.5 truncate text-xs text-shell-muted">{project.fileName}</p>}
+          {!compact && (
+            <p className="mt-0.5 truncate text-xs text-shell-muted">{project.fileName}</p>
+          )}
         </div>
 
         {!compact && (

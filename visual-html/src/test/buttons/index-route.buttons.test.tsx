@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { screen, waitFor } from "@testing-library/react";
 
 import { renderPageAt } from "@/test/page-router";
+import { setDesktopViewport } from "@/test/helpers/viewport";
 import {
   clearProjectsStorage,
   makeSavedProject,
@@ -11,7 +12,10 @@ import {
 } from "@/test/mocks/sample-project";
 
 describe("buttons › index route", () => {
-  beforeEach(() => clearProjectsStorage());
+  beforeEach(() => {
+    setDesktopViewport();
+    clearProjectsStorage();
+  });
 
   it("Generate HTML — disabled without image", async () => {
     await renderPageAt("/");
@@ -21,10 +25,8 @@ describe("buttons › index route", () => {
   it("View in Projects — links to project detail when result loaded from project", async () => {
     seedProjectsStorage([makeSavedProject({ id: "from-url", name: "Loaded project" })]);
     await renderPageAt("/?project=from-url");
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /Continue code generation/i })).toBeInTheDocument(),
-    );
-    const link = screen.getByRole("link", { name: /View in Projects/i });
+    await waitFor(() => expect(screen.getByText(/Generated output/i)).toBeInTheDocument());
+    const link = await screen.findByRole("link", { name: /View in Projects/i });
     expect(link).toHaveAttribute("href", "/projects/from-url");
   });
 
@@ -39,11 +41,12 @@ describe("buttons › index route", () => {
 
   it("Open in editor from projects — round-trip via project card", async () => {
     const user = userEvent.setup();
-    seedProjectsStorage([makeSavedProject({ id: "round-1", name: "Round trip" })]);
-    await renderPageAt("/projects");
-    await waitForProjectLinks(/Round trip/i);
-    await user.click(screen.getByRole("link", { name: /Round trip/i }));
-    await waitFor(() => expect(screen.getByRole("link", { name: /Open in editor/i })));
+    const project = makeSavedProject({ id: "round-1", name: "Round trip" });
+    seedProjectsStorage([project]);
+    await renderPageAt(`/projects/${project.id}`);
+    await waitFor(() =>
+      expect(screen.getByRole("link", { name: /Open in editor/i })).toBeInTheDocument(),
+    );
     const editor = screen.getByRole("link", { name: /Open in editor/i });
     expect(editor).toHaveAttribute("href", "/?project=round-1");
   });

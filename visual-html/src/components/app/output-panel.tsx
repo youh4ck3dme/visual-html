@@ -244,7 +244,10 @@ export function OutputPanel({
       srcDoc={previewDoc}
       allowJs={previewEnabled}
       title={previewTitle ?? t("builder.previewFrameTitle")}
-      className={cn(isMobile ? "h-[min(68dvh,640px)] w-full border-0" : "h-full border-0 bg-white", previewClassName)}
+      className={cn(
+        isMobile ? "h-[min(68dvh,640px)] w-full border-0" : "h-full border-0 bg-white",
+        previewClassName,
+      )}
       onConsoleEntry={onConsoleEntry}
     />
   );
@@ -277,7 +280,9 @@ export function OutputPanel({
         onChange={onCodeChange ? (e) => onCodeChange(e.target.value) : undefined}
         className={cn(
           "font-mono resize-none border-0 bg-shell",
-          isMobile ? "min-h-[min(60dvh,420px)] text-xs sm:text-sm" : "h-full min-h-0 rounded-none text-xs sm:text-sm",
+          isMobile
+            ? "min-h-[min(60dvh,420px)] text-xs sm:text-sm"
+            : "h-full min-h-0 rounded-none text-xs sm:text-sm",
         )}
       />
     </div>
@@ -298,7 +303,12 @@ export function OutputPanel({
             <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
               {allowJsControl}
               {showDownload && (
-                <Button size="sm" variant="outline" onClick={handleDownload} data-testid={downloadTestId}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleDownload}
+                  data-testid={downloadTestId}
+                >
                   <Download className="h-4 w-4" aria-hidden /> {t("result.downloadHtml")}
                 </Button>
               )}
@@ -381,18 +391,24 @@ export function OutputPanel({
           </div>
         )}
 
+        {tab === "code" && !isEmpty && headerActions && (
+          <div className="flex flex-wrap items-center gap-2 border-b border-shell-border/80 px-3 py-2">
+            {headerActions}
+          </div>
+        )}
+
         <div className="relative bg-[#202124] p-3 sm:p-4">
-          {isEmpty
-            ? emptyState
-            : tab === "preview"
-              ? showDeviceChrome
-                ? (
-                    <EditorDeviceFrame className="p-0">
-                      {previewFrame}
-                    </EditorDeviceFrame>
-                  )
-                : previewFrame
-              : codeEditor}
+          {isEmpty ? (
+            emptyState
+          ) : tab === "preview" ? (
+            showDeviceChrome ? (
+              <EditorDeviceFrame className="p-0">{previewFrame}</EditorDeviceFrame>
+            ) : (
+              previewFrame
+            )
+          ) : (
+            codeEditor
+          )}
         </div>
       </section>
     );

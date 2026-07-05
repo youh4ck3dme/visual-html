@@ -47,7 +47,7 @@ section("ESLint (src + scripts)");
 run("eslint", "npx", ["eslint", "src", "scripts", "--max-warnings", "0"]);
 
 section("Production build");
-run("build", "bun", ["run", "build"], {
+run("build", "npm", ["run", "build"], {
   env: { ...process.env, NITRO_PRESET: "vercel" },
 });
 

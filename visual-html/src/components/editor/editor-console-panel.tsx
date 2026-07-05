@@ -26,7 +26,10 @@ export function EditorConsolePanel({
   const lastError = [...entries].reverse().find((e) => e.level === "error");
 
   return (
-    <div className={cn("flex flex-col bg-[var(--editor-bg)] text-xs", className)} data-testid="editor-console">
+    <div
+      className={cn("flex flex-col bg-[var(--editor-bg)] text-xs", className)}
+      data-testid="editor-console"
+    >
       <button
         type="button"
         className="flex min-h-11 items-center justify-between px-3 py-2 text-left font-medium text-shell-muted hover:text-foreground"
@@ -43,7 +46,13 @@ export function EditorConsolePanel({
             <>
               {onClear && (
                 <div className="flex justify-end border-b border-[var(--editor-border)] p-1">
-                  <Button type="button" size="sm" variant="ghost" onClick={onClear} data-testid="editor-console-clear">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={onClear}
+                    data-testid="editor-console-clear"
+                  >
                     Clear
                   </Button>
                 </div>

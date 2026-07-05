@@ -53,8 +53,11 @@ function AllProviders({
     <QueryClientProvider client={queryClient}>
       <LocaleProvider>
         <ThemeProvider>
-          <RouterContextProvider router={router}>{inner}</RouterContextProvider>
-          <Toaster />
+          <SettingsProvider>
+            <RouterContextProvider router={router}>{inner}</RouterContextProvider>
+            <SettingsDialog />
+            <Toaster />
+          </SettingsProvider>
         </ThemeProvider>
       </LocaleProvider>
     </QueryClientProvider>

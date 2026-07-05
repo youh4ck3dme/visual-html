@@ -6,7 +6,7 @@ type IndexSearch = {
   project?: string;
 };
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_editor/")({
   validateSearch: (search: Record<string, unknown>): IndexSearch => ({
     project: typeof search.project === "string" ? search.project : undefined,
   }),

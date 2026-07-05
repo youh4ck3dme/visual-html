@@ -21,7 +21,12 @@ import {
   builderTemplateSearch,
 } from "@/lib/builder/first-project-starter";
 import type { MessageKey } from "@/lib/i18n/messages";
-import { filterProjects, formatProjectDate, projectSummaryStats, sortProjects } from "@/lib/projects-store";
+import {
+  filterProjects,
+  formatProjectDate,
+  projectSummaryStats,
+  sortProjects,
+} from "@/lib/projects-store";
 import type { GenerationOptions } from "@/types/generation";
 import type { ProjectSort } from "@/types/project";
 
@@ -46,11 +51,20 @@ type EditorModeProjectsProps = {
 export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps) {
   const { t } = useT();
   const navigate = useNavigate();
-  const { projects, storageBytes, storageStatus, getProject, renameProject, deleteProject } =
-    useProjects();
+  const {
+    projects,
+    isHydrated,
+    storageBytes,
+    storageStatus,
+    getProject,
+    renameProject,
+    deleteProject,
+  } = useProjects();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ProjectSort>("updated");
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(initialProjectId ?? null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+    initialProjectId ?? null,
+  );
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [thumbLightboxOpen, setThumbLightboxOpen] = useState(false);
@@ -68,7 +82,7 @@ export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps
 
   useEffect(() => {
     if (project) setNameDraft(project.name);
-  }, [project?.id, project?.name]);
+  }, [project]);
 
   const commitRename = () => {
     if (!project) return;
@@ -126,7 +140,12 @@ export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps
                 backend={storageStatus.backend}
                 fallbackActive={storageStatus.fallbackActive}
               />
-              <ProjectsToolbar query={query} sort={sort} onQueryChange={setQuery} onSortChange={setSort} />
+              <ProjectsToolbar
+                query={query}
+                sort={sort}
+                onQueryChange={setQuery}
+                onSortChange={setSort}
+              />
             </>
           )}
         </div>
@@ -136,7 +155,9 @@ export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps
         <section className="flex flex-col items-center py-12 text-center">
           <FolderKanban className="mb-3 h-8 w-8 text-info" />
           <h2 className="text-sm font-medium">{t("projects.empty.title")}</h2>
-          <p className="mt-2 max-w-sm text-xs text-[var(--editor-muted)]">{t("projects.empty.description")}</p>
+          <p className="mt-2 max-w-sm text-xs text-[var(--editor-muted)]">
+            {t("projects.empty.description")}
+          </p>
           <Button asChild variant="outline" className="mt-4" data-testid="create-first-project">
             <Link to="/builder" search={builderTemplateSearch(FIRST_PROJECT_STARTER_TEMPLATE_ID)}>
               {t("projects.empty.cta")}
@@ -144,7 +165,9 @@ export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps
           </Button>
         </section>
       ) : visible.length === 0 ? (
-        <p className="py-8 text-center text-sm text-[var(--editor-muted)]">{t("projects.noMatch", { query })}</p>
+        <p className="py-8 text-center text-sm text-[var(--editor-muted)]">
+          {t("projects.noMatch", { query })}
+        </p>
       ) : (
         <div className="grid gap-2">
           {visible.map((p) => (
@@ -165,17 +188,23 @@ export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps
     <EditorPreviewStage>
       {!project ? (
         <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center text-[var(--editor-muted)]">
-          {initialProjectId && !getProject(initialProjectId) ? (
+          {initialProjectId != null && isHydrated && !getProject(initialProjectId) ? (
             <>
-              <p className="text-sm font-semibold text-[var(--editor-fg)]">{t("projectDetail.notFound.title")}</p>
+              <p className="text-sm font-semibold text-[var(--editor-fg)]">
+                {t("projectDetail.notFound.title")}
+              </p>
               <p className="max-w-xs text-xs">{t("projectDetail.notFound.description")}</p>
               <Button asChild variant="outline" className="mt-2">
-                <Link to="/projects" data-testid="back-to-projects">{t("projectDetail.backToProjects")}</Link>
+                <Link to="/projects" data-testid="back-to-projects">
+                  {t("projectDetail.backToProjects")}
+                </Link>
               </Button>
             </>
           ) : (
             <>
-              <p className="text-sm font-semibold text-[var(--editor-fg)]">{t("editor.projects.selectTitle")}</p>
+              <p className="text-sm font-semibold text-[var(--editor-fg)]">
+                {t("editor.projects.selectTitle")}
+              </p>
               <p className="max-w-xs text-xs">{t("editor.projects.selectHint")}</p>
             </>
           )}
@@ -200,7 +229,13 @@ export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps
                     commitRename();
                   }}
                 >
-                  <Input value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} autoFocus className="h-9" />
+                  <Input
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    autoFocus
+                    className="h-9"
+                    aria-label={t("projectDetail.nameAria")}
+                  />
                   <Button type="submit" size="sm" data-testid="rename-save">
                     {t("projectDetail.save")}
                   </Button>
@@ -247,7 +282,12 @@ export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps
                   {t("projectDetail.openInEditor")}
                 </Link>
               </Button>
-              <Button size="sm" variant="outline" onClick={handleDelete} data-testid="delete-project">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleDelete}
+                data-testid="delete-project"
+              >
                 <Trash2 className="h-4 w-4" />
                 {t("projectDetail.delete")}
               </Button>
@@ -258,9 +298,14 @@ export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps
             <button
               type="button"
               onClick={() => setThumbLightboxOpen(true)}
+              aria-label={t("projectDetail.zoomAria", { fileName: project.fileName })}
               className="overflow-hidden rounded-lg border border-[var(--editor-border)]"
             >
-              <img src={project.thumbnailDataUrl} alt="" className="aspect-[4/3] w-full object-cover" />
+              <img
+                src={project.thumbnailDataUrl}
+                alt=""
+                className="aspect-[4/3] w-full object-cover"
+              />
               <span className="flex items-center justify-center gap-1 py-1 text-[10px] text-[var(--editor-muted)]">
                 <ZoomIn className="h-3 w-3" />
                 {t("projectDetail.zoomTitle")}
@@ -268,15 +313,21 @@ export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps
             </button>
             <div className="space-y-1 text-xs text-[var(--editor-muted)]">
               <p>
-                <span className="font-medium text-[var(--editor-fg)]">{t("projectDetail.output")}</span>{" "}
+                <span className="font-medium text-[var(--editor-fg)]">
+                  {t("projectDetail.output")}
+                </span>{" "}
                 {t(OUTPUT_LABEL_KEYS[project.options.outputMode])}
               </p>
               <p>
-                <span className="font-medium text-[var(--editor-fg)]">{t("projectDetail.styling")}</span>{" "}
+                <span className="font-medium text-[var(--editor-fg)]">
+                  {t("projectDetail.styling")}
+                </span>{" "}
                 {t(STYLING_LABEL_KEYS[project.options.stylingMode])}
               </p>
               <p>
-                <span className="font-medium text-[var(--editor-fg)]">{t("projectDetail.lines")}</span>{" "}
+                <span className="font-medium text-[var(--editor-fg)]">
+                  {t("projectDetail.lines")}
+                </span>{" "}
                 {(() => {
                   const stats = projectSummaryStats(project.result);
                   return stats.jsLines > 0
@@ -285,7 +336,10 @@ export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps
                         cssLines: stats.cssLines,
                         jsLines: stats.jsLines,
                       })
-                    : t("projectDetail.linesDetail", { htmlLines: stats.htmlLines, cssLines: stats.cssLines });
+                    : t("projectDetail.linesDetail", {
+                        htmlLines: stats.htmlLines,
+                        cssLines: stats.cssLines,
+                      });
                 })()}
               </p>
             </div>
@@ -307,5 +361,7 @@ export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps
     </EditorPreviewStage>
   );
 
-  return <EditorLayout topBar={<TopCreditBar />} chatPanel={chatPanel} previewPanel={previewPanel} />;
+  return (
+    <EditorLayout topBar={<TopCreditBar />} chatPanel={chatPanel} previewPanel={previewPanel} />
+  );
 }

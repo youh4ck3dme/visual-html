@@ -23,6 +23,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }
 
+/* eslint-disable react-refresh/only-export-components -- provider + hook must live together */
 export function useSettingsDialog(): SettingsContextValue {
   const ctx = useContext(SettingsContext);
   if (!ctx) {

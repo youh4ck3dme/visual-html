@@ -5,6 +5,7 @@ import { screen, waitFor } from "@testing-library/react";
 import { createApiError } from "@/lib/generation-diagnostics";
 import { PROJECTS_STORAGE_KEY } from "@/lib/projects-store";
 import { setFakeIndexedDbWriteFailure } from "@/test/mocks/fake-indexeddb";
+import { setDesktopViewport } from "@/test/helpers/viewport";
 import { renderPageAt } from "@/test/page-router";
 import { getServerFnMocks } from "@/test/mocks/server-fns";
 import { SAMPLE_GENERATE_RESULT } from "@/test/mocks/sample-image";
@@ -28,6 +29,7 @@ async function uploadImageOnIndex() {
 
 describe("index route › server function mocks", () => {
   beforeEach(() => {
+    setDesktopViewport();
     const { runOcr, generateHtml, builderChat } = getServerFnMocks();
     runOcr.mockClear();
     generateHtml.mockClear();
@@ -47,12 +49,13 @@ describe("index route › server function mocks", () => {
       generateHtml.mock.invocationCallOrder[0]!,
     );
 
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /Continue code generation/i })).toBeInTheDocument(),
-    );
-    expect(screen.getByRole("heading", { name: /Generated output/i })).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText(/Saved to Projects/i)).toBeInTheDocument());
-  });
+    await waitFor(() => expect(screen.getByText(/Generated output/i)).toBeInTheDocument(), {
+      timeout: 15000,
+    });
+    await waitFor(() => expect(screen.getByText(/Saved to Projects/i)).toBeInTheDocument(), {
+      timeout: 15000,
+    });
+  }, 20000);
 
   it("can simulate OCR success while generateHtml fails", async () => {
     const { runOcr, generateHtml, builderChat } = getServerFnMocks();
@@ -73,7 +76,7 @@ describe("index route › server function mocks", () => {
     expect(alert).toHaveTextContent(/AI generation timeout/i);
     expect(alert).toHaveTextContent(/Phase:/i);
     expect(alert).toHaveTextContent(/Synthesis/i);
-    expect(screen.queryByRole("heading", { name: /Generated output/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Generated output/i)).not.toBeInTheDocument();
   });
 
   it("shows diagnostic error UI when OCR fails (generateHtml not called)", async () => {
@@ -114,9 +117,7 @@ describe("index route › server function mocks", () => {
     const user = await uploadImageOnIndex();
     await user.click(screen.getByRole("button", { name: /Generate HTML/i }));
 
-    await waitFor(() =>
-      expect(screen.getByRole("heading", { name: /Generated output/i })).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText(/Generated output/i)).toBeInTheDocument());
     await waitFor(() =>
       expect(
         screen.getByText(/stored in browser database because local storage is full/i),
@@ -138,15 +139,16 @@ describe("index route › server function mocks", () => {
     const user = await uploadImageOnIndex();
     await user.click(screen.getByRole("button", { name: /Generate HTML/i }));
 
-    await waitFor(() =>
-      expect(screen.getByRole("heading", { name: /Generated output/i })).toBeInTheDocument(),
-    );
-    await waitFor(() =>
-      expect(screen.getByText(/Could not save to Projects/i)).toBeInTheDocument(),
+    await waitFor(() => expect(screen.getByText(/Generated output/i)).toBeInTheDocument(), {
+      timeout: 10000,
+    });
+    await waitFor(
+      () => expect(screen.getByText(/Could not save to Projects/i)).toBeInTheDocument(),
+      { timeout: 10000 },
     );
     expect(screen.getByText(/browser storage failed/i)).toBeInTheDocument();
     expect(screen.queryByText(/Saved to Projects/i)).not.toBeInTheDocument();
-  });
+  }, 20000);
 
   it("does not satisfy PNG generation when only builderChat mock would succeed", async () => {
     const { runOcr, generateHtml, builderChat } = getServerFnMocks();

@@ -1,6 +1,9 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup } from "@testing-library/react";
+import { cleanup, configure } from "@testing-library/react";
 import { afterEach, beforeEach, vi } from "vitest";
+
+// Parallel vitest workers slow async UI; default 1s waitFor is too tight under load.
+configure({ asyncUtilTimeout: 5000 });
 
 import { installFakeIndexedDb, resetFakeIndexedDb } from "@/test/mocks/fake-indexeddb";
 import { resetForensicsMock, resetServerFnMocks } from "@/test/mocks/server-fns";

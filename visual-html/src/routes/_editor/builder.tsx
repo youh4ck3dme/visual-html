@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { BuilderWorkspace } from "@/components/builder/builder-workspace";
 import { parseBuilderTemplateSearch } from "@/lib/builder/first-project-starter";
 
-export const Route = createFileRoute("/builder")({
+export const Route = createFileRoute("/_editor/builder")({
   validateSearch: parseBuilderTemplateSearch,
   head: () => ({
     meta: [

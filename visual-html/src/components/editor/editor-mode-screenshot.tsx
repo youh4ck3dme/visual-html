@@ -236,8 +236,12 @@ export function EditorModeScreenshot({ projectId, projectIdFromUrl }: EditorMode
       ) : (
         <EditorDeviceFrame className="h-full justify-center">
           <div className="flex min-h-[min(55dvh,480px)] flex-col items-center justify-center gap-2 p-6 text-center">
-            <p className="text-sm font-semibold text-[var(--editor-fg)]">{t("editor.previewEmpty")}</p>
-            <p className="max-w-xs text-xs text-[var(--editor-muted)]">{t("editor.previewEmptyHint")}</p>
+            <p className="text-sm font-semibold text-[var(--editor-fg)]">
+              {t("editor.previewEmpty")}
+            </p>
+            <p className="max-w-xs text-xs text-[var(--editor-muted)]">
+              {t("editor.previewEmptyHint")}
+            </p>
           </div>
         </EditorDeviceFrame>
       )}

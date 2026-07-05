@@ -63,7 +63,13 @@ describe("buttons › project-card", () => {
     const project = makeSavedProject({ id: "card-2", name: "Landing Page" });
     let selected: string | null = null;
     renderWithProviders(
-      <ProjectCard project={project} compact onSelect={(id) => { selected = id; }} />,
+      <ProjectCard
+        project={project}
+        compact
+        onSelect={(id) => {
+          selected = id;
+        }}
+      />,
     );
     await user.click(screen.getByRole("button", { name: /Landing Page/i }));
     expect(selected).toBe("card-2");

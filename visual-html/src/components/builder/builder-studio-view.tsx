@@ -28,12 +28,7 @@ import { EditorLayout } from "@/components/editor/editor-layout";
 import { EditorPreviewStage } from "@/components/editor/editor-preview-stage";
 import { EditorPromptBar } from "@/components/editor/editor-prompt-bar";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   promptCategories,
@@ -60,6 +55,10 @@ type BuilderStudioViewProps = {
 };
 
 export function BuilderStudioView({ startTemplateId }: BuilderStudioViewProps = {}) {
+  return <BuilderStudioViewInner startTemplateId={startTemplateId} />;
+}
+
+function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}) {
   const isMobile = useIsMobile();
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [consoleEntries, setConsoleEntries] = useState<PreviewConsoleEntry[]>([]);
@@ -151,20 +150,21 @@ export function BuilderStudioView({ startTemplateId }: BuilderStudioViewProps = 
       onChange={setInputVal}
       onSubmit={handlePromptSubmit}
       busy={isGenerating || isCancelling}
-      placeholder={isGenerating || isCancelling ? t("builder.inputWorking") : t("builder.inputPlaceholder")}
+      placeholder={
+        isGenerating || isCancelling ? t("builder.inputWorking") : t("builder.inputPlaceholder")
+      }
       prefix={modeTabs}
     />
   );
 
-  const consolePanel =
-    previewAllowJs ? (
-      <EditorConsolePanel
-        entries={consoleEntries}
-        onClear={() => setConsoleEntries([])}
-        onFixWithAi={handleFixWithAi}
-        allowFix={Boolean(generatedCode) && !isGenerating}
-      />
-    ) : null;
+  const consolePanel = previewAllowJs ? (
+    <EditorConsolePanel
+      entries={consoleEntries}
+      onClear={() => setConsoleEntries([])}
+      onFixWithAi={handleFixWithAi}
+      allowFix={Boolean(generatedCode) && !isGenerating}
+    />
+  ) : null;
 
   const desktopTemplatesSection = !isMobile ? (
     <>
@@ -186,7 +186,10 @@ export function BuilderStudioView({ startTemplateId }: BuilderStudioViewProps = 
           </button>
         ))}
       </div>
-      <details className="group rounded-lg border border-[var(--editor-border)] bg-[var(--editor-bg)]" open>
+      <details
+        className="group rounded-lg border border-[var(--editor-border)] bg-[var(--editor-bg)]"
+        open
+      >
         <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-semibold text-[var(--editor-fg)] marker:content-none">
           {t("builder.starterTemplates")}
           <ChevronDown className="h-4 w-4 text-[var(--editor-muted)] transition-transform group-open:rotate-180" />
@@ -221,7 +224,9 @@ export function BuilderStudioView({ startTemplateId }: BuilderStudioViewProps = 
           <div className="flex items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-bold">{t("builder.workspaceTitle")}</h2>
-              <p className="text-[11px] text-[var(--editor-muted)]">{modeHint ? t(modeHint) : ""}</p>
+              <p className="text-[11px] text-[var(--editor-muted)]">
+                {modeHint ? t(modeHint) : ""}
+              </p>
             </div>
             <Button
               type="button"
@@ -238,7 +243,9 @@ export function BuilderStudioView({ startTemplateId }: BuilderStudioViewProps = 
           <div className="flex items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-bold">{t("builder.workspaceTitle")}</h2>
-              <p className="text-[11px] text-[var(--editor-muted)]">{modeHint ? t(modeHint) : ""}</p>
+              <p className="text-[11px] text-[var(--editor-muted)]">
+                {modeHint ? t(modeHint) : ""}
+              </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <span className="rounded-full border border-[var(--editor-border)] px-2 py-0.5 text-[10px] font-bold uppercase text-[var(--editor-muted)]">
@@ -301,7 +308,11 @@ export function BuilderStudioView({ startTemplateId }: BuilderStudioViewProps = 
                 key={stepKey}
                 className={cn(
                   "mt-1",
-                  activeStep > i ? "text-emerald-500" : activeStep === i ? "text-primary" : "text-[var(--editor-muted)]",
+                  activeStep > i
+                    ? "text-emerald-500"
+                    : activeStep === i
+                      ? "text-primary"
+                      : "text-[var(--editor-muted)]",
                 )}
               >
                 {activeStep > i ? "✓" : i + 1}. {t(stepKey)}
@@ -439,7 +450,9 @@ export function BuilderStudioView({ startTemplateId }: BuilderStudioViewProps = 
           if (risks.length === 0) return true;
           return window.confirm(t("builder.previewJsRiskConfirm"));
         }}
-        onConsoleEntry={previewAllowJs ? (entry) => setConsoleEntries((p) => [...p, entry]) : undefined}
+        onConsoleEntry={
+          previewAllowJs ? (entry) => setConsoleEntries((p) => [...p, entry]) : undefined
+        }
         allowJsInputId="builder-preview-allow-js"
         allowJsTestId="builder-preview-allow-js"
         showCopy={Boolean(generatedCode)}
@@ -479,7 +492,9 @@ export function BuilderStudioView({ startTemplateId }: BuilderStudioViewProps = 
                     onChange={(e) => handleRestore(e.target.value)}
                     className="h-8 w-28 rounded-md border border-[var(--editor-border)] bg-[var(--editor-bg)] pl-7 text-[11px]"
                   >
-                    <option value="">{t("builder.historyOption", { count: versions.length })}</option>
+                    <option value="">
+                      {t("builder.historyOption", { count: versions.length })}
+                    </option>
                     {[...versions].reverse().map((v) => (
                       <option key={v.id} value={v.id}>
                         {v.label}

@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type FormEvent,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useSettingsDialog } from "@/components/app/settings-context";
 import { builderAiStatus, builderChat } from "@/lib/builder.functions";
@@ -484,13 +477,10 @@ export function useEditorStudio({ startTemplateId }: UseEditorStudioOptions = {}
     setInputVal(APPLE_GLASS_QUALITY_POLISH_FIX_PROMPT);
   }, [generatedCode, isCancelling, isGenerating]);
 
-  const handleFixWithAi = useCallback(
-    (consoleMessage: string) => {
-      setGenerationMode("fix");
-      setInputVal(`Fix this runtime error in the preview: ${consoleMessage}`);
-    },
-    [],
-  );
+  const handleFixWithAi = useCallback((consoleMessage: string) => {
+    setGenerationMode("fix");
+    setInputVal(`Fix this runtime error in the preview: ${consoleMessage}`);
+  }, []);
 
   return {
     t,

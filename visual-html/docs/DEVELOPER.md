@@ -92,7 +92,8 @@ src/components/editor/
 ├── editor-prompt-bar.tsx      # Bottom prompt / Build strip (mobile)
 └── editor-console-panel.tsx   # P4 — iframe console stream
 
-src/routes/_editor.tsx         # Pathless layout (<Outlet />); mode components own EditorLayout today
+src/routes/_editor.tsx         # Pathless layout: SettingsProvider + <Outlet />
+src/routes/_editor/            # index (/), builder, projects routes
 src/pages/index-page.tsx       # → <EditorModeScreenshot projectId={…} />
 src/pages/projects-page.tsx    # → <EditorModeProjects />
 src/pages/project-detail-page.tsx # → <EditorModeProjects initialProjectId={…} />
@@ -102,7 +103,7 @@ src/hooks/use-editor-studio.ts # Builder state, orchestration, persistence
 
 ### Routing note
 
-`src/routes/_editor.tsx` is a **pathless layout** placeholder. Child routes are not nested under it yet — each page component renders its own `EditorLayout`. To centralize the shell, move `index.tsx`, `projects.tsx`, and `builder.tsx` under `routes/_editor/` so they inherit this layout.
+Editor routes nest under the pathless `_editor` layout (`src/routes/_editor.tsx`), which provides `SettingsProvider` and `<Outlet />`. Each mode component renders `EditorLayout` with its own `chatPanel` / `previewPanel` / `promptBar` slots — there is no double `EditorLayout` on `/builder`.
 
 ---
 
@@ -110,11 +111,12 @@ src/hooks/use-editor-studio.ts # Builder state, orchestration, persistence
 
 | URL | Súbor | Účel |
 | --- | ----- | ---- |
-| `/` | `src/routes/index.tsx` | Upload screenshotu, generovanie, refinement |
-| `/projects` | `src/routes/projects.tsx` | Zoznam uložených projektov |
-| `/projects/:projectId` | `src/routes/projects.$projectId.tsx` | Detail projektu |
-| `/builder` | `src/routes/builder.tsx` | VibeCraft prompt-to-HTML studio |
+| `/` | `src/routes/_editor/index.tsx` | Upload screenshotu, generovanie, refinement |
+| `/projects` | `src/routes/_editor/projects.tsx` | Zoznam uložených projektov |
+| `/projects/:projectId` | `src/routes/_editor/projects.$projectId.tsx` | Detail projektu |
+| `/builder` | `src/routes/_editor/builder.tsx` | VibeCraft prompt-to-HTML studio |
 | Shell | `src/routes/__root.tsx` | Layout, PWA head, 404, error boundary |
+| Editor layout | `src/routes/_editor.tsx` | Pathless layout: SettingsProvider + `<Outlet />` |
 
 Query parametre (príklady):
 

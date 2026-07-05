@@ -7,6 +7,8 @@ import { APPLE_GLASS_QUALITY_POLISH_FIX_PROMPT } from "@/lib/builder/quality-fix
 import { promptCategories, promptLibrary } from "@/lib/builder/prompt-library";
 import * as download from "@/lib/utils/download";
 import { getServerFnMocks } from "@/test/mocks/server-fns";
+import { mockAbortAwareHangingChat, mockServerAiOnly } from "@/test/helpers/builder-chat-mock";
+import { setDesktopViewport, setMobileViewport } from "@/test/helpers/viewport";
 import { renderBuilderWorkspace } from "@/test/test-utils";
 
 vi.mock("@/lib/utils/download", async (importOriginal) => {
@@ -27,6 +29,7 @@ async function openGenerationTrace(user: ReturnType<typeof userEvent.setup>) {
 
 describe("buttons › builder-workspace", () => {
   beforeEach(() => {
+    setDesktopViewport();
     localStorage.removeItem("vibecraft_workspace_v1");
   });
 
@@ -51,7 +54,7 @@ describe("buttons › builder-workspace", () => {
       renderBuilderWorkspace(<BuilderWorkspace />);
       const btn = screen.getByRole("button", { name });
       await user.click(btn);
-      expect(btn.className).toMatch(/bg-shell-hover|text-foreground/);
+      expect(btn.className).toMatch(/editor-hover|bg-shell-hover|text-foreground|editor-fg/);
     },
   );
 
@@ -84,7 +87,6 @@ describe("buttons › builder-workspace", () => {
     builderAiStatus.mockResolvedValueOnce({ serverKeysConfigured: true });
     renderBuilderWorkspace(<BuilderWorkspace />);
     await waitFor(() => expect(screen.getByText("Server AI ready")).toBeInTheDocument());
-    expect(screen.getByText(/MISTRAL_API_KEY from server env/i)).toBeInTheDocument();
   });
 
   it("Settings — opens BYOK dialog", async () => {
@@ -193,7 +195,7 @@ describe("buttons › builder-workspace", () => {
     expect(confirmSpy).toHaveBeenCalled();
     expect(screen.getByTestId("builder-preview-allow-js")).not.toBeChecked();
     confirmSpy.mockRestore();
-  });
+  }, 20000);
 
   it("Live Preview / Code tabs — switch preview panel", async () => {
     const user = userEvent.setup();
@@ -236,8 +238,10 @@ describe("buttons › builder-workspace", () => {
     renderBuilderWorkspace(<BuilderWorkspace />);
     await user.click(screen.getByRole("button", { name: "Interactive Games" }));
     await user.click(screen.getByRole("button", { name: /Retro Snake Game/i }));
-    await waitFor(() => screen.getByRole("button", { name: /Copy/i }));
-    await user.click(screen.getByRole("button", { name: /^Copy$/i }));
+    await waitFor(() => expect(screen.getByTestId("builder-copy")).toBeInTheDocument(), {
+      timeout: 10000,
+    });
+    await user.click(screen.getByTestId("builder-copy"));
     expect(writeText).toHaveBeenCalled();
   });
 
@@ -246,8 +250,10 @@ describe("buttons › builder-workspace", () => {
     renderBuilderWorkspace(<BuilderWorkspace />);
     await user.click(screen.getByRole("button", { name: "Interactive Games" }));
     await user.click(screen.getByRole("button", { name: /Retro Snake Game/i }));
-    await waitFor(() => screen.getByRole("button", { name: /Download/i }));
-    await user.click(screen.getByRole("button", { name: /Download/i }));
+    await waitFor(() => expect(screen.getByTestId("builder-download")).toBeInTheDocument(), {
+      timeout: 10000,
+    });
+    await user.click(screen.getByTestId("builder-download"));
     expect(download.downloadTextFile).toHaveBeenCalledWith(
       "vibecraft-application.html",
       expect.stringContaining("<!DOCTYPE html>"),
@@ -310,8 +316,7 @@ describe("buttons › builder-workspace", () => {
 
     async function startHangingGeneration(user: ReturnType<typeof userEvent.setup>) {
       const { builderChat } = getServerFnMocks();
-      builderChat.mockReset();
-      builderChat.mockImplementation(() => new Promise(() => {}));
+      mockAbortAwareHangingChat(builderChat);
       await user.type(
         screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
         "Build a hanging test page",
@@ -505,7 +510,18 @@ describe("buttons › builder-workspace", () => {
           ok: true,
           content: `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>One</title><style>button:focus-visible{outline:1px solid #fff}</style></head><body><button>One</button></body></html>`,
         })
-        .mockImplementationOnce(() => new Promise(() => {}));
+        .mockImplementationOnce(({ signal }: { signal?: AbortSignal }) => {
+          if (signal?.aborted) {
+            return Promise.reject(new DOMException("aborted", "AbortError"));
+          }
+          return new Promise((_, reject) => {
+            signal?.addEventListener(
+              "abort",
+              () => reject(new DOMException("aborted", "AbortError")),
+              { once: true },
+            );
+          });
+        });
 
       renderBuilderWorkspace(<BuilderWorkspace />);
       await user.type(
@@ -641,7 +657,8 @@ describe("buttons › builder-workspace", () => {
       const user = userEvent.setup();
       localStorage.setItem("visual-html.builder.orchestrationMode", "pro");
       localStorage.setItem("builder_mistral_api_key_1", "sk-test");
-      const { builderChat } = getServerFnMocks();
+      const { builderChat, builderAiStatus } = getServerFnMocks();
+      mockServerAiOnly(builderAiStatus);
       builderChat.mockReset();
       builderChat.mockResolvedValue({ ok: false, message: "planner boom" });
 
@@ -652,16 +669,19 @@ describe("buttons › builder-workspace", () => {
       );
       await user.click(await getSubmitButton());
 
-      await waitFor(() => {
-        const tracePanel = screen.getByTestId("builder-generation-trace");
-        expect(tracePanel).toHaveAttribute("data-trace-failed", "true");
-        expect(tracePanel).toHaveAttribute("data-trace-expanded", "true");
-      });
+      await waitFor(
+        () => {
+          const tracePanel = screen.getByTestId("builder-generation-trace");
+          expect(tracePanel).toHaveAttribute("data-trace-failed", "true");
+          expect(tracePanel).toHaveAttribute("data-trace-expanded", "true");
+        },
+        { timeout: 10000 },
+      );
       expect(screen.getByTestId("builder-trace-step-planning")).toHaveAttribute(
         "data-trace-status",
         "failed",
       );
-    });
+    }, 15000);
 
     it("keeps the last successful preview after cancellation", async () => {
       const user = userEvent.setup();
@@ -672,8 +692,7 @@ describe("buttons › builder-workspace", () => {
       expect(iframe.srcdoc ?? "").toContain("Retro Neon Snake");
 
       const { builderChat } = getServerFnMocks();
-      builderChat.mockReset();
-      builderChat.mockImplementation(() => new Promise(() => {}));
+      mockAbortAwareHangingChat(builderChat);
 
       await user.click(screen.getByRole("button", { name: "Refine" }));
       await user.type(

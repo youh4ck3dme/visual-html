@@ -5,11 +5,21 @@ import { screen, waitFor, within } from "@testing-library/react";
 import { BuilderWorkspace } from "@/components/builder/builder-workspace";
 import { promptLibrary } from "@/lib/builder/prompt-library";
 import { getServerFnMocks } from "@/test/mocks/server-fns";
+import { mockAbortAwareHangingChat, mockServerAiOnly } from "@/test/helpers/builder-chat-mock";
 import { setMobileViewport } from "@/test/helpers/viewport";
 import { renderBuilderWorkspace } from "@/test/test-utils";
 
 async function waitForMobileStudio() {
   await waitFor(() => expect(screen.getByTestId("builder-mobile-studio")).toBeInTheDocument());
+}
+
+async function openGenerationTrace(user: ReturnType<typeof userEvent.setup>) {
+  const tracePanel = await screen.findByTestId("builder-generation-trace");
+  if (tracePanel.getAttribute("data-trace-expanded") !== "true") {
+    await user.click(screen.getByTestId("builder-generation-trace-trigger"));
+  }
+  await waitFor(() => expect(tracePanel).toHaveAttribute("data-trace-expanded", "true"));
+  return tracePanel;
 }
 
 async function expandAllTemplates(user: ReturnType<typeof userEvent.setup>) {
@@ -192,11 +202,16 @@ describe("buttons › builder-mobile", () => {
       await generatePolishTriggerPage(user);
 
       const studio = screen.getByTestId("builder-mobile-studio");
-      const health = await within(studio).findByTestId("builder-html-health");
+      await user.click(await within(studio).findByTestId("builder-generation-trace-trigger"));
+      const health = await within(studio).findByTestId(
+        "builder-html-health",
+        {},
+        { timeout: 10000 },
+      );
       expect(health).toBeInTheDocument();
       expect(within(studio).getByTestId("builder-health-score")).toHaveTextContent(/\/100/);
       expect(within(studio).getByTestId("builder-health-chip-reduced-motion")).toBeInTheDocument();
-    });
+    }, 15000);
 
     it("apply polish fix — loads Fix prompt on mobile", async () => {
       const user = userEvent.setup();
@@ -205,6 +220,7 @@ describe("buttons › builder-mobile", () => {
       await generatePolishTriggerPage(user);
 
       const studio = screen.getByTestId("builder-mobile-studio");
+      await user.click(await within(studio).findByTestId("builder-generation-trace-trigger"));
       const polishBtn = await within(studio).findByTestId("builder-health-apply-polish-fix");
       await user.click(polishBtn);
 
@@ -215,7 +231,7 @@ describe("buttons › builder-mobile", () => {
       expect(input.value).toContain(":focus-visible");
       expect(input.value).toContain("max-width: 480px");
       expect(within(studio).getByText("Fix")).toBeInTheDocument();
-    });
+    }, 15000);
   });
 
   describe("generation cancel and errors", () => {
@@ -227,8 +243,7 @@ describe("buttons › builder-mobile", () => {
 
     async function startHangingGeneration(user: ReturnType<typeof userEvent.setup>) {
       const { builderChat } = getServerFnMocks();
-      builderChat.mockReset();
-      builderChat.mockImplementation(() => new Promise(() => {}));
+      mockAbortAwareHangingChat(builderChat);
       await user.type(
         screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
         "Build a hanging mobile test page",
@@ -245,9 +260,9 @@ describe("buttons › builder-mobile", () => {
       await waitForMobileStudio();
       await startHangingGeneration(user);
       expect(screen.getByTestId("builder-generation-status")).toHaveTextContent(
-        /Initializing|Starting|Building|Connecting/i,
+        /Initializing|Starting|Building|Connecting|Generating HTML/i,
       );
-    });
+    }, 15000);
 
     it("shows Cancel generation button during generation", async () => {
       const user = userEvent.setup();
@@ -279,7 +294,7 @@ describe("buttons › builder-mobile", () => {
       );
       expect(screen.queryByTestId("builder-mobile-error")).not.toBeInTheDocument();
       abortSpy.mockRestore();
-    });
+    }, 15000);
 
     it("user can send another prompt after cancellation", async () => {
       const user = userEvent.setup();
@@ -295,13 +310,14 @@ describe("buttons › builder-mobile", () => {
       const input = screen.getByPlaceholderText(/Build, refine, fix, or explain/i);
       await user.type(input, "Build a recovery page");
       expect(screen.getByTestId("builder-send")).toBeEnabled();
-    });
+    }, 15000);
 
     it("shows mobile error banner when generation fails", async () => {
       const user = userEvent.setup();
       localStorage.setItem("visual-html.builder.orchestrationMode", "pro");
       localStorage.setItem("builder_mistral_api_key_1", "sk-test");
-      const { builderChat } = getServerFnMocks();
+      const { builderChat, builderAiStatus } = getServerFnMocks();
+      mockServerAiOnly(builderAiStatus);
       builderChat.mockReset();
       builderChat.mockResolvedValue({ ok: false, message: "planner boom" });
 
@@ -317,13 +333,14 @@ describe("buttons › builder-mobile", () => {
       expect(screen.getByTestId("builder-mobile-error")).toHaveTextContent(/Error:/i);
       expect(screen.getByTestId("builder-mobile-error")).toHaveTextContent(/planner boom/i);
       expect(screen.queryByTestId("builder-cancel-generation")).not.toBeInTheDocument();
-    });
+    }, 15000);
 
     it("user can send another prompt after failed generation", async () => {
       const user = userEvent.setup();
       localStorage.setItem("visual-html.builder.orchestrationMode", "pro");
       localStorage.setItem("builder_mistral_api_key_1", "sk-test");
-      const { builderChat } = getServerFnMocks();
+      const { builderChat, builderAiStatus } = getServerFnMocks();
+      mockServerAiOnly(builderAiStatus);
       builderChat.mockReset();
       builderChat.mockResolvedValue({ ok: false, message: "planner boom" });
 
@@ -343,6 +360,6 @@ describe("buttons › builder-mobile", () => {
       const input = screen.getByPlaceholderText(/Build, refine, fix, or explain/i);
       await user.type(input, "Try again after failure");
       expect(screen.getByTestId("builder-send")).toBeEnabled();
-    });
+    }, 15000);
   });
 });

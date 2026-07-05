@@ -1,3 +1,6 @@
+/**
+ * @deprecated Replaced by EditorLayout + EditorHeader. Kept for legacy imports only.
+ */
 import type { ReactNode } from "react";
 
 import { VisualSidebar } from "@/components/pngto/sidebar-nav";
@@ -35,5 +38,3 @@ export function AppShell({ children, topBar, className, contentClassName }: AppS
     </SettingsProvider>
   );
 }
-
-export { useSettingsDialog } from "./settings-context";

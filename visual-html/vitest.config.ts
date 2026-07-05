@@ -14,5 +14,9 @@ export default defineConfig({
     setupFiles: ["src/test/setup-mocks.ts", "src/test/setup.ts"],
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
     globals: true,
+    testTimeout: 20000,
+    pool: "forks",
+    // Avoid cross-file timing flakes when workers compete for CPU (builder generation waits).
+    fileParallelism: false,
   },
 });

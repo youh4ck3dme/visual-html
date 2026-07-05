@@ -5,6 +5,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import { PROJECTS_STORAGE_KEY } from "@/lib/projects-store";
 import { setFakeIndexedDbWriteFailure } from "@/test/mocks/fake-indexeddb";
 import { renderPageAt } from "@/test/page-router";
+import { setDesktopViewport } from "@/test/helpers/viewport";
 import {
   clearProjectsStorage,
   makeSavedProject,
@@ -16,15 +17,19 @@ async function openProjectDetail(
   project = makeSavedProject({ id: "detail-1", name: "Invoice UI" }),
 ) {
   seedProjectsStorage([project]);
-  const ctx = await renderPageAt("/projects");
-  await waitForProjectLinks(new RegExp(project.name));
-  await userEvent.setup().click(screen.getByRole("link", { name: new RegExp(project.name) }));
-  await waitFor(() => expect(screen.getByRole("heading", { level: 1, name: project.name })));
+  const ctx = await renderPageAt(`/projects/${project.id}`);
+  await waitFor(
+    () => expect(screen.getByRole("heading", { level: 2, name: project.name })).toBeInTheDocument(),
+    { timeout: 10000 },
+  );
   return ctx;
 }
 
 describe("buttons › projects detail", () => {
-  beforeEach(() => clearProjectsStorage());
+  beforeEach(() => {
+    setDesktopViewport();
+    clearProjectsStorage();
+  });
 
   it("Back to projects (not found) — links to /projects", async () => {
     await renderPageAt("/projects/missing-id");
@@ -58,7 +63,7 @@ describe("buttons › projects detail", () => {
     await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() =>
       expect(
-        screen.getByRole("heading", { level: 1, name: "Bank statement v2" }),
+        screen.getByRole("heading", { level: 2, name: "Bank statement v2" }),
       ).toBeInTheDocument(),
     );
     const stored = JSON.parse(localStorage.getItem(PROJECTS_STORAGE_KEY) || "[]") as Array<{
@@ -74,7 +79,7 @@ describe("buttons › projects detail", () => {
     await user.clear(screen.getByLabelText("Project name"));
     await user.type(screen.getByLabelText("Project name"), "Temporary");
     await user.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(screen.getByRole("heading", { level: 1, name: "Invoice UI" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Invoice UI" })).toBeInTheDocument();
   });
 
   it("Open in editor — links to / with project search", async () => {
@@ -115,7 +120,7 @@ describe("buttons › projects detail", () => {
     await waitFor(() =>
       expect(screen.getByText(/Could not save project changes/i)).toBeInTheDocument(),
     );
-    expect(screen.getByRole("heading", { level: 1, name: "Invoice UI" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Invoice UI" })).toBeInTheDocument();
     const stored = JSON.parse(localStorage.getItem(PROJECTS_STORAGE_KEY) || "[]") as Array<{
       name: string;
     }>;
@@ -151,7 +156,7 @@ describe("buttons › projects detail", () => {
     await openProjectDetail();
     await user.click(screen.getByRole("button", { name: /Delete/i }));
     expect(JSON.parse(localStorage.getItem(PROJECTS_STORAGE_KEY) || "[]")).toHaveLength(1);
-    expect(screen.getByRole("heading", { level: 1, name: "Invoice UI" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Invoice UI" })).toBeInTheDocument();
     confirmSpy.mockRestore();
   });
 
@@ -171,4 +176,4 @@ describe("buttons › projects detail", () => {
     await user.click(screen.getByRole("button", { name: /\.html/i }));
     expect(screen.getByRole("button", { name: /\.html/i })).toBeEnabled();
   });
-});
+}, 20000);

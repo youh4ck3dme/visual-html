@@ -4,6 +4,11 @@ import { PROJECTS_IDB_NAME } from "@/lib/projects-indexeddb";
 
 type StoreData = Map<IDBValidKey, unknown>;
 
+function deferIdbEvent(fn: () => void) {
+  // Macrotask so callers can attach onsuccess/onerror before dispatch (matches real IDB).
+  setTimeout(fn, 0);
+}
+
 class FakeEventTarget<T> {
   result: T | undefined;
   error: DOMException | null = null;
@@ -29,7 +34,7 @@ class FakeIDBObjectStore {
 
   get(key: IDBValidKey) {
     const req = new FakeEventTarget<unknown>();
-    queueMicrotask(() => {
+    deferIdbEvent(() => {
       req._dispatchSuccess(this.data.get(key));
       this.tx._complete();
     });
@@ -39,7 +44,7 @@ class FakeIDBObjectStore {
   put(value: unknown, key?: IDBValidKey) {
     const req = new FakeEventTarget<IDBValidKey>();
     const recordKey = (key ?? value) as IDBValidKey;
-    queueMicrotask(() => {
+    deferIdbEvent(() => {
       if (this.tx.shouldFail) {
         req._dispatchError("IndexedDB write failed");
         this.tx._fail();
@@ -54,7 +59,7 @@ class FakeIDBObjectStore {
 
   clear() {
     const req = new FakeEventTarget<undefined>();
-    queueMicrotask(() => {
+    deferIdbEvent(() => {
       this.data.clear();
       req._dispatchSuccess(undefined);
       this.tx._complete();
@@ -150,7 +155,7 @@ export function installFakeIndexedDb() {
         onupgradeneeded: ((ev: IDBVersionChangeEvent) => void) | null;
       };
 
-      queueMicrotask(() => {
+      deferIdbEvent(() => {
         if (globalThis.__PNGTO_IDB_WRITE_FAIL__ && name === PROJECTS_IDB_NAME) {
           req._dispatchError("IndexedDB blocked");
           return;
@@ -181,7 +186,7 @@ export function installFakeIndexedDb() {
     },
     deleteDatabase(name: string) {
       const req = new FakeEventTarget<undefined>();
-      queueMicrotask(() => {
+      deferIdbEvent(() => {
         databases.delete(name);
         req._dispatchSuccess(undefined);
       });

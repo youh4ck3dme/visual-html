@@ -28,7 +28,10 @@ import type {
   GenerateHtmlResult,
 } from "@/types/generation";
 
-export { createDefaultGenerationOptions, DEFAULT_GENERATION_OPTIONS } from "@/lib/generation-defaults";
+export {
+  createDefaultGenerationOptions,
+  DEFAULT_GENERATION_OPTIONS,
+} from "@/lib/generation-defaults";
 
 type RetryAction = "generate" | "continue" | "refine";
 
@@ -62,9 +65,7 @@ export function useGenerationWorkflow(projectIdFromUrl?: string): UseGenerationW
   const [image, setImage] = useState<UploadedImage | null>(null);
   const [loadedProject, setLoadedProject] = useState<SavedProject | null>(null);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
-  const [options, setOptions] = useState<GenerationOptions>(() =>
-    loadGenerationDefaults(locale),
-  );
+  const [options, setOptions] = useState<GenerationOptions>(() => loadGenerationDefaults(locale));
   const [result, setResult] = useState<GenerateHtmlResult | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [sensor, setSensor] = useState<GenerationSensor>(createSensor("validating", "idle"));

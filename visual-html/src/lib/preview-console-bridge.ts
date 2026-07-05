@@ -44,13 +44,15 @@ export function parsePreviewConsoleMessage(data: unknown): PreviewConsoleEntry |
 
 export function injectConsoleBridge(html: string): string {
   if (html.includes("__pngtoConsoleBridge")) return html;
-  const script = `<script>${PREVIEW_CONSOLE_BRIDGE_SCRIPT}<\/script>`;
+  const script = `<script>${PREVIEW_CONSOLE_BRIDGE_SCRIPT}</script>`;
   if (html.includes("</head>")) return html.replace("</head>", `${script}</head>`);
   if (html.includes("<body")) return html.replace(/<body([^>]*)>/i, `<body$1>${script}`);
   return script + html;
 }
 
-export function isPreviewConsoleMessage(data: unknown): data is { type: "entry"; entry: PreviewConsoleEntry } {
+export function isPreviewConsoleMessage(
+  data: unknown,
+): data is { type: "entry"; entry: PreviewConsoleEntry } {
   if (!data || typeof data !== "object") return false;
   const msg = data as Record<string, unknown>;
   return msg.type === "entry" && typeof msg.entry === "object" && msg.entry !== null;

@@ -143,5 +143,3 @@ export function EditorHeader() {
     </header>
   );
 }
-
-export { useSettingsDialog } from "@/components/app/settings-context";

@@ -31,7 +31,8 @@ export const messages = {
     "topbar.credit":
       "Mistral OCR + Pixtral · Rate limits per IP · Review AI output before shipping",
     "app.settings.title": "Settings",
-    "app.settings.description": "Generation defaults and Mistral API keys for Screenshot and Studio.",
+    "app.settings.description":
+      "Generation defaults and Mistral API keys for Screenshot and Studio.",
     "app.settings.generationSection": "Screenshot generation defaults",
     "app.settings.saveSuccess": "Settings saved",
 

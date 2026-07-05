@@ -36,10 +36,7 @@ import {
   saveBuilderQualityProfileId,
   type BuilderQualityProfileId,
 } from "@/lib/builder/quality-profiles";
-import {
-  loadGenerationDefaults,
-  saveGenerationDefaults,
-} from "@/lib/generation-defaults";
+import { loadGenerationDefaults, saveGenerationDefaults } from "@/lib/generation-defaults";
 import type { GenerationOptions } from "@/types/generation";
 
 import { useSettingsDialog } from "./settings-context";
@@ -113,10 +110,7 @@ export function SettingsDialog() {
           <h3 className="text-xs font-semibold uppercase tracking-wide text-shell-muted">
             {t("app.settings.generationSection")}
           </h3>
-          <GenerationOptionsPanel
-            value={generationDefaults}
-            onChange={setGenerationDefaults}
-          />
+          <GenerationOptionsPanel value={generationDefaults} onChange={setGenerationDefaults} />
         </section>
 
         <section className="space-y-3 border-t border-shell-border pt-4">

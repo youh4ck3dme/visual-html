@@ -42,8 +42,7 @@ export function loadGenerationDefaults(locale: Locale = "en"): GenerationOptions
       ...createDefaultGenerationOptions(locale),
       ...parsed,
       additionalInstructions:
-        parsed.additionalInstructions ||
-        messages[locale]["options.defaultInstructions"],
+        parsed.additionalInstructions || messages[locale]["options.defaultInstructions"],
     };
   } catch {
     return createDefaultGenerationOptions(locale);
