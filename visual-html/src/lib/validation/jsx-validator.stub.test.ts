@@ -15,7 +15,7 @@ describe("validateJsxSnippet", () => {
   });
 
   it("rejects suspicious script close tags", () => {
-    expect(validateJsxSnippet('<div></script>')).toEqual({
+    expect(validateJsxSnippet("<div></script>")).toEqual({
       ok: false,
       error: "Suspicious script close tag",
     });

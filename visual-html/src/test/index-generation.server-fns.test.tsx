@@ -52,9 +52,12 @@ describe("index route › server function mocks", () => {
     await waitFor(() => expect(screen.getByText(/Generated output/i)).toBeInTheDocument(), {
       timeout: 15000,
     });
-    await waitFor(() => expect(screen.getByTestId("index-save-notice")).toHaveTextContent(/Saved to Projects/i), {
-      timeout: 15000,
-    });
+    await waitFor(
+      () => expect(screen.getByTestId("index-save-notice")).toHaveTextContent(/Saved to Projects/i),
+      {
+        timeout: 15000,
+      },
+    );
   }, 20000);
 
   it("can simulate OCR success while generateHtml fails", async () => {

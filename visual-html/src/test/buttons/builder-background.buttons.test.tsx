@@ -28,10 +28,7 @@ import {
   writeStoredWorkspace,
   type StoredWorkspace,
 } from "@/lib/builder/workspace-storage";
-import {
-  mockAbortAwareHangingChat,
-  mockGatedBuilderChat,
-} from "@/test/helpers/builder-chat-mock";
+import { mockAbortAwareHangingChat, mockGatedBuilderChat } from "@/test/helpers/builder-chat-mock";
 import { getServerFnMocks } from "@/test/mocks/server-fns";
 
 function GenerationProbe() {

@@ -251,8 +251,7 @@ export const messages = {
     "index.chat.uploaded": "Uploaded {fileName}",
     "index.chat.generationComplete": "HTML generated — check the preview panel.",
     "index.chat.continueReady": "Partial output is ready. Continue generation to finish.",
-    "index.jsxValidation.warning":
-      "Component output may not render correctly in preview: {error}",
+    "index.jsxValidation.warning": "Component output may not render correctly in preview: {error}",
     "index.loadedProject.hint":
       "Opened from Projects · {fileName} · continue refining or generate from a new screenshot",
     "index.loadedProject.clear": "Clear",

@@ -230,7 +230,9 @@ if (!iphone17Air) {
     name: "editor i18n grep",
     ok: hardcodedHits.length === 0,
     ms: 0,
-    stdout: hardcodedHits.length ? hardcodedHits.slice(0, 8).join("; ") : "no raw JSX text in editor/pages",
+    stdout: hardcodedHits.length
+      ? hardcodedHits.slice(0, 8).join("; ")
+      : "no raw JSX text in editor/pages",
     stderr: hardcodedHits.length ? "Move user-facing strings to messages.ts" : "",
   });
 }

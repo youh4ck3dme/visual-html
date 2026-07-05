@@ -23,10 +23,7 @@ export function mockServerAiOnly(builderAiStatus: Mock): void {
 type BuilderChatResult = { ok: boolean; content: string };
 
 /** Holds all builderChat calls until `release()` (stable off-builder toast tests). */
-export function mockGatedBuilderChat(
-  builderChat: Mock,
-  content: string,
-): { release: () => void } {
+export function mockGatedBuilderChat(builderChat: Mock, content: string): { release: () => void } {
   let released = false;
   const pending: Array<(value: BuilderChatResult) => void> = [];
   const result: BuilderChatResult = { ok: true, content };
