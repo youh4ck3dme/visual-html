@@ -34,3 +34,5 @@
 **Manual (not in CI):** Lighthouse mobile 4G on prod preview (`npm run build && npm run preview`) for `/`, `/projects`, `/builder`.
 
 **Pending verification:** parallel agent runs `npm run test:integrity:fast` for final green gate.
+
+**Perceived wait (Prompt 4):** OCR cache skip, upload preview in screenshot panel, partial builder preview after building step, trace heartbeat ~200ms, ETA from rolling trace durations.

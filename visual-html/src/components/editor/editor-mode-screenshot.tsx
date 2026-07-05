@@ -238,6 +238,15 @@ export function EditorModeScreenshot({ projectId, projectIdFromUrl }: EditorMode
                   {saveNotice}
                 </span>
               )}
+              {htmlHealth && (
+                <span
+                  className="rounded-full border border-(--editor-border) bg-(--editor-panel) px-2 py-0.5 font-medium tabular-nums"
+                  data-testid="screenshot-health-score"
+                  title={t("index.healthScore.title")}
+                >
+                  {t("index.healthScore.label", { score: htmlHealth.score })}
+                </span>
+              )}
               {activeProjectId && (
                 <Link
                   to="/projects/$projectId"
@@ -288,7 +297,16 @@ export function EditorModeScreenshot({ projectId, projectIdFromUrl }: EditorMode
         </div>
       ) : busy ? (
         <EditorDeviceFrame className="h-full justify-center" profile={iphoneProfile}>
-          <PreviewSkeleton className="min-h-[min(55dvh,480px)]" />
+          <PreviewSkeleton className="h-full min-h-[min(55dvh,480px)] w-full" />
+        </EditorDeviceFrame>
+      ) : image ? (
+        <EditorDeviceFrame className="h-full justify-center" profile={iphoneProfile}>
+          <img
+            src={image.dataUrl}
+            alt=""
+            className="max-h-[min(55dvh,480px)] w-full object-contain"
+            data-testid="screenshot-upload-preview"
+          />
         </EditorDeviceFrame>
       ) : (
         <EditorDeviceFrame className="h-full justify-center" profile={iphoneProfile}>

@@ -20,13 +20,13 @@ export function EditorChatPanel({
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
       {header && (
-        <div className="shrink-0 border-b border-[var(--editor-border)] px-3 py-2">{header}</div>
+        <div className="shrink-0 border-b border-(--editor-border) px-3 py-2">{header}</div>
       )}
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overflow-x-clip px-3 py-3">
         {children}
       </div>
       {footer && (
-        <div className="shrink-0 border-t border-[var(--editor-border)] bg-[var(--editor-panel)]">
+        <div className="shrink-0 border-t border-(--editor-border) bg-(--editor-panel)">
           {footer}
         </div>
       )}

@@ -33,6 +33,8 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { scrollIntoViewRespectingMotion } from "@/lib/motion-prefs";
+import { formatTraceDuration } from "@/lib/builder/generation-trace";
+import { estimateRemainingMs } from "@/lib/builder/trace-eta";
 import {
   promptCategories,
   promptLibrary,
@@ -121,6 +123,10 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
     handleApplyQualityPolishFix,
     handleFixWithAi,
   } = studio;
+
+  const previewSkeletonActive = isGenerating && previewTab === "preview" && !generatedCode.trim();
+  const generationEtaMs =
+    isGenerating && currentGenerationTrace ? estimateRemainingMs(currentGenerationTrace) : null;
 
   const modeTabs = (
     <div className="mb-2 flex gap-1 rounded-lg border border-(--editor-border) bg-(--editor-bg) p-1">
@@ -299,6 +305,14 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
             testId="builder-generation-status"
           />
         )}
+        {generationEtaMs != null && (
+          <p
+            className="max-w-[90%] self-start text-[10px] text-(--editor-muted)"
+            data-testid="builder-generation-eta"
+          >
+            {t("builder.generationEta", { duration: formatTraceDuration(generationEtaMs) })}
+          </p>
+        )}
         {currentGenerationTrace && (
           <BuilderGenerationTracePanel
             trace={currentGenerationTrace}
@@ -409,14 +423,6 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
         </div>
       )}
       <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-        {isGenerating && previewTab === "preview" && (
-          <div
-            className="absolute inset-0 z-10 flex flex-col bg-(--editor-bg)"
-            data-testid="builder-preview-skeleton"
-          >
-            <PreviewSkeleton className="min-h-[min(55dvh,480px)] flex-1" />
-          </div>
-        )}
         <OutputPanel
           variant={isMobile ? "mobile" : "builder"}
           activeTab={previewTab}
@@ -427,6 +433,9 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
           onRefreshPreview={() => setPreviewRefreshKey((k) => k + 1)}
           showDeviceChrome={isMobile}
           extraTabs={isMobile ? filesTab : undefined}
+          previewLoadingOverlay={
+            previewSkeletonActive ? <PreviewSkeleton className="h-full" /> : undefined
+          }
           code={generatedCode}
           onCodeChange={(value) => {
             setGeneratedCode(value);

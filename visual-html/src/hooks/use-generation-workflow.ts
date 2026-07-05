@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import type { UploadedImage } from "@/components/pngto/upload-dropzone";
@@ -14,7 +14,15 @@ import {
   runOcr,
   type ServerResult,
 } from "@/lib/generate.functions";
+import {
+  cacheKeyForOcr,
+  getCachedOcrMarkdown,
+  getProjectOcrMarkdown,
+  setCachedOcrMarkdown,
+  setProjectOcrMarkdown,
+} from "@/lib/generation-cache";
 import { createApiError, createSensor } from "@/lib/generation-diagnostics";
+import { isLikelyIncompleteHtml } from "@/lib/generation-output-gate";
 import {
   GENERATION_DEFAULTS_CHANGE_EVENT,
   loadGenerationDefaults,
@@ -74,6 +82,7 @@ export function useGenerationWorkflow(projectIdFromUrl?: string): UseGenerationW
   const [lastRefineInstruction, setLastRefineInstruction] = useState<string | null>(null);
   const [lastRetryAction, setLastRetryAction] = useState<RetryAction>("generate");
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  const lastOcrMarkdownRef = useRef<string | null>(null);
 
   const ocrFn = useServerFn(runOcr);
   const generateFn = useServerFn(generateHtml);
@@ -132,6 +141,9 @@ export function useGenerationWorkflow(projectIdFromUrl?: string): UseGenerationW
 
       if (savedId) {
         setActiveProjectId(savedId);
+        if (lastOcrMarkdownRef.current?.trim()) {
+          setProjectOcrMarkdown(savedId, lastOcrMarkdownRef.current);
+        }
         setSaveNotice(t("index.savedToProjects"));
         window.setTimeout(() => setSaveNotice(null), 3000);
         return;
@@ -171,6 +183,21 @@ export function useGenerationWorkflow(projectIdFromUrl?: string): UseGenerationW
     [localizeError, persistResult],
   );
 
+  const handleMutationError = useCallback(
+    (e: unknown) => {
+      const apiError = localizeError(
+        createApiError(
+          "SERVER_ERROR",
+          (e as Error).message ?? t("diagnostic.message.unexpectedServerError"),
+          "failed",
+        ),
+      );
+      setError(apiError);
+      setSensor(createSensor("failed", "failed", apiError.diagnostic));
+    },
+    [localizeError, t],
+  );
+
   const resetUploadState = useCallback(() => {
     setLastRetryAction("generate");
     setLastRefineInstruction(null);
@@ -197,42 +224,77 @@ export function useGenerationWorkflow(projectIdFromUrl?: string): UseGenerationW
       setLastRefineInstruction(null);
       setSensor(createSensor("validating"));
       setSensor(createSensor("rate_limited_check"));
-      setSensor({
-        ...createSensor("uploading_to_blob"),
-        progress: 10,
-        message: localizedPhaseMessage("uploading_to_blob"),
-      });
-      const ocr = await ocrFn({
-        data: { imageBase64: image.base64, mimeType: image.mimeType },
-      });
-      if (!ocr.ok) return { ok: false, error: ocr.error };
 
-      setSensor(createSensor("ocr"));
+      const ocrCacheKey = await cacheKeyForOcr(image.base64, image.mimeType);
+      let ocrMarkdown =
+        (activeProjectId ? getProjectOcrMarkdown(activeProjectId) : null) ??
+        getCachedOcrMarkdown(ocrCacheKey);
+
+      if (ocrMarkdown) {
+        lastOcrMarkdownRef.current = ocrMarkdown;
+        setSensor({
+          ...createSensor("ocr"),
+          progress: 40,
+          message: localizedPhaseMessage("ocr"),
+        });
+      } else {
+        setSensor({
+          ...createSensor("uploading_to_blob"),
+          progress: 15,
+          message: localizedPhaseMessage("uploading_to_blob"),
+        });
+        const ocr = await ocrFn({
+          data: { imageBase64: image.base64, mimeType: image.mimeType },
+        });
+        if (!ocr.ok) return { ok: false, error: ocr.error };
+
+        ocrMarkdown = ocr.ocrMarkdown;
+        lastOcrMarkdownRef.current = ocrMarkdown;
+        setCachedOcrMarkdown(ocrCacheKey, ocrMarkdown);
+        setSensor({
+          ...createSensor("ocr"),
+          progress: 40,
+          message: localizedPhaseMessage("ocr"),
+        });
+      }
+
       setSensor({
         ...createSensor("synthesizing"),
         progress: 45,
       });
-      return generateFn({
+      const generated = await generateFn({
         data: {
           imageBase64: image.base64,
           mimeType: image.mimeType,
-          ocrMarkdown: ocr.ocrMarkdown,
+          ocrMarkdown,
+          options: runOptions,
+        },
+      });
+
+      if (!generated.ok) return generated;
+
+      if (!isLikelyIncompleteHtml(generated.data)) {
+        return generated;
+      }
+
+      setSensor({
+        ...createSensor("synthesizing"),
+        progress: 75,
+        message: t("phase.message.continuing"),
+      });
+      return continueFn({
+        data: {
+          prior: {
+            html: generated.data.html,
+            css: generated.data.css,
+            javascript: generated.data.javascript,
+          },
           options: runOptions,
         },
       });
     },
     onSuccess: handleResult,
-    onError: (e) => {
-      const apiError = localizeError(
-        createApiError(
-          "SERVER_ERROR",
-          (e as Error).message ?? t("diagnostic.message.unexpectedServerError"),
-          "failed",
-        ),
-      );
-      setError(apiError);
-      setSensor(createSensor("failed", "failed", apiError.diagnostic));
-    },
+    onError: handleMutationError,
   });
 
   const continueMut = useMutation({
@@ -258,17 +320,7 @@ export function useGenerationWorkflow(projectIdFromUrl?: string): UseGenerationW
       });
     },
     onSuccess: handleResult,
-    onError: (e) => {
-      const apiError = localizeError(
-        createApiError(
-          "SERVER_ERROR",
-          (e as Error).message ?? t("diagnostic.message.unexpectedServerError"),
-          "failed",
-        ),
-      );
-      setError(apiError);
-      setSensor(createSensor("failed", "failed", apiError.diagnostic));
-    },
+    onError: handleMutationError,
   });
 
   const refineMut = useMutation({
@@ -295,17 +347,7 @@ export function useGenerationWorkflow(projectIdFromUrl?: string): UseGenerationW
       });
     },
     onSuccess: handleResult,
-    onError: (e) => {
-      const apiError = localizeError(
-        createApiError(
-          "SERVER_ERROR",
-          (e as Error).message ?? t("diagnostic.message.unexpectedServerError"),
-          "failed",
-        ),
-      );
-      setError(apiError);
-      setSensor(createSensor("failed", "failed", apiError.diagnostic));
-    },
+    onError: handleMutationError,
   });
 
   const busy = generateMut.isPending || continueMut.isPending || refineMut.isPending;

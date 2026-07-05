@@ -83,6 +83,9 @@ export type OutputPanelProps = {
   /** Preview console bridge callback */
   onConsoleEntry?: (entry: import("@/lib/preview-console-bridge").PreviewConsoleEntry) => void;
 
+  /** Full-canvas loading overlay for the preview tab during generation */
+  previewLoadingOverlay?: ReactNode;
+
   className?: string;
 };
 
@@ -127,6 +130,7 @@ export function OutputPanel({
   showDeviceChrome = false,
   extraTabs,
   onConsoleEntry,
+  previewLoadingOverlay,
   className,
 }: OutputPanelProps) {
   const { t } = useT();
@@ -294,6 +298,19 @@ export function OutputPanel({
     </div>
   );
 
+  const previewContent = (() => {
+    if (tab === "preview" && previewLoadingOverlay) {
+      return (
+        <div className="relative h-full min-h-0" data-testid="builder-preview-skeleton" inert>
+          {previewLoadingOverlay}
+        </div>
+      );
+    }
+    if (isEmpty) return emptyState;
+    if (tab === "preview") return previewFrame;
+    return codeEditor;
+  })();
+
   if (isGeneration) {
     return (
       <div className={cn("space-y-3", className)}>
@@ -403,8 +420,12 @@ export function OutputPanel({
           </div>
         )}
 
-        <div className="relative bg-[#202124] p-3 sm:p-4">
-          {isEmpty ? (
+        <div className="relative min-h-[min(68dvh,640px)] bg-[#202124] p-3 sm:p-4">
+          {tab === "preview" && previewLoadingOverlay ? (
+            <div className="relative h-full min-h-[min(60dvh,560px)]" inert>
+              {previewLoadingOverlay}
+            </div>
+          ) : isEmpty ? (
             emptyState
           ) : tab === "preview" ? (
             showDeviceChrome ? (
@@ -448,9 +469,7 @@ export function OutputPanel({
         </div>
         {!isEmpty && actionButtons}
       </header>
-      <div className="relative flex-1 overflow-hidden">
-        {isEmpty ? emptyState : tab === "preview" ? previewFrame : codeEditor}
-      </div>
+      <div className="relative min-h-0 flex-1 overflow-hidden">{previewContent}</div>
     </div>
   );
 }

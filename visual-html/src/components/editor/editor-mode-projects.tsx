@@ -123,7 +123,7 @@ export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h1 className="text-base font-semibold">{t("projects.title")}</h1>
-              <p className="text-xs text-[var(--editor-muted)]">{t("projects.subtitle")}</p>
+              <p className="text-xs text-(--editor-muted)">{t("projects.subtitle")}</p>
             </div>
             <Button asChild size="sm" data-testid="new-project">
               <Link to="/">
@@ -161,7 +161,7 @@ export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps
           {Array.from({ length: 4 }, (_, index) => (
             <div
               key={index}
-              className="h-[4.5rem] animate-pulse rounded-lg border border-[var(--editor-border)] bg-[var(--editor-hover)]"
+              className="h-18 animate-pulse rounded-lg border border-(--editor-border) bg-(--editor-hover)"
             />
           ))}
         </div>
@@ -169,7 +169,7 @@ export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps
         <section className="flex flex-col items-center py-12 text-center">
           <FolderKanban className="mb-3 h-8 w-8 text-info" />
           <h2 className="text-sm font-medium">{t("projects.empty.title")}</h2>
-          <p className="mt-2 max-w-sm text-xs text-[var(--editor-muted)]">
+          <p className="mt-2 max-w-sm text-xs text-(--editor-muted)">
             {t("projects.empty.description")}
           </p>
           <Button asChild variant="outline" className="mt-4" data-testid="create-first-project">
@@ -179,7 +179,7 @@ export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps
           </Button>
         </section>
       ) : visible.length === 0 ? (
-        <p className="py-8 text-center text-sm text-[var(--editor-muted)]">
+        <p className="py-8 text-center text-sm text-(--editor-muted)">
           {t("projects.noMatch", { query })}
         </p>
       ) : (
@@ -201,10 +201,10 @@ export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps
   const previewPanel = (
     <EditorPreviewStage>
       {!project ? (
-        <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center text-[var(--editor-muted)]">
+        <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center text-(--editor-muted)">
           {initialProjectId != null && isHydrated && !getProject(initialProjectId) ? (
             <>
-              <p className="text-sm font-semibold text-[var(--editor-fg)]">
+              <p className="text-sm font-semibold text-(--editor-fg)">
                 {t("projectDetail.notFound.title")}
               </p>
               <p className="max-w-xs text-xs">{t("projectDetail.notFound.description")}</p>
@@ -216,7 +216,7 @@ export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps
             </>
           ) : (
             <>
-              <p className="text-sm font-semibold text-[var(--editor-fg)]">
+              <p className="text-sm font-semibold text-(--editor-fg)">
                 {t("editor.projects.selectTitle")}
               </p>
               <p className="max-w-xs text-xs">{t("editor.projects.selectHint")}</p>
@@ -229,7 +229,7 @@ export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps
             <div className="min-w-0 flex-1">
               <Link
                 to="/projects"
-                className="mb-2 inline-flex items-center gap-1 text-xs text-[var(--editor-muted)] hover:text-[var(--editor-fg)]"
+                className="mb-2 inline-flex items-center gap-1 text-xs text-(--editor-muted) hover:text-(--editor-fg)"
                 data-testid="back-to-projects"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
@@ -272,7 +272,7 @@ export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps
                       setNameDraft(project.name);
                       setEditingName(true);
                     }}
-                    className="grid h-9 w-9 place-items-center rounded-md text-[var(--editor-muted)] hover:bg-[var(--editor-hover)]"
+                    className="grid h-9 w-9 place-items-center rounded-md text-(--editor-muted) hover:bg-(--editor-hover)"
                     data-testid="rename-project"
                     aria-label={t("projectDetail.renameAria")}
                   >
@@ -280,7 +280,7 @@ export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps
                   </button>
                 </div>
               )}
-              <p className="mt-1 text-xs text-[var(--editor-muted)]">
+              <p className="mt-1 text-xs text-(--editor-muted)">
                 {t("projectDetail.meta", {
                   fileName: project.fileName,
                   width: project.imageWidth,
@@ -313,35 +313,29 @@ export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps
               type="button"
               onClick={() => setThumbLightboxOpen(true)}
               aria-label={t("projectDetail.zoomAria", { fileName: project.fileName })}
-              className="overflow-hidden rounded-lg border border-[var(--editor-border)]"
+              className="overflow-hidden rounded-lg border border-(--editor-border)"
             >
               <img
                 src={project.thumbnailDataUrl}
                 alt=""
-                className="aspect-[4/3] w-full object-cover"
+                className="aspect-4/3 w-full object-cover"
               />
-              <span className="flex items-center justify-center gap-1 py-1 text-[10px] text-[var(--editor-muted)]">
+              <span className="flex items-center justify-center gap-1 py-1 text-[10px] text-(--editor-muted)">
                 <ZoomIn className="h-3 w-3" />
                 {t("projectDetail.zoomTitle")}
               </span>
             </button>
-            <div className="space-y-1 text-xs text-[var(--editor-muted)]">
+            <div className="space-y-1 text-xs text-(--editor-muted)">
               <p>
-                <span className="font-medium text-[var(--editor-fg)]">
-                  {t("projectDetail.output")}
-                </span>{" "}
+                <span className="font-medium text-(--editor-fg)">{t("projectDetail.output")}</span>{" "}
                 {t(OUTPUT_LABEL_KEYS[project.options.outputMode])}
               </p>
               <p>
-                <span className="font-medium text-[var(--editor-fg)]">
-                  {t("projectDetail.styling")}
-                </span>{" "}
+                <span className="font-medium text-(--editor-fg)">{t("projectDetail.styling")}</span>{" "}
                 {t(STYLING_LABEL_KEYS[project.options.stylingMode])}
               </p>
               <p>
-                <span className="font-medium text-[var(--editor-fg)]">
-                  {t("projectDetail.lines")}
-                </span>{" "}
+                <span className="font-medium text-(--editor-fg)">{t("projectDetail.lines")}</span>{" "}
                 {(() => {
                   const stats = projectSummaryStats(project.result);
                   return stats.jsLines > 0

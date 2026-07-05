@@ -210,9 +210,9 @@ export function useEditorStudio({ startTemplateId }: UseEditorStudioOptions = {}
   const handleFixWithAi = useCallback(
     (consoleMessage: string) => {
       setGenerationMode("fix");
-      setInputVal(`Fix this runtime error in the preview: ${consoleMessage}`);
+      setInputVal(t("builder.fixRuntimeErrorPrompt", { consoleMessage }));
     },
-    [setGenerationMode, setInputVal],
+    [setGenerationMode, setInputVal, t],
   );
 
   const handleNewChatWithPreviewReset = useCallback(() => {

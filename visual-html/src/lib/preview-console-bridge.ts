@@ -16,7 +16,7 @@ export const PREVIEW_CONSOLE_BRIDGE_SCRIPT = `
             catch(e) { return String(a); }
           }),
           ts: Date.now()
-        }, window.location.origin || '*');
+        }, '*');
       } catch(e) {}
       return orig.apply(console, arguments);
     };

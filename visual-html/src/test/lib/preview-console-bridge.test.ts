@@ -83,4 +83,35 @@ describe("preview-console-bridge", () => {
       expect(injectConsoleBridge(html)).toBe(html);
     });
   });
+
+  describe("runtime bridge delivery", () => {
+    it("posts console messages via wildcard targetOrigin", () => {
+      const posts: Array<{ data: unknown; origin: string }> = [];
+      const mockParent = {
+        postMessage(data: unknown, origin: string) {
+          posts.push({ data, origin });
+        },
+      };
+      const mockConsole: Record<string, (...args: unknown[]) => void> = {
+        log: () => {},
+        warn: () => {},
+        error: () => {},
+        info: () => {},
+      };
+
+      new Function("parent", "console", PREVIEW_CONSOLE_BRIDGE_SCRIPT.trim())(
+        mockParent,
+        mockConsole,
+      );
+      mockConsole.log!("bridge-test");
+
+      expect(posts).toHaveLength(1);
+      expect(posts[0]?.origin).toBe("*");
+      expect(posts[0]?.data).toMatchObject({
+        type: "pngto-preview-console",
+        level: "log",
+        args: ["bridge-test"],
+      });
+    });
+  });
 });

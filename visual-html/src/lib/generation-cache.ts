@@ -13,11 +13,21 @@ export async function sha256Key(input: string): Promise<string> {
 }
 
 const CACHE_PREFIX = "pngto-gen-cache:";
+const OCR_CACHE_PREFIX = "pngto-ocr-cache:";
 
 export function getCachedGeneration(key: string): string | null {
   if (typeof localStorage === "undefined") return null;
   try {
     return localStorage.getItem(CACHE_PREFIX + key);
+  } catch {
+    return null;
+  }
+}
+
+export function getCachedOcrMarkdown(key: string): string | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    return localStorage.getItem(OCR_CACHE_PREFIX + key);
   } catch {
     return null;
   }
@@ -30,6 +40,27 @@ export function setCachedGeneration(key: string, value: string): void {
   } catch {
     /* quota */
   }
+}
+
+export function setCachedOcrMarkdown(key: string, markdown: string): void {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(OCR_CACHE_PREFIX + key, markdown);
+  } catch {
+    /* quota */
+  }
+}
+
+export async function cacheKeyForOcr(imageBase64: string, mimeType: string): Promise<string> {
+  return sha256Key(`ocr::${mimeType}::${imageBase64.length}::${imageBase64.slice(0, 8192)}`);
+}
+
+export function getProjectOcrMarkdown(projectId: string): string | null {
+  return getCachedOcrMarkdown(`project:${projectId}`);
+}
+
+export function setProjectOcrMarkdown(projectId: string, markdown: string): void {
+  setCachedOcrMarkdown(`project:${projectId}`, markdown);
 }
 
 export async function cacheKeyForPrompt(prompt: string, model: string): Promise<string> {

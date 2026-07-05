@@ -426,6 +426,14 @@
     animation: apple-shimmer 1.8s var(--apple-ease-out) infinite;
     pointer-events: none;
   }
+
+  .preview-skeleton-canvas {
+    background: linear-gradient(
+      165deg,
+      color-mix(in oklch, var(--editor-panel, var(--shell-elevated)) 70%, transparent),
+      var(--editor-bg, var(--shell))
+    );
+  }
 }
 
 @utility visual-shell {

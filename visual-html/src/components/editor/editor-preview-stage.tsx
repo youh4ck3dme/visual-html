@@ -18,7 +18,7 @@ export function EditorPreviewStage({
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col overflow-hidden", className)}>
       {toolbar && (
-        <div className="shrink-0 border-b border-[var(--editor-border)] px-3 py-2">{toolbar}</div>
+        <div className="shrink-0 border-b border-(--editor-border) px-3 py-2">{toolbar}</div>
       )}
       <div className="relative min-h-0 flex-1 overflow-hidden">{children}</div>
       {console}
