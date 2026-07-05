@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { APP_PWA_META, APP_THEME_COLOR } from "@/lib/app-brand";
+
 import { APP_IPHONE_17_AIR_FIX_PROMPT } from "@/lib/prompts/app-iphone-fix-prompt";
 import { IPHONE_AIR_HTML_FIX_PROMPT } from "@/lib/builder/quality-fix-prompts";
 import { IPHONE_17_AIR, IPHONE_LEGACY_COMPACT } from "@/lib/iphone-viewport";
@@ -51,7 +53,7 @@ describe("iPhone 17 Air integrity rubric", () => {
     });
 
     it("editor layout prompt bar uses safe-area bottom", () => {
-      expect(layoutSource).toContain("safe-area-inset-bottom");
+      expect(layoutSource).toContain("--editor-safe-bottom");
     });
 
     it("editor header uses safe-area top", () => {
@@ -85,6 +87,26 @@ describe("iPhone 17 Air integrity rubric", () => {
       expect(IPHONE_AIR_HTML_FIX_PROMPT).toContain("393×852");
       expect(IPHONE_AIR_HTML_FIX_PROMPT).toContain("safe-area-inset-bottom");
       expect(IPHONE_AIR_HTML_FIX_PROMPT).toContain("max-width: 420px");
+    });
+  });
+
+  describe("PWA manifest alignment", () => {
+    const manifest = JSON.parse(
+      readFileSync(join(process.cwd(), "public/site.webmanifest"), "utf-8"),
+    ) as {
+      theme_color: string;
+      background_color: string;
+      short_name: string;
+    };
+
+    it("manifest theme_color matches app-brand", () => {
+      expect(manifest.theme_color).toBe(APP_THEME_COLOR);
+      expect(manifest.background_color).toBe(APP_THEME_COLOR);
+    });
+
+    it("manifest short_name matches application-name meta", () => {
+      const appName = APP_PWA_META.find((m) => m.name === "application-name");
+      expect(appName?.content).toBe(manifest.short_name);
     });
   });
 
