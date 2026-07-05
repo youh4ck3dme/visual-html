@@ -4,6 +4,8 @@ import { runHtmlHealthCheck } from "@/lib/builder/html-health-check";
 import { resolveBuilderQualityProfile } from "@/lib/builder/quality-profiles";
 import {
   APPLE_GLASS_QUALITY_POLISH_FIX_PROMPT,
+  IPHONE_AIR_HTML_FIX_PROMPT,
+  resolveQualityPolishFixPrompt,
   shouldOfferQualityPolishFix,
 } from "@/lib/builder/quality-fix-prompts";
 
@@ -24,6 +26,23 @@ describe("quality-fix-prompts", () => {
     expect(APPLE_GLASS_QUALITY_POLISH_FIX_PROMPT).toContain("prefers-reduced-motion");
     expect(APPLE_GLASS_QUALITY_POLISH_FIX_PROMPT).toContain(":focus-visible");
     expect(APPLE_GLASS_QUALITY_POLISH_FIX_PROMPT).toContain("max-width: 480px");
+  });
+
+  it("exports a non-empty iPhone Air HTML fix prompt", () => {
+    expect(IPHONE_AIR_HTML_FIX_PROMPT).toContain("420×912");
+    expect(IPHONE_AIR_HTML_FIX_PROMPT).toContain("393×852");
+    expect(IPHONE_AIR_HTML_FIX_PROMPT).toContain("safe-area-inset-bottom");
+    expect(IPHONE_AIR_HTML_FIX_PROMPT).toContain("max-width: 420px");
+  });
+
+  it("resolveQualityPolishFixPrompt — pwa-mobile uses iPhone Air prompt", () => {
+    expect(resolveQualityPolishFixPrompt("pwa-mobile")).toBe(IPHONE_AIR_HTML_FIX_PROMPT);
+  });
+
+  it("resolveQualityPolishFixPrompt — apple-glass uses Apple Glass prompt", () => {
+    expect(resolveQualityPolishFixPrompt("apple-glass")).toBe(
+      APPLE_GLASS_QUALITY_POLISH_FIX_PROMPT,
+    );
   });
 
   it("shouldOfferQualityPolishFix — true when motion/focus/responsive warnings present", () => {

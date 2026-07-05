@@ -1,4 +1,5 @@
 import type { HtmlHealthCheckResult } from "@/lib/builder/html-health-check";
+import type { BuilderQualityProfileId } from "@/lib/builder/quality-profiles";
 
 /** Targets motion, focus-visible, and responsive media-query health warnings. */
 export const APPLE_GLASS_QUALITY_POLISH_FIX_PROMPT = `Fix the current HTML/CSS to remove these quality warnings without changing the core layout, content, or visual identity.
@@ -52,6 +53,54 @@ Return the complete corrected single-file HTML only.
 Do not explain anything.
 Do not wrap the result in Markdown.`;
 
+/** Targets iPhone 17 Air (420px) and compact (393px) PWA/mobile HTML output. */
+export const IPHONE_AIR_HTML_FIX_PROMPT = `Fix the current HTML/CSS for iPhone 17 Air and compact iPhone viewports without changing core layout, content, or visual identity.
+
+Target viewports:
+- iPhone 17 Air: 420×912 CSS px
+- iPhone compact: 393×852 CSS px
+- Tablet: max-width 768px, 1024px
+
+Warnings to fix:
+1. Missing viewport-fit=cover or viewport meta
+2. Animations without prefers-reduced-motion fallback
+3. Missing focus/focus-visible styles
+4. Horizontal overflow on 420px and 393px widths
+5. Touch targets below 44px height on primary CTAs
+6. Missing safe-area padding on fixed bottom navigation or toolbars
+
+Required changes:
+
+1. Viewport & safe-area:
+- <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+- padding-bottom: env(safe-area-inset-bottom, 0px) on fixed bottom bars
+- padding-top: env(safe-area-inset-top, 0px) on fixed top bars when needed
+
+2. Responsive breakpoints — add @media for:
+- max-width: 1024px
+- max-width: 768px
+- max-width: 420px (iPhone 17 Air)
+- max-width: 393px (iPhone compact)
+- No horizontal overflow (overflow-x: hidden on body if needed)
+
+3. Touch-friendly controls:
+- Primary buttons and nav items minimum 44px height
+- Adequate gap between tappable elements (8px+)
+
+4. Reduced motion:
+- @media (prefers-reduced-motion: reduce) { disable animations, transitions, parallax, smooth scroll }
+
+5. Focus styles:
+- :focus-visible ring/glow on all interactive elements
+
+6. Preserve existing colors, content, section order, CSS variables, and JavaScript behavior.
+
+7. Do not add external libraries, Tailwind CDN, React, or remove sections.
+
+Return the complete corrected single-file HTML only.
+Do not explain anything.
+Do not wrap the result in Markdown.`;
+
 const QUALITY_POLISH_FIX_FINDING_IDS = new Set([
   "animationWithoutReducedMotion",
   "noFocusStyles",
@@ -70,4 +119,11 @@ export function shouldOfferQualityPolishFix(
   return health.findings.some(
     (finding) => finding.severity !== "info" && QUALITY_POLISH_FIX_FINDING_IDS.has(finding.id),
   );
+}
+
+/** Picks iPhone Air fix prompt for PWA mobile profile; otherwise Apple Glass polish. */
+export function resolveQualityPolishFixPrompt(profileId: BuilderQualityProfileId = "auto"): string {
+  return profileId === "pwa-mobile"
+    ? IPHONE_AIR_HTML_FIX_PROMPT
+    : APPLE_GLASS_QUALITY_POLISH_FIX_PROMPT;
 }

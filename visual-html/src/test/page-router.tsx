@@ -9,14 +9,15 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render } from "@testing-library/react";
 
+import { SettingsDialog } from "@/components/app/settings-dialog";
+import { SettingsProvider } from "@/components/app/settings-context";
+import { EditorModeProjects } from "@/components/editor/editor-mode-projects";
+import { EditorModeScreenshot } from "@/components/editor/editor-mode-screenshot";
 import { Toaster } from "@/components/ui/sonner";
 import { BuilderWorkspaceProvider } from "@/hooks/use-builder-workspace";
 import { LocaleProvider } from "@/hooks/use-locale";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ProjectsProvider } from "@/hooks/use-projects";
-import { IndexPage } from "@/pages/index-page";
-import { ProjectDetailPage } from "@/pages/project-detail-page";
-import { ProjectsPage } from "@/pages/projects-page";
 
 function createTestQueryClient() {
   return new QueryClient({
@@ -39,25 +40,40 @@ const rootRoute = createRootRoute({
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  component: IndexPage,
   validateSearch: (search: Record<string, unknown>) => ({
     project: typeof search.project === "string" ? search.project : undefined,
   }),
+  component: function IndexTestPage() {
+    const { project } = indexRoute.useSearch();
+    return <EditorModeScreenshot projectId={project} />;
+  },
 });
 
 const projectsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/projects",
-  component: ProjectsPage,
+  component: () => <Outlet />,
+});
+
+const projectsIndexRoute = createRoute({
+  getParentRoute: () => projectsRoute,
+  path: "/",
+  component: () => <EditorModeProjects />,
 });
 
 const projectDetailRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/projects/$projectId",
-  component: ProjectDetailPage,
+  getParentRoute: () => projectsRoute,
+  path: "/$projectId",
+  component: function ProjectDetailTestPage() {
+    const { projectId } = projectDetailRoute.useParams();
+    return <EditorModeProjects initialProjectId={projectId} />;
+  },
 });
 
-const pageRouteTree = rootRoute.addChildren([indexRoute, projectsRoute, projectDetailRoute]);
+const pageRouteTree = rootRoute.addChildren([
+  indexRoute,
+  projectsRoute.addChildren([projectsIndexRoute, projectDetailRoute]),
+]);
 
 export async function renderPageAt(path: string) {
   const queryClient = createTestQueryClient();
@@ -74,7 +90,10 @@ export async function renderPageAt(path: string) {
       <LocaleProvider>
         <ThemeProvider>
           <ProjectsProvider>
-            <RouterProvider router={router} />
+            <SettingsProvider>
+              <RouterProvider router={router} />
+              <SettingsDialog />
+            </SettingsProvider>
           </ProjectsProvider>
         </ThemeProvider>
       </LocaleProvider>

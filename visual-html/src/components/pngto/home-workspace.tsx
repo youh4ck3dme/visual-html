@@ -5,8 +5,6 @@ import { useT } from "@/hooks/use-t";
 import type { InputMode } from "@/lib/input-mode";
 import { cn } from "@/lib/utils";
 import type { MessageKey } from "@/lib/i18n/messages";
-import { LocaleSwitcher } from "./locale-switcher";
-import { ThemeSwitcher } from "./theme-switcher";
 
 const MODES = [
   { id: "upload" as const, labelKey: "mode.upload" as MessageKey, icon: Upload },
@@ -19,16 +17,10 @@ export function TopCreditBar() {
   const { t } = useT();
 
   return (
-    <div className="sticky top-0 z-30 border-b border-shell-border bg-shell/90 px-4 py-3 backdrop-blur-md sm:px-6">
-      <div className="flex items-center justify-between gap-3">
-        <p className="flex-1 px-2 text-center text-[10px] leading-relaxed text-shell-muted sm:text-xs">
-          {t("topbar.credit")}
-        </p>
-        <div className="hidden shrink-0 items-center gap-2 md:flex">
-          <LocaleSwitcher />
-          <ThemeSwitcher />
-        </div>
-      </div>
+    <div className="sticky top-0 z-30 border-b border-shell-border bg-shell/90 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top,0px))] backdrop-blur-md sm:px-6">
+      <p className="px-2 text-center text-xs leading-relaxed text-shell-muted sm:text-sm">
+        {t("topbar.credit")}
+      </p>
     </div>
   );
 }
@@ -44,7 +36,7 @@ export function ModeTabs({
 
   return (
     <div
-      className="flex items-center gap-1 overflow-x-auto border-b border-workspace-border bg-workspace-tabs px-2 py-2 sm:px-3"
+      className="flex items-center gap-1 overflow-x-auto border-b border-workspace-border bg-workspace-tabs px-2 py-2 sm:px-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       aria-label={t("mode.groupAria")}
       role="tablist"
     >
@@ -61,7 +53,7 @@ export function ModeTabs({
             data-testid={`input-mode-${id}`}
             onClick={() => onChange(id)}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+              "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors sm:text-xs",
               active
                 ? "bg-workspace-surface text-workspace-foreground shadow-sm"
                 : "text-workspace-muted hover:bg-workspace-surface/60 hover:text-workspace-foreground",
@@ -90,7 +82,7 @@ export function AppWindow({
   return (
     <div className={cn("workspace-window overflow-hidden text-workspace-foreground", className)}>
       <ModeTabs value={mode} onChange={onModeChange} />
-      <div className="p-5 sm:p-6">{children}</div>
+      <div className="p-4 sm:p-6">{children}</div>
     </div>
   );
 }

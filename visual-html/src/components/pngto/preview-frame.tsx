@@ -1,6 +1,12 @@
+import { useEffect, useMemo } from "react";
 import { AlertTriangle } from "lucide-react";
 
 import { useT } from "@/hooks/use-t";
+import {
+  injectConsoleBridge,
+  normalizePreviewConsoleMessage,
+  type PreviewConsoleEntry,
+} from "@/lib/preview-console-bridge";
 import { cn } from "@/lib/utils";
 
 type PreviewFrameProps = {
@@ -8,13 +14,34 @@ type PreviewFrameProps = {
   allowJs: boolean;
   title?: string;
   className?: string;
+  onConsoleEntry?: (entry: PreviewConsoleEntry) => void;
 };
 
-export function PreviewFrame({ srcDoc, allowJs, title, className }: PreviewFrameProps) {
+export function PreviewFrame({
+  srcDoc,
+  allowJs,
+  title,
+  className,
+  onConsoleEntry,
+}: PreviewFrameProps) {
   const { t } = useT();
-  // sandbox="" => scripts disabled, same-origin denied. allow-scripts only when opted-in;
-  // NEVER allow-same-origin, so the frame cannot touch the parent.
   const sandbox = allowJs ? "allow-scripts" : "";
+
+  const resolvedDoc = useMemo(
+    () => (allowJs && onConsoleEntry ? injectConsoleBridge(srcDoc) : srcDoc),
+    [allowJs, onConsoleEntry, srcDoc],
+  );
+
+  useEffect(() => {
+    if (!allowJs || !onConsoleEntry) return;
+    const handler = (event: MessageEvent) => {
+      const entry = normalizePreviewConsoleMessage(event.data);
+      if (entry) onConsoleEntry(entry);
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [allowJs, onConsoleEntry]);
+
   return (
     <div className={cn("glass-inset flex min-h-0 flex-col overflow-hidden", className)}>
       {allowJs && (
@@ -26,7 +53,7 @@ export function PreviewFrame({ srcDoc, allowJs, title, className }: PreviewFrame
       <iframe
         title={title ?? t("result.previewFrameTitle")}
         sandbox={sandbox}
-        srcDoc={srcDoc}
+        srcDoc={resolvedDoc}
         className="min-h-0 w-full flex-1 bg-white"
         data-testid="preview-frame-iframe"
       />

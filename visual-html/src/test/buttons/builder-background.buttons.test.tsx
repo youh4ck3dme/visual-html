@@ -12,6 +12,8 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { BuilderWorkspace } from "@/components/builder/builder-workspace";
+import { SettingsDialog } from "@/components/app/settings-dialog";
+import { SettingsProvider } from "@/components/app/settings-context";
 import { VisualSidebar } from "@/components/pngto/sidebar-nav";
 import { Toaster } from "@/components/ui/sonner";
 import { useBuilderWorkspace } from "@/hooks/use-builder-workspace-consumer";
@@ -56,10 +58,13 @@ async function renderBackgroundApp(initialPath: string) {
   });
   const rootRoute = createRootRoute({
     component: () => (
-      <BuilderWorkspaceProvider>
-        <ShellLayout />
-        <Toaster />
-      </BuilderWorkspaceProvider>
+      <SettingsProvider>
+        <BuilderWorkspaceProvider>
+          <ShellLayout />
+          <Toaster />
+        </BuilderWorkspaceProvider>
+        <SettingsDialog />
+      </SettingsProvider>
     ),
   });
   const homeRoute = createRoute({

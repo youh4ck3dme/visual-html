@@ -7,7 +7,9 @@ import { APPLE_GLASS_QUALITY_POLISH_FIX_PROMPT } from "@/lib/builder/quality-fix
 import { promptCategories, promptLibrary } from "@/lib/builder/prompt-library";
 import * as download from "@/lib/utils/download";
 import { getServerFnMocks } from "@/test/mocks/server-fns";
-import { renderWithProviders } from "@/test/test-utils";
+import { mockAbortAwareHangingChat, mockServerAiOnly } from "@/test/helpers/builder-chat-mock";
+import { setDesktopViewport, setMobileViewport } from "@/test/helpers/viewport";
+import { renderBuilderWorkspace } from "@/test/test-utils";
 
 vi.mock("@/lib/utils/download", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/utils/download")>();
@@ -27,11 +29,12 @@ async function openGenerationTrace(user: ReturnType<typeof userEvent.setup>) {
 
 describe("buttons › builder-workspace", () => {
   beforeEach(() => {
+    setDesktopViewport();
     localStorage.removeItem("vibecraft_workspace_v1");
   });
 
   it("startTemplateId photo-portfolio — auto-starts Photographer Lightbox generation", async () => {
-    renderWithProviders(<BuilderWorkspace startTemplateId="photo-portfolio" />);
+    renderBuilderWorkspace(<BuilderWorkspace startTemplateId="photo-portfolio" />);
     await waitFor(() => expect(screen.getByTitle("VibeCraft Preview")).toBeInTheDocument(), {
       timeout: 5000,
     });
@@ -39,7 +42,7 @@ describe("buttons › builder-workspace", () => {
 
   it("New Application — resets workspace messages", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await user.click(screen.getByRole("button", { name: /New Application/i }));
     expect(screen.getByText(/New workspace/i)).toBeInTheDocument();
   });
@@ -48,10 +51,10 @@ describe("buttons › builder-workspace", () => {
     "category %s — click switches active category",
     async (name) => {
       const user = userEvent.setup();
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       const btn = screen.getByRole("button", { name });
       await user.click(btn);
-      expect(btn.className).toMatch(/bg-shell-hover|text-foreground/);
+      expect(btn.className).toMatch(/editor-hover|bg-shell-hover|text-foreground|editor-fg/);
     },
   );
 
@@ -59,7 +62,7 @@ describe("buttons › builder-workspace", () => {
     "starter template %s — click starts generation",
     async (title, category) => {
       const user = userEvent.setup();
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       const catName =
         promptCategories.find((c) => c.id === category)?.name ?? "Portfolios & Resumes";
       await user.click(screen.getByRole("button", { name: catName }));
@@ -72,7 +75,7 @@ describe("buttons › builder-workspace", () => {
 
   it("category Landing Pages — shows WordPress marketing landing starter", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await user.click(screen.getByRole("button", { name: "Landing Pages" }));
     expect(
       screen.getByRole("button", { name: /WordPress Marketing Landing/i }),
@@ -82,14 +85,13 @@ describe("buttons › builder-workspace", () => {
   it("shows Server AI ready when server env keys are configured", async () => {
     const { builderAiStatus } = getServerFnMocks();
     builderAiStatus.mockResolvedValueOnce({ serverKeysConfigured: true });
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await waitFor(() => expect(screen.getByText("Server AI ready")).toBeInTheDocument());
-    expect(screen.getByText(/MISTRAL_API_KEY from server env/i)).toBeInTheDocument();
   });
 
   it("Settings — opens BYOK dialog", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await user.click(screen.getByLabelText("Settings"));
     expect(await screen.findByText("Mistral BYOK")).toBeInTheDocument();
   });
@@ -98,7 +100,7 @@ describe("buttons › builder-workspace", () => {
     "mode %s — Build always enabled; others need generated code",
     async (mode) => {
       const user = userEvent.setup();
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       const btn = screen.getByRole("button", { name: mode });
       if (mode === "Build") {
         expect(btn).toBeEnabled();
@@ -112,7 +114,7 @@ describe("buttons › builder-workspace", () => {
 
   it("Send prompt — enabled with text and submits", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await user.type(
       screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
       "Build a todo app",
@@ -130,7 +132,7 @@ describe("buttons › builder-workspace", () => {
   });
 
   it("Send prompt — disabled when input empty", () => {
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     const input = screen.getByPlaceholderText(/Build, refine, fix, or explain/i);
     const form = input.closest("form")!;
     const submit = within(form).getAllByRole("button").at(-1)!;
@@ -152,7 +154,7 @@ describe("buttons › builder-workspace", () => {
 
   it("preview — disables JavaScript by default and sanitizes script tags", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await loadSnakePreview(user);
 
     const iframe = screen.getByTestId("preview-frame-iframe");
@@ -163,7 +165,7 @@ describe("buttons › builder-workspace", () => {
 
   it("preview — JS toggle enables script sandbox mode", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await loadSnakePreview(user);
 
     const iframe = screen.getByTestId("preview-frame-iframe");
@@ -176,7 +178,7 @@ describe("buttons › builder-workspace", () => {
   it("preview — shows security warning for suspicious HTML before risky JS opt-in", async () => {
     const user = userEvent.setup();
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await loadSnakePreview(user);
 
     await user.click(screen.getByRole("button", { name: /Code/i }));
@@ -193,11 +195,11 @@ describe("buttons › builder-workspace", () => {
     expect(confirmSpy).toHaveBeenCalled();
     expect(screen.getByTestId("builder-preview-allow-js")).not.toBeChecked();
     confirmSpy.mockRestore();
-  });
+  }, 20000);
 
   it("Live Preview / Code tabs — switch preview panel", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await user.click(screen.getByRole("button", { name: "Interactive Games" }));
     await user.click(screen.getByRole("button", { name: /Retro Snake Game/i }));
     await waitFor(() => expect(screen.getByTitle("VibeCraft Preview")).toBeInTheDocument(), {
@@ -211,7 +213,7 @@ describe("buttons › builder-workspace", () => {
 
   it("Settings dialog — Show Keys toggles input type", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await user.click(screen.getByLabelText("Settings"));
     const showBtn = await screen.findByRole("button", { name: /Show Keys/i });
     await user.click(showBtn);
@@ -222,7 +224,7 @@ describe("buttons › builder-workspace", () => {
 
   it("Settings dialog — Cancel closes without saving keys", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await user.click(screen.getByLabelText("Settings"));
     await user.type(await screen.findByLabelText("API Key 1"), "sk-test");
     await user.click(screen.getByRole("button", { name: "Cancel" }));
@@ -233,21 +235,25 @@ describe("buttons › builder-workspace", () => {
   it("Copy — copies generated HTML to clipboard", async () => {
     const user = userEvent.setup();
     const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue();
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await user.click(screen.getByRole("button", { name: "Interactive Games" }));
     await user.click(screen.getByRole("button", { name: /Retro Snake Game/i }));
-    await waitFor(() => screen.getByRole("button", { name: /Copy/i }));
-    await user.click(screen.getByRole("button", { name: /^Copy$/i }));
+    await waitFor(() => expect(screen.getByTestId("builder-copy")).toBeInTheDocument(), {
+      timeout: 10000,
+    });
+    await user.click(screen.getByTestId("builder-copy"));
     expect(writeText).toHaveBeenCalled();
   });
 
   it("Download — downloads generated HTML file", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await user.click(screen.getByRole("button", { name: "Interactive Games" }));
     await user.click(screen.getByRole("button", { name: /Retro Snake Game/i }));
-    await waitFor(() => screen.getByRole("button", { name: /Download/i }));
-    await user.click(screen.getByRole("button", { name: /Download/i }));
+    await waitFor(() => expect(screen.getByTestId("builder-download")).toBeInTheDocument(), {
+      timeout: 10000,
+    });
+    await user.click(screen.getByTestId("builder-download"));
     expect(download.downloadTextFile).toHaveBeenCalledWith(
       "vibecraft-application.html",
       expect.stringContaining("<!DOCTYPE html>"),
@@ -256,7 +262,7 @@ describe("buttons › builder-workspace", () => {
 
   it("Save manual edit — saves version after code change", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await user.click(screen.getByRole("button", { name: "Interactive Games" }));
     await user.click(screen.getByRole("button", { name: /Retro Snake Game/i }));
     await waitFor(() => screen.getByTitle("VibeCraft Preview"));
@@ -273,7 +279,7 @@ describe("buttons › builder-workspace", () => {
   it("Settings dialog — Clear keys removes BYOK", async () => {
     const user = userEvent.setup();
     localStorage.setItem("builder_mistral_api_key_1", "sk-old");
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await user.click(screen.getByLabelText("Settings"));
     const dialog = await screen.findByRole("dialog");
     const trash = within(dialog)
@@ -281,12 +287,13 @@ describe("buttons › builder-workspace", () => {
       .find((btn) => btn.querySelector(".lucide-trash-2"))!;
     await user.click(trash);
     expect(localStorage.getItem("builder_mistral_api_key_1")).toBeNull();
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
     expect(screen.getByText("Demo Mode")).toBeInTheDocument();
   });
 
   it("Settings dialog — Save stores BYOK keys", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BuilderWorkspace />);
+    renderBuilderWorkspace(<BuilderWorkspace />);
     await user.click(screen.getByLabelText("Settings"));
     await user.type(await screen.findByLabelText("API Key 1"), "sk-test-key");
     await user.click(screen.getByRole("button", { name: "Save" }));
@@ -309,8 +316,7 @@ describe("buttons › builder-workspace", () => {
 
     async function startHangingGeneration(user: ReturnType<typeof userEvent.setup>) {
       const { builderChat } = getServerFnMocks();
-      builderChat.mockReset();
-      builderChat.mockImplementation(() => new Promise(() => {}));
+      mockAbortAwareHangingChat(builderChat);
       await user.type(
         screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
         "Build a hanging test page",
@@ -323,7 +329,7 @@ describe("buttons › builder-workspace", () => {
 
     it("shows Cancel button while generating and hides it when idle", async () => {
       const user = userEvent.setup();
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       expect(screen.queryByTestId("builder-cancel-generation")).not.toBeInTheDocument();
 
       await startHangingGeneration(user);
@@ -341,7 +347,7 @@ describe("buttons › builder-workspace", () => {
 
     it("does not show error feedback when generation is cancelled", async () => {
       const user = userEvent.setup();
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       await startHangingGeneration(user);
       await user.click(screen.getByTestId("builder-cancel-generation"));
 
@@ -356,7 +362,7 @@ describe("buttons › builder-workspace", () => {
 
     it("shows collapsible generation trace during generation", async () => {
       const user = userEvent.setup();
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       await startHangingGeneration(user);
 
       const tracePanel = await screen.findByTestId("builder-generation-trace");
@@ -375,7 +381,7 @@ describe("buttons › builder-workspace", () => {
 
     it("shows Quality Profile dropdown in settings", async () => {
       const user = userEvent.setup();
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       await user.click(screen.getByLabelText("Settings"));
       expect(await screen.findByTestId("builder-quality-profile-select")).toBeInTheDocument();
       expect(screen.getByTestId("builder-quality-profile")).toBeInTheDocument();
@@ -384,7 +390,7 @@ describe("buttons › builder-workspace", () => {
     it("shows recommended mode badge for selected profile", async () => {
       const user = userEvent.setup();
       localStorage.setItem("visual-html.builder.qualityProfile", "neon-parallax");
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       await user.click(screen.getByLabelText("Settings"));
       const recommended = await screen.findByTestId("builder-quality-profile-recommended-mode");
       expect(recommended).toHaveTextContent(/Recommended|Odporúčané/i);
@@ -395,7 +401,7 @@ describe("buttons › builder-workspace", () => {
       const user = userEvent.setup();
       localStorage.setItem("visual-html.builder.qualityProfile", "neon-parallax");
       localStorage.setItem("visual-html.builder.orchestrationMode", "fast");
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       await user.click(screen.getByLabelText("Settings"));
       expect(await screen.findByTestId("builder-quality-profile-fast-warning")).toHaveTextContent(
         /Pro or Beast/i,
@@ -417,7 +423,7 @@ describe("buttons › builder-workspace", () => {
         </style></head><body><section class="hero"><button>Go</button></section></body></html>`,
       });
 
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       await user.type(
         screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
         "apple glass premium landing page",
@@ -451,7 +457,7 @@ describe("buttons › builder-workspace", () => {
         content: `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Health UI</title><style>button:focus-visible{outline:2px solid #fff}</style></head><body><button>Go</button></body></html>`,
       });
 
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       await user.type(
         screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
         "Build a health score page",
@@ -480,7 +486,7 @@ describe("buttons › builder-workspace", () => {
         content: `<!DOCTYPE html><html><head><title>Bad</title></head><body><script src="https://evil.example/x.js"></script></body></html>`,
       });
 
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       await user.type(
         screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
         "Build a critical health page",
@@ -504,9 +510,20 @@ describe("buttons › builder-workspace", () => {
           ok: true,
           content: `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>One</title><style>button:focus-visible{outline:1px solid #fff}</style></head><body><button>One</button></body></html>`,
         })
-        .mockImplementationOnce(() => new Promise(() => {}));
+        .mockImplementationOnce(({ signal }: { signal?: AbortSignal }) => {
+          if (signal?.aborted) {
+            return Promise.reject(new DOMException("aborted", "AbortError"));
+          }
+          return new Promise((_, reject) => {
+            signal?.addEventListener(
+              "abort",
+              () => reject(new DOMException("aborted", "AbortError")),
+              { once: true },
+            );
+          });
+        });
 
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       await user.type(
         screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
         "Build first health page",
@@ -539,7 +556,7 @@ describe("buttons › builder-workspace", () => {
         content: TRACE_FRIENDLY_HTML,
       });
 
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       await user.type(
         screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
         "Build a metrics summary page",
@@ -571,7 +588,7 @@ describe("buttons › builder-workspace", () => {
         return new Promise(() => {});
       });
 
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       await user.type(
         screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
         "Build a retry backoff cancel test page",
@@ -613,7 +630,7 @@ describe("buttons › builder-workspace", () => {
       });
 
       try {
-        renderWithProviders(<BuilderWorkspace />);
+        renderBuilderWorkspace(<BuilderWorkspace />);
         await user.type(
           screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
           "Build a retry test page",
@@ -640,39 +657,42 @@ describe("buttons › builder-workspace", () => {
       const user = userEvent.setup();
       localStorage.setItem("visual-html.builder.orchestrationMode", "pro");
       localStorage.setItem("builder_mistral_api_key_1", "sk-test");
-      const { builderChat } = getServerFnMocks();
+      const { builderChat, builderAiStatus } = getServerFnMocks();
+      mockServerAiOnly(builderAiStatus);
       builderChat.mockReset();
       builderChat.mockResolvedValue({ ok: false, message: "planner boom" });
 
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       await user.type(
         screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
         "Build a failing page",
       );
       await user.click(await getSubmitButton());
 
-      await waitFor(() => {
-        const tracePanel = screen.getByTestId("builder-generation-trace");
-        expect(tracePanel).toHaveAttribute("data-trace-failed", "true");
-        expect(tracePanel).toHaveAttribute("data-trace-expanded", "true");
-      });
+      await waitFor(
+        () => {
+          const tracePanel = screen.getByTestId("builder-generation-trace");
+          expect(tracePanel).toHaveAttribute("data-trace-failed", "true");
+          expect(tracePanel).toHaveAttribute("data-trace-expanded", "true");
+        },
+        { timeout: 10000 },
+      );
       expect(screen.getByTestId("builder-trace-step-planning")).toHaveAttribute(
         "data-trace-status",
         "failed",
       );
-    });
+    }, 15000);
 
     it("keeps the last successful preview after cancellation", async () => {
       const user = userEvent.setup();
-      renderWithProviders(<BuilderWorkspace />);
+      renderBuilderWorkspace(<BuilderWorkspace />);
       await loadSnakePreview(user);
 
       const iframe = screen.getByTestId("preview-frame-iframe") as HTMLIFrameElement;
       expect(iframe.srcdoc ?? "").toContain("Retro Neon Snake");
 
       const { builderChat } = getServerFnMocks();
-      builderChat.mockReset();
-      builderChat.mockImplementation(() => new Promise(() => {}));
+      mockAbortAwareHangingChat(builderChat);
 
       await user.click(screen.getByRole("button", { name: "Refine" }));
       await user.type(

@@ -19,7 +19,7 @@ describe("buttons › projects page", () => {
     const [project] = seedProjectsStorage();
     await renderPageAt("/projects");
     await waitFor(() =>
-      expect(screen.getByRole("link", { name: new RegExp(project.name) })).toBeInTheDocument(),
+      expect(screen.getByRole("button", { name: new RegExp(project.name) })).toBeInTheDocument(),
     );
     const link = screen.getByRole("link", { name: /New project/i });
     expect(link).toHaveAttribute("href", "/");
@@ -27,7 +27,7 @@ describe("buttons › projects page", () => {
 
   it("Create first project — opens builder with Photographer Lightbox starter", async () => {
     await renderPageAt("/projects");
-    const link = screen.getByRole("link", { name: /Create first project/i });
+    const link = await screen.findByRole("link", { name: /Create first project/i });
     expect(link).toHaveAttribute("href", "/builder?template=photo-portfolio");
   });
 
@@ -56,5 +56,22 @@ describe("buttons › project-card", () => {
     renderWithProviders(<ProjectCard project={project} />);
     const link = screen.getByRole("link", { name: /Dashboard UI/i });
     expect(link).toHaveAttribute("href", "/projects/card-1");
+  });
+
+  it("Project card compact — selects project on click", async () => {
+    const user = userEvent.setup();
+    const project = makeSavedProject({ id: "card-2", name: "Landing Page" });
+    let selected: string | null = null;
+    renderWithProviders(
+      <ProjectCard
+        project={project}
+        compact
+        onSelect={(id) => {
+          selected = id;
+        }}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /Landing Page/i }));
+    expect(selected).toBe("card-2");
   });
 });

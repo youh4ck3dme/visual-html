@@ -44,6 +44,8 @@ type SaveFromGenerationInput = {
 
 type ProjectsContextValue = {
   projects: SavedProject[];
+  /** True after the first storage read completes. */
+  isHydrated: boolean;
   storageStatus: ProjectsStorageStatus;
   /** @deprecated Use storageStatus.approximateBytes */
   storageBytes: number;
@@ -72,6 +74,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const { t } = useT();
   const [initial] = useState(getInitialProjectsState);
   const [projects, setProjects] = useState<SavedProject[]>(initial.projects);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [storageStatus, setStorageStatus] = useState<ProjectsStorageStatus>(() =>
     getStorageStatus(initial.projects, initial.backend),
   );
@@ -113,6 +116,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     const result = await listProjects();
     setProjects(result.projects);
     setStorageStatus(getStorageStatus(result.projects, result.backend));
+    setIsHydrated(true);
     handleStorageSideEffects(result);
   }, [handleStorageSideEffects]);
 
@@ -193,6 +197,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       projects,
+      isHydrated,
       storageStatus,
       storageBytes: storageStatus.approximateBytes,
       getProject,
@@ -204,6 +209,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     }),
     [
       projects,
+      isHydrated,
       storageStatus,
       getProject,
       saveFromGeneration,

@@ -76,6 +76,8 @@ vi.hoisted(() => {
 
 applyDefaultServerFnMocks(globalThis.__PNGTO_TEST_SERVER_FN_MOCKS__!);
 
+const serverFnWrapperCache = new WeakMap<Mock, (...args: unknown[]) => unknown>();
+
 function ensureServerFnRegistry(): Map<unknown, Mock> {
   if (globalThis.__PNGTO_TEST_SERVER_FN_REGISTRY__) {
     return globalThis.__PNGTO_TEST_SERVER_FN_REGISTRY__;
@@ -121,7 +123,12 @@ vi.mock("@tanstack/react-start", async (importOriginal) => {
           `useServerFn mock: unregistered server function "${name}". Register it in src/test/setup-mocks.ts.`,
         );
       }
-      return (...args: unknown[]) => mock(...args);
+      let wrapper = serverFnWrapperCache.get(mock);
+      if (!wrapper) {
+        wrapper = (...args: unknown[]) => mock(...args);
+        serverFnWrapperCache.set(mock, wrapper);
+      }
+      return wrapper;
     },
   };
 });

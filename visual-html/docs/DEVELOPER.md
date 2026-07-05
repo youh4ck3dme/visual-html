@@ -108,15 +108,61 @@ Pred release over pozadie podľa [RELEASE_CHECKLIST.md](./RELEASE_CHECKLIST.md).
 
 ---
 
+## Lovable editor architecture (P0–P6)
+
+Refactor tracker: `public/editor-refactor-dashboard.html` (localStorage `pngto-editor-refactor-v1`).
+
+The app is migrating from a sidebar shell (`VisualSidebar` + `AppShell`) to a **Lovable-style split editor**: fixed `h-dvh` column layout with chat on the left, live preview on the right, and a mobile stack (preview → chat → bottom prompt bar).
+
+| Phase | Focus | Key deliverables |
+| ----- | ----- | ---------------- |
+| **P0 — Editor shell** | MVP layout | `EditorLayout`, `EditorHeader`, `--editor-*` CSS tokens, desktop split (chat ~380–420px) + mobile stack |
+| **P1 — Studio mode** | Builder in split | `EditorChatPanel`, `EditorPreviewStage`, `EditorDeviceFrame`, `EditorPromptBar`, `OutputPanel` variants, `use-editor-studio.ts` |
+| **P2 — Screenshot mode** | `/` in split | `EditorModeScreenshot`, `useGenerationWorkflow`, input mode tabs, `LoadingSteps` in chat, `RefinementBox` in prompt bar, `OutputPanel variant="generation"` |
+| **P3 — Projects mode** | `/projects` in split | `EditorModeProjects`, compact `ProjectCard`, detail + `ResultTabs` in preview, open-in-editor → `/?project=id` |
+| **P4 — Console + Fix with AI** | Preview debugging | `preview-console-bridge.ts`, `EditorConsolePanel`, Fix-with-AI wired to `refineHtml` / builder chat |
+| **P5 — Model picker + polish** | Header + UX | Model dropdown in `EditorHeader`, `model-pricing.ts`, Shiki code blocks, cache layer, keyboard shortcuts |
+| **P6 — Multi-provider** | Future | Gemini stub, provider router, JSX validation stub, token usage UI |
+
+### File map
+
+```text
+src/components/editor/
+├── editor-layout.tsx          # Split shell (SettingsProvider, header, chat | preview | promptBar)
+├── editor-header.tsx          # Logo, nav tabs, model picker, locale/theme/settings
+├── editor-mode-screenshot.tsx # P2 — Screenshot workflow
+├── editor-mode-projects.tsx   # P3 — Projects list + detail
+├── editor-chat-panel.tsx      # Scrollable chat column
+├── editor-preview-stage.tsx   # Preview column wrapper
+├── editor-device-frame.tsx    # Mobile device chrome for empty preview
+├── editor-prompt-bar.tsx      # Bottom prompt / Build strip (mobile)
+└── editor-console-panel.tsx   # P4 — iframe console stream
+
+src/routes/_editor.tsx         # Pathless layout: SettingsProvider + <Outlet />
+src/routes/_editor/            # index (/), builder, projects routes
+src/pages/index-page.tsx       # → <EditorModeScreenshot projectId={…} />
+src/pages/projects-page.tsx    # → <EditorModeProjects />
+src/pages/project-detail-page.tsx # → <EditorModeProjects initialProjectId={…} />
+src/components/builder/builder-studio-view.tsx  # P1 studio UI (exported as BuilderWorkspace)
+src/hooks/use-editor-studio.ts # Builder state, orchestration, persistence
+```
+
+### Routing note
+
+Editor routes nest under the pathless `_editor` layout (`src/routes/_editor.tsx`), which provides `SettingsProvider` and `<Outlet />`. Each mode component renders `EditorLayout` with its own `chatPanel` / `previewPanel` / `promptBar` slots — there is no double `EditorLayout` on `/builder`.
+
+---
+
 ## Routy
 
 | URL | Súbor | Účel |
 | --- | ----- | ---- |
-| `/` | `src/routes/index.tsx` | Upload screenshotu, generovanie, refinement |
-| `/projects` | `src/routes/projects.tsx` | Zoznam uložených projektov |
-| `/projects/:projectId` | `src/routes/projects.$projectId.tsx` | Detail projektu |
-| `/builder` | `src/routes/builder.tsx` | VibeCraft prompt-to-HTML studio |
+| `/` | `src/routes/_editor/index.tsx` | Upload screenshotu, generovanie, refinement |
+| `/projects` | `src/routes/_editor/projects.tsx` | Zoznam uložených projektov |
+| `/projects/:projectId` | `src/routes/_editor/projects.$projectId.tsx` | Detail projektu |
+| `/builder` | `src/routes/_editor/builder.tsx` | VibeCraft prompt-to-HTML studio |
 | Shell | `src/routes/__root.tsx` | Layout, PWA head, 404, error boundary |
+| Editor layout | `src/routes/_editor.tsx` | Pathless layout: SettingsProvider + `<Outlet />` |
 
 Query parametre (príklady):
 
@@ -303,6 +349,7 @@ Všetky test príkazy spúšťaj z **`/home/asterix/Dokumenty/Projekty/PNGtoHTML
 | `npm test` | Vitest — unit + integračné testy | Po každej zmene |
 | `npm run test:watch` | Vitest watch mode | Pri vývoji |
 | `npm run test:integrity:fast` | tsc + vitest + eslint + build + artifacts + prod HTTP | Pred pushom (CI štýl) |
+| `npm run test:integrity:iphone-17-air` | tsc + iPhone/PWA/mobile vitest + eslint (bez build/smoke) | Pred mobile zmenami |
 | `npm run test:integrity` | fast + env check + rate-limit + E2E smoke AI | Pred release |
 | `npm run typecheck` | `tsc --noEmit` | Rýchla kontrola typov |
 | `npm run lint` | ESLint `src` + `scripts` | Štýl a prettier |
@@ -315,6 +362,9 @@ cd /home/asterix/Dokumenty/Projekty/PNGtoHTMLapp/visual-html && npm test
 
 # Rýchly integrity (6 kontrol, bez smoke)
 cd /home/asterix/Dokumenty/Projekty/PNGtoHTMLapp/visual-html && npm run test:integrity:fast
+
+# iPhone 17 Air integrity (PWA + mobile UI lane)
+cd /home/asterix/Dokumenty/Projekty/PNGtoHTMLapp/visual-html && npm run test:integrity:iphone-17-air
 
 # Plný integrity (9 kontrol, vrátane E2E generácie proti API)
 cd /home/asterix/Dokumenty/Projekty/PNGtoHTMLapp/visual-html && npm run test:integrity
@@ -345,6 +395,9 @@ npx vitest run src/test/buttons/
 # PWA + iPhone 17 Air
 npx vitest run src/test/pwa/
 
+# Mobile UI (editor screenshot, home workspace @ 420px / 393px)
+npx vitest run src/test/mobile/
+
 # Builder engine
 npx vitest run src/lib/builder/
 
@@ -357,7 +410,8 @@ npx vitest run src/test/buttons/locale-switcher.buttons.test.tsx
 | Oblasť | Cesta | Príklady |
 | ------ | ----- | -------- |
 | Button / UI | `src/test/buttons/*.buttons.test.tsx` | builder-workspace (48), builder-mobile (19), locale-switcher (4) |
-| PWA | `src/test/pwa/` | manifest, public assets, iPhone 17 Air (71) |
+| PWA | `src/test/pwa/` | manifest, public assets, iPhone 17 Air compliance |
+| Mobile iPhone | `src/test/mobile/` | editor screenshot, home workspace @ 420px / 393px |
 | Builder lib | `src/lib/builder/*.test.ts` | generate, orchestration, html-health-check |
 | App brand | `src/lib/app-brand.test.ts` | PWA meta, ikony, viewport |
 | Integrácia | `src/test/index-generation.server-fns.test.tsx` | Server fns mock |
@@ -370,6 +424,7 @@ Test utilities: `src/test/test-utils.tsx` (`renderWithProviders`), `src/test/set
 | Flag | Efekt |
 | ---- | ----- |
 | `--skip-smoke` | Preskočí env check, rate-limit a E2E smoke (`test:integrity:fast`) |
+| `--iphone-17-air` | iPhone lane: tsc + PWA/mobile vitest + eslint (`test:integrity:iphone-17-air`) |
 | `--skip-production` | Preskočí HTTP check na produkciu |
 
 Kontroly v plnom režime:
@@ -385,6 +440,22 @@ Kontroly v plnom režime:
 9. E2E smoke generácia (`scripts/smoke-generation.mjs`)
 
 Smoke test volá reálne server funkcie na `SMOKE_BASE_URL` (default `https://visual-html.vercel.app`). Vyžaduje `.env.local` s Mistral a Blob tokenmi.
+
+### iPhone 17 Air fix prompty
+
+Dual viewport profily v [`src/lib/iphone-viewport.ts`](src/lib/iphone-viewport.ts):
+
+| Profil | Rozlíšenie | Použitie |
+| ------ | ---------- | -------- |
+| `air` | 420×912 | iPhone 17 Air (primárny) |
+| `legacy` | 393×852 | iPhone compact (fallback) |
+
+| Prompt | Súbor | Účel |
+| ------ | ----- | ---- |
+| `APP_IPHONE_17_AIR_FIX_PROMPT` | `src/lib/prompts/app-iphone-fix-prompt.ts` | Cursor/Agent — oprava React shellu (~30% mobile polish) |
+| `IPHONE_AIR_HTML_FIX_PROMPT` | `src/lib/builder/quality-fix-prompts.ts` | Builder Fix with AI — generovaný HTML pre 420/393px |
+
+Akceptácia: `npm run test:integrity:iphone-17-air`
 
 ```bash
 cd /home/asterix/Dokumenty/Projekty/PNGtoHTMLapp/visual-html

@@ -42,8 +42,17 @@ export function CodeBlock({
           {copied ? t("result.code.copied") : t("result.code.copy")}
         </button>
       </div>
-      <pre className="max-h-[520px] overflow-auto p-3 text-xs leading-relaxed">
-        <code className="font-mono text-foreground">{code || t("result.code.empty")}</code>
+      <pre className="max-h-[520px] overflow-auto p-3 text-xs leading-relaxed [counter-reset:line]">
+        <code className="font-mono text-foreground whitespace-pre-wrap break-words">
+          {(code || t("result.code.empty")).split("\n").map((line, i) => (
+            <span
+              key={i}
+              className="block pl-8 [counter-increment:line] before:absolute before:-ml-8 before:inline-block before:w-6 before:text-right before:text-muted-foreground/50 before:content-[counter(line)] relative"
+            >
+              {line || " "}
+            </span>
+          ))}
+        </code>
       </pre>
     </div>
   );

@@ -1,15 +1,18 @@
 #!/usr/bin/env node
 /**
  * Full app integrity suite.
- * Usage: node scripts/integrity.mjs [--skip-smoke] [--skip-production]
+ * Usage:
+ *   node scripts/integrity.mjs [--skip-smoke] [--skip-production]
+ *   node scripts/integrity.mjs --iphone-17-air
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const args = new Set(process.argv.slice(2));
-const skipSmoke = args.has("--skip-smoke");
-const skipProduction = args.has("--skip-production");
+const iphone17Air = args.has("--iphone-17-air");
+const skipSmoke = args.has("--skip-smoke") || iphone17Air;
+const skipProduction = args.has("--skip-production") || iphone17Air;
 const root = process.cwd();
 
 const results = [];
@@ -37,83 +40,99 @@ function section(title) {
   console.log(`\n=== ${title} ===`);
 }
 
+if (iphone17Air) {
+  section("iPhone 17 Air integrity lane");
+}
+
 section("TypeScript");
 run("tsc --noEmit", "npx", ["tsc", "--noEmit"]);
 
-section("Unit tests");
-run("vitest", "npx", ["vitest", "run"]);
+section(iphone17Air ? "iPhone 17 Air tests" : "Unit tests");
+if (iphone17Air) {
+  run("vitest iphone", "npx", [
+    "vitest",
+    "run",
+    "src/test/pwa/",
+    "src/test/mobile/",
+    "src/test/buttons/builder-mobile.buttons.test.tsx",
+  ]);
+} else {
+  run("vitest", "npx", ["vitest", "run"]);
+}
 
 section("ESLint (src + scripts)");
 run("eslint", "npx", ["eslint", "src", "scripts", "--max-warnings", "0"]);
 
-section("Production build");
-run("build", "bun", ["run", "build"], {
-  env: { ...process.env, NITRO_PRESET: "vercel" },
-});
+if (!iphone17Air) {
+  section("Production build");
+  run("build", "npm", ["run", "build"], {
+    env: { ...process.env, NITRO_PRESET: "vercel" },
+  });
 
-section("Build artifacts");
-const staticDir = ".vercel/output/static";
-const requiredStatic = [
-  "favicon.ico",
-  "favicon-16x16.png",
-  "favicon-32x32.png",
-  "site.webmanifest",
-  "apple-touch-icon.png",
-  "android-chrome-192x192.png",
-  "android-chrome-512x512.png",
-  "icon.png",
-  "vibecraft-circuit.svg",
-];
-const artifactOk = existsSync(staticDir);
-let artifactDetail = artifactOk ? "static dir present" : "missing .vercel/output/static";
-if (artifactOk) {
-  const missing = requiredStatic.filter((file) => !existsSync(join(staticDir, file)));
-  if (missing.length) {
+  section("Build artifacts");
+  const staticDir = ".vercel/output/static";
+  const requiredStatic = [
+    "favicon.ico",
+    "favicon-16x16.png",
+    "favicon-32x32.png",
+    "site.webmanifest",
+    "apple-touch-icon.png",
+    "android-chrome-192x192.png",
+    "android-chrome-512x512.png",
+    "icon.png",
+    "vibecraft-circuit.svg",
+  ];
+  const artifactOk = existsSync(staticDir);
+  let artifactDetail = artifactOk ? "static dir present" : "missing .vercel/output/static";
+  if (artifactOk) {
+    const missing = requiredStatic.filter((file) => !existsSync(join(staticDir, file)));
+    if (missing.length) {
+      results.push({
+        name: "build artifacts",
+        ok: false,
+        ms: 0,
+        stdout: "",
+        stderr: `Missing: ${missing.join(", ")}`,
+      });
+    } else {
+      const ssrDir = ".vercel/output/functions/__server.func/_ssr";
+      const genFile = existsSync(ssrDir)
+        ? readdirSync(ssrDir).find((name) => name.startsWith("generate.functions-"))
+        : null;
+      const builderFile = existsSync(ssrDir)
+        ? readdirSync(ssrDir).find((name) => name.startsWith("builder.functions-"))
+        : null;
+      const hasGenerateFn = Boolean(
+        genFile && readFileSync(join(ssrDir, genFile), "utf8").includes("runOcr"),
+      );
+      const hasBuilderFn = Boolean(
+        builderFile && readFileSync(join(ssrDir, builderFile), "utf8").includes("builderChat"),
+      );
+      const hasServerFns = hasGenerateFn && hasBuilderFn;
+      results.push({
+        name: "build artifacts",
+        ok: hasServerFns,
+        ms: 0,
+        stdout: `favicon/manifest OK; generate ${hasGenerateFn ? "OK" : "MISSING"}; builder ${hasBuilderFn ? "OK" : "MISSING"}`,
+        stderr: hasServerFns
+          ? ""
+          : [
+              !hasGenerateFn && "generate.functions bundle missing runOcr",
+              !hasBuilderFn && "builder.functions bundle missing builderChat",
+            ]
+              .filter(Boolean)
+              .join("; "),
+      });
+    }
+  } else {
     results.push({
       name: "build artifacts",
       ok: false,
       ms: 0,
       stdout: "",
-      stderr: `Missing: ${missing.join(", ")}`,
-    });
-  } else {
-    const ssrDir = ".vercel/output/functions/__server.func/_ssr";
-    const genFile = existsSync(ssrDir)
-      ? readdirSync(ssrDir).find((name) => name.startsWith("generate.functions-"))
-      : null;
-    const builderFile = existsSync(ssrDir)
-      ? readdirSync(ssrDir).find((name) => name.startsWith("builder.functions-"))
-      : null;
-    const hasGenerateFn = Boolean(
-      genFile && readFileSync(join(ssrDir, genFile), "utf8").includes("runOcr"),
-    );
-    const hasBuilderFn = Boolean(
-      builderFile && readFileSync(join(ssrDir, builderFile), "utf8").includes("builderChat"),
-    );
-    const hasServerFns = hasGenerateFn && hasBuilderFn;
-    results.push({
-      name: "build artifacts",
-      ok: hasServerFns,
-      ms: 0,
-      stdout: `favicon/manifest OK; generate ${hasGenerateFn ? "OK" : "MISSING"}; builder ${hasBuilderFn ? "OK" : "MISSING"}`,
-      stderr: hasServerFns
-        ? ""
-        : [
-            !hasGenerateFn && "generate.functions bundle missing runOcr",
-            !hasBuilderFn && "builder.functions bundle missing builderChat",
-          ]
-            .filter(Boolean)
-            .join("; "),
+      stderr: artifactDetail,
     });
   }
-} else {
-  results.push({
-    name: "build artifacts",
-    ok: false,
-    ms: 0,
-    stdout: "",
-    stderr: artifactDetail,
-  });
 }
 
 if (!skipSmoke) {
@@ -171,5 +190,6 @@ for (const result of results) {
   if (!result.ok && result.stderr) console.log(`       ${result.stderr.split("\n")[0]}`);
 }
 
-console.log(`\n${results.length - failed}/${results.length} checks passed`);
+const summaryLabel = iphone17Air ? "iPhone 17 Air integrity" : "checks";
+console.log(`\n${results.length - failed}/${results.length} ${summaryLabel} passed`);
 process.exit(failed === 0 ? 0 : 1);

@@ -6,8 +6,8 @@ export const messages = {
     "nav.homeAria": "PNGtoHTML home",
     "nav.homeTitle": "PNGtoHTML",
     "nav.projects": "Projects",
-    "nav.new": "New",
-    "nav.builder": "VibeCraft",
+    "nav.new": "Screenshot",
+    "nav.builder": "Studio",
     "nav.support": "Support",
     "nav.settings": "Settings",
     "nav.account": "Account",
@@ -30,6 +30,28 @@ export const messages = {
     // ── Top bar / home workspace ────────────────────────────────
     "topbar.credit":
       "Mistral OCR + Pixtral · Rate limits per IP · Review AI output before shipping",
+    "app.settings.title": "Settings",
+    "app.settings.description":
+      "Generation defaults and Mistral API keys for Screenshot and Studio.",
+    "app.settings.generationSection": "Screenshot generation defaults",
+    "app.settings.saveSuccess": "Settings saved",
+
+    // ── Lovable editor shell ────────────────────────────────────
+    "editor.promptPlaceholder": "Ask PNGtoHTML or describe a change…",
+    "editor.build": "Build",
+    "editor.console": "Console",
+    "editor.consoleEmpty": "No console output yet. Enable JS in preview to capture logs.",
+    "editor.fixWithAi": "Fix with AI",
+    "editor.model": "Model",
+    "editor.modelPickerAria": "AI model for Studio",
+    "editor.previewEmpty": "Build or upload to see preview here",
+    "editor.previewEmptyHint": "Your generated HTML renders in this device frame.",
+    "editor.screenshot.emptyTitle": "Preview will appear here",
+    "editor.screenshot.emptyHint": "Upload a screenshot and generate HTML to see the live preview.",
+    "editor.projects.selectTitle": "Select a project",
+    "editor.projects.selectHint": "Choose a saved project from the list to inspect its output.",
+    "editor.templates.viewAll": "All templates",
+
     "mode.groupAria": "Input mode",
     "mode.upload": "Upload",
     "mode.url": "URL",
@@ -340,6 +362,7 @@ export const messages = {
       "Upload a screenshot on New and generate HTML — each successful run is saved here automatically.",
     "projects.empty.cta": "Create first project",
     "projects.noMatch": "No projects match “{query}”.",
+    "projects.loadingAria": "Loading projects",
 
     // ── Projects toolbar ────────────────────────────────────────
     "projects.toolbar.searchPlaceholder": "Search projects…",
@@ -402,7 +425,8 @@ export const messages = {
     "builder.mobile.activeProject": "Active Project",
     "builder.mobile.untitledProject": "Untitled project",
     "builder.mobile.live": "Live",
-    "builder.mobile.deviceIphone17Air": "iPhone 17 Air (375px)",
+    "builder.mobile.deviceIphone17Air": "iPhone 17 Air (420px)",
+    "builder.mobile.deviceIphoneCompact": "iPhone compact (393px)",
     "builder.mobile.refreshPreview": "Refresh preview",
     "builder.mobile.runPreview": "Run preview",
     "builder.mobile.tabFiles": "Files",
@@ -964,8 +988,8 @@ export const messages = {
     "nav.homeAria": "PNGtoHTML domov",
     "nav.homeTitle": "PNGtoHTML",
     "nav.projects": "Projekty",
-    "nav.new": "Nový",
-    "nav.builder": "VibeCraft",
+    "nav.new": "Snímka",
+    "nav.builder": "Štúdio",
     "nav.support": "Podpora",
     "nav.settings": "Nastavenia",
     "nav.account": "Účet",
@@ -988,6 +1012,27 @@ export const messages = {
     // ── Top bar / home workspace ────────────────────────────────
     "topbar.credit":
       "Mistral OCR + Pixtral · Limity podľa IP · Skontrolujte výstup AI pred nasadením",
+    "app.settings.title": "Nastavenia",
+    "app.settings.description": "Predvolby generovania a Mistral API kľúče pre Snímku a Štúdio.",
+    "app.settings.generationSection": "Predvolby generovania snímok",
+    "app.settings.saveSuccess": "Nastavenia uložené",
+
+    // ── Lovable editor shell ────────────────────────────────────
+    "editor.promptPlaceholder": "Opýtaj sa PNGtoHTML alebo popíš zmenu…",
+    "editor.build": "Build",
+    "editor.console": "Konzola",
+    "editor.consoleEmpty": "Zatiaľ žiadny výstup. Zapni JS v preview pre zachytenie logov.",
+    "editor.fixWithAi": "Opraviť cez AI",
+    "editor.model": "Model",
+    "editor.modelPickerAria": "AI model pre Štúdio",
+    "editor.previewEmpty": "Vygeneruj alebo nahraj pre náhľad",
+    "editor.previewEmptyHint": "Vygenerované HTML sa zobrazí v tomto rámci zariadenia.",
+    "editor.screenshot.emptyTitle": "Náhľad sa zobrazí tu",
+    "editor.screenshot.emptyHint": "Nahrajte snímku a vygenerujte HTML pre živý náhľad.",
+    "editor.projects.selectTitle": "Vyberte projekt",
+    "editor.projects.selectHint": "Vyberte uložený projekt zo zoznamu pre detail výstupu.",
+    "editor.templates.viewAll": "Všetky šablóny",
+
     "mode.groupAria": "Režim vstupu",
     "mode.upload": "Nahrať",
     "mode.url": "URL",
@@ -1221,9 +1266,9 @@ export const messages = {
 
     // ── Refinement box ──────────────────────────────────────────
     "refinement.chip.improveFidelity": "Zlepšiť vernosť",
-    "refinement.chip.makeResponsive": "Urobiť responzívne",
+    "refinement.chip.makeResponsive": "Spraviť responzívne",
     "refinement.chip.improveSemantics": "Zlepšiť sémantiku",
-    "refinement.chip.simplifyWrappers": "Zjednodušiť obaly",
+    "refinement.chip.simplifyWrappers": "Zjednodušiť wrappery",
     "refinement.chip.convertTailwind": "Previesť na Tailwind",
     "refinement.chip.optimizeSeo": "Optimalizovať SEO",
     "refinement.inputAria": "Inštrukcia na úpravu",
@@ -1293,6 +1338,7 @@ export const messages = {
       "Nahrajte screenshot v Nový a vygenerujte HTML — každý úspešný beh sa uloží automaticky.",
     "projects.empty.cta": "Vytvoriť prvý projekt",
     "projects.noMatch": "Žiadny projekt nezodpovedá „{query}“.",
+    "projects.loadingAria": "Načítavanie projektov",
 
     // ── Projects toolbar ────────────────────────────────────────
     "projects.toolbar.searchPlaceholder": "Hľadať projekty…",
@@ -1355,7 +1401,8 @@ export const messages = {
     "builder.mobile.activeProject": "Aktívny projekt",
     "builder.mobile.untitledProject": "Projekt bez názvu",
     "builder.mobile.live": "Live",
-    "builder.mobile.deviceIphone17Air": "iPhone 17 Air (375px)",
+    "builder.mobile.deviceIphone17Air": "iPhone 17 Air (420px)",
+    "builder.mobile.deviceIphoneCompact": "iPhone compact (393px)",
     "builder.mobile.refreshPreview": "Obnoviť náhľad",
     "builder.mobile.runPreview": "Spustiť náhľad",
     "builder.mobile.tabFiles": "Súbory",

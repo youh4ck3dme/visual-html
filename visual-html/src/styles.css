@@ -10,8 +10,17 @@
  * :root  = light theme
  * .dark  = dark theme
  *
- * Shell tokens (--shell-*): outer chrome (sidebar, background, marketing cards)
- * Workspace tokens (--workspace-*): inner “app window” canvas (light in :root, warm charcoal in .dark)
+ * Shell tokens (--shell-*): outer chrome (sidebar, page background, marketing cards).
+ *   Prefer shell-* for navigation, page layout, and elevated panels outside the editor canvas.
+ *
+ * Workspace tokens (--workspace-*): inner “app window” canvas (light in :root, warm charcoal in .dark).
+ *   Use workspace-* for the PNG→HTML editor surface and in-app panels that sit on the canvas.
+ *
+ * VibeCraft studio utilities (vibecraft-studio-*): builder route overlays — semi-transparent
+ *   layers on top of shell tokens with backdrop blur. vibecraft-studio-elevated maps to
+ *   shell-elevated with opacity/blur; prefer shell-elevated when blur is not needed.
+ *
+ * Shadcn aliases (--card, --border, --muted-foreground, etc.) resolve to shell tokens in both themes.
  */
 
 @theme inline {
@@ -82,6 +91,14 @@
   --theme-ease: cubic-bezier(0.4, 0, 0.2, 1);
   --theme-duration: 320ms;
 
+  /* Apple HIG motion (animation-only — brand colors unchanged) */
+  --apple-motion-fast: 150ms;
+  --apple-motion-normal: 300ms;
+  --apple-motion-slow: 500ms;
+  --apple-ease-out: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --apple-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --apple-radius-grouped: 8px;
+
   /* Brand */
   --primary: oklch(0.5 0.21 285);
   --primary-hover: oklch(0.44 0.19 285);
@@ -144,6 +161,27 @@
   --sidebar-accent-foreground: var(--foreground);
   --sidebar-border: var(--shell-border);
   --sidebar-ring: var(--primary);
+
+  /* Layout — mobile bottom nav + safe area (viewport-fit=cover) */
+  --shell-nav-height: 4.5rem;
+  --shell-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --shell-mobile-nav-total: calc(var(--shell-nav-height) + var(--shell-safe-bottom));
+
+  /* Lovable-style editor chrome */
+  --editor-bg: var(--shell);
+  --editor-panel: var(--shell-elevated);
+  --editor-border: var(--shell-border);
+  --editor-accent: var(--primary);
+  --editor-fg: var(--foreground);
+  --editor-muted: var(--shell-muted);
+  --editor-hover: var(--shell-hover);
+  --editor-accent-dim: color-mix(in oklch, var(--primary) 12%, transparent);
+  --editor-chat-width: 400px;
+  --editor-chat-min: 380px;
+  --editor-chat-max: 420px;
+  --editor-header-height: 3rem;
+  --editor-safe-top: env(safe-area-inset-top, 0px);
+  --editor-safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* ── Dark theme ──────────────────────────────────────────────── */
@@ -205,6 +243,21 @@
   --sidebar-accent-foreground: oklch(0.78 0.03 255);
   --sidebar-border: var(--shell-border);
   --sidebar-ring: var(--primary);
+
+  --editor-bg: #0f0f0f;
+  --editor-panel: #161616;
+  --editor-border: rgba(255, 255, 255, 0.08);
+  --editor-accent: var(--primary);
+  --editor-fg: var(--foreground);
+  --editor-muted: var(--shell-muted);
+  --editor-hover: var(--shell-hover);
+  --editor-accent-dim: color-mix(in oklch, var(--primary) 18%, transparent);
+  --editor-chat-width: 400px;
+  --editor-chat-min: 380px;
+  --editor-chat-max: 420px;
+  --editor-header-height: 3rem;
+  --editor-safe-top: env(safe-area-inset-top, 0px);
+  --editor-safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 @layer base {
@@ -214,6 +267,7 @@
 
   html {
     color-scheme: light;
+    overflow-x: clip;
   }
 
   html.dark {
@@ -224,6 +278,7 @@
     background-color: var(--shell);
     color: var(--foreground);
     min-height: 100dvh;
+    overflow-x: clip;
   }
 
   /* Smooth theme switch — View Transitions API (when supported) */
@@ -256,6 +311,120 @@
     html.theme-animate *::after {
       transition-duration: 0.01ms !important;
     }
+
+    .apple-pipeline-card,
+    .apple-pipeline-card *,
+    .apple-check-pop,
+    .apple-step-pulse,
+    .apple-shimmer,
+    .apple-pipeline-enter {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  @keyframes apple-check-pop {
+    from {
+      opacity: 0;
+      transform: scale(0.85);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes apple-pipeline-enter {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes apple-shimmer {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes apple-step-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 25%, transparent);
+    }
+    50% {
+      box-shadow: 0 0 0 4px color-mix(in oklch, var(--primary) 12%, transparent);
+    }
+  }
+
+  @keyframes apple-shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-3px);
+    }
+    75% {
+      transform: translateX(3px);
+    }
+  }
+
+  .apple-pipeline-card {
+    border-radius: var(--apple-radius-grouped);
+    border: 1px solid var(--editor-border, var(--shell-border));
+    background: var(--editor-panel, var(--shell-elevated));
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklch, var(--foreground) 4%, transparent),
+      0 1px 2px color-mix(in oklch, var(--foreground) 6%, transparent);
+  }
+
+  .apple-pipeline-enter {
+    animation: apple-pipeline-enter var(--apple-motion-normal) var(--apple-ease-out) both;
+  }
+
+  .apple-check-pop {
+    animation: apple-check-pop var(--apple-motion-fast) var(--apple-ease-spring) both;
+  }
+
+  .apple-step-pulse {
+    animation: apple-step-pulse 1.6s var(--apple-ease-out) infinite;
+  }
+
+  .apple-shake {
+    animation: apple-shake var(--apple-motion-normal) var(--apple-ease-out) 1;
+  }
+
+  .apple-press {
+    transition: transform var(--apple-motion-fast) var(--apple-ease-out);
+  }
+
+  .apple-press:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  .apple-progress-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklch, var(--primary-foreground, white) 35%, transparent),
+      transparent
+    );
+    animation: apple-shimmer 1.8s var(--apple-ease-out) infinite;
+    pointer-events: none;
   }
 }
 
@@ -263,6 +432,19 @@
   background-color: var(--shell);
   color: var(--foreground);
   min-height: 100dvh;
+  overflow-x: clip;
+}
+
+@utility shell-mobile-pad {
+  padding-bottom: var(--shell-mobile-nav-total);
+}
+
+@utility shell-safe-bottom {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+}
+
+@utility shell-safe-top {
+  padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
 }
 
 @utility shell-card {
@@ -308,7 +490,7 @@
   color: var(--workspace-foreground);
 }
 
-/* VibeCraft studio — subtle PCB / chip pattern inspired by app icon */
+/* VibeCraft studio — subtle PCB / chip pattern; elevated/surface layers alias shell tokens */
 @utility vibecraft-studio {
   position: relative;
   background-color: var(--shell);
@@ -325,13 +507,22 @@
 }
 
 @utility vibecraft-studio-surface {
+  /* shell canvas with translucency — same base as --shell */
   background: oklch(from var(--shell) l c h / 0.78);
   backdrop-filter: blur(6px) saturate(115%);
   -webkit-backdrop-filter: blur(6px) saturate(115%);
 }
 
 @utility vibecraft-studio-elevated {
+  /* shell-elevated with translucency — prefer shell-card when blur is unnecessary */
   background: oklch(from var(--shell-elevated) l c h / 0.86);
   backdrop-filter: blur(8px) saturate(120%);
   -webkit-backdrop-filter: blur(8px) saturate(120%);
+}
+
+@utility editor-layout {
+  background: var(--editor-bg);
+  color: var(--editor-fg);
+  height: 100dvh;
+  max-height: 100dvh;
 }
