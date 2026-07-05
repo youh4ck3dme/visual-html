@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { AlertTriangle, Code2, FileImage } from "lucide-react";
+import { useMemo } from "react";
 
 import { useT } from "@/hooks/use-t";
 import { formatProjectDate, projectSummaryStats } from "@/lib/projects-store";
@@ -22,7 +23,7 @@ export function ProjectCard({
   onSelect,
 }: ProjectCardProps) {
   const { t } = useT();
-  const stats = projectSummaryStats(project.result);
+  const stats = useMemo(() => projectSummaryStats(project.result), [project.result]);
 
   const cardClass = cn(
     "group flex overflow-hidden text-left transition-[border-color,box-shadow,background-color] duration-300",

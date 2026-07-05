@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 
-import { prefersReducedMotion } from "@/lib/motion-prefs";
+import { prefersReducedMotion, subscribeReducedMotion } from "@/lib/motion-prefs";
 
 /** Smoothly animates toward `target` over `durationMs` (pipeline progress display). */
 export function useAnimatedNumber(target: number, durationMs = 400): number {
   const [display, setDisplay] = useState(target);
+  const [reducedMotion, setReducedMotion] = useState(prefersReducedMotion);
   const frameRef = useRef<number | null>(null);
   const startRef = useRef({ value: target, time: 0 });
 
+  useEffect(() => subscribeReducedMotion(setReducedMotion), []);
+
   useEffect(() => {
-    if (prefersReducedMotion()) {
+    if (reducedMotion) {
       setDisplay(target);
       return;
     }
@@ -35,7 +38,7 @@ export function useAnimatedNumber(target: number, durationMs = 400): number {
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- animate from last display
-  }, [target, durationMs]);
+  }, [target, durationMs, reducedMotion]);
 
   return display;
 }
