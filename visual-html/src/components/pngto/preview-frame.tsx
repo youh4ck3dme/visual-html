@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Maximize2 } from "lucide-react";
 
+import { PreviewLightbox } from "@/components/pngto/preview-lightbox";
 import { useT } from "@/hooks/use-t";
 import {
   injectConsoleBridge,
@@ -27,11 +28,15 @@ export function PreviewFrame({
   const { t } = useT();
   const sandbox = allowJs ? "allow-scripts" : "";
   const [frameReady, setFrameReady] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const resolvedDoc = useMemo(
     () => (allowJs && onConsoleEntry ? injectConsoleBridge(srcDoc) : srcDoc),
     [allowJs, onConsoleEntry, srcDoc],
   );
+
+  const hasPreviewContent = resolvedDoc.trim().length > 0;
+  const showExpand = hasPreviewContent && frameReady;
 
   useEffect(() => {
     setFrameReady(false);
@@ -64,6 +69,17 @@ export function PreviewFrame({
             data-testid="preview-frame-loading"
           />
         )}
+        {showExpand && (
+          <button
+            type="button"
+            className="absolute top-2 right-2 z-20 grid min-h-11 min-w-11 place-items-center rounded-lg border border-black/10 bg-white/90 text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-white"
+            aria-label={t("editor.previewExpandFullscreen")}
+            data-testid="preview-expand-fullscreen"
+            onClick={() => setLightboxOpen(true)}
+          >
+            <Maximize2 className="h-4 w-4" aria-hidden />
+          </button>
+        )}
         <iframe
           title={title ?? t("result.previewFrameTitle")}
           sandbox={sandbox}
@@ -71,6 +87,13 @@ export function PreviewFrame({
           onLoad={() => setFrameReady(true)}
           className="min-h-[240px] w-full flex-1 bg-white"
           data-testid="preview-frame-iframe"
+        />
+        <PreviewLightbox
+          open={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+          srcDoc={resolvedDoc}
+          allowJs={allowJs}
+          title={title}
         />
       </div>
     </div>
