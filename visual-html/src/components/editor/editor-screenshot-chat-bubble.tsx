@@ -29,7 +29,7 @@ export function ScreenshotChatBubble({
           "rounded-xl px-3 py-2 leading-relaxed",
           sender === "user"
             ? "rounded-br-none border border-primary/30 bg-primary/10"
-            : "rounded-bl-none border border-[var(--editor-border)] bg-[var(--editor-panel)]",
+            : "rounded-bl-none border border-(--editor-border) bg-(--editor-panel)",
         )}
       >
         {children}

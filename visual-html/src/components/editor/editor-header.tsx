@@ -21,17 +21,20 @@ function NavTab({
   icon: Icon,
   to,
   showGeneratingBadge = false,
+  generatingStatusLabel,
 }: {
   id: string;
   label: string;
   icon: (typeof NAV_ITEMS)[number]["icon"];
   to: NavTo;
   showGeneratingBadge?: boolean;
+  generatingStatusLabel?: string;
 }) {
   return (
     <Link
       to={to}
       aria-label={label}
+      aria-live={showGeneratingBadge ? "polite" : undefined}
       data-testid={`nav-${id}`}
       className={cn(
         "relative inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
@@ -52,11 +55,14 @@ function NavTab({
       }}
     >
       {showGeneratingBadge && (
-        <span
-          className="absolute right-1 top-1 h-2 w-2 animate-pulse rounded-full bg-primary"
-          data-testid="nav-builder-generating-badge"
-          aria-hidden
-        />
+        <>
+          <span
+            className="absolute right-1 top-1 h-2 w-2 animate-pulse rounded-full bg-primary"
+            data-testid="nav-builder-generating-badge"
+            aria-hidden
+          />
+          {generatingStatusLabel ? <span className="sr-only">{generatingStatusLabel}</span> : null}
+        </>
       )}
       <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
       <span className="hidden sm:inline">{label}</span>
@@ -135,6 +141,11 @@ export function EditorHeader() {
             icon={item.icon}
             to={item.to}
             showGeneratingBadge={item.id === "studio" && builderGenerating}
+            generatingStatusLabel={
+              item.id === "studio" && builderGenerating
+                ? t("editor.nav.generatingStatus")
+                : undefined
+            }
           />
         ))}
       </nav>

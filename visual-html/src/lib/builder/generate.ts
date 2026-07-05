@@ -13,6 +13,7 @@ import {
   finalizeBuilderGenerationTrace,
   markTraceStepFallbackUsed,
   markTraceStepSkipped,
+  updateTraceStep,
   type BuilderGenerationTrace,
   type BuilderTraceContext,
 } from "@/lib/builder/generation-trace";
@@ -37,6 +38,7 @@ import {
   type BuilderQualityProfileId,
 } from "@/lib/builder/quality-profiles";
 import { getStepTimeoutMs } from "@/lib/builder/step-timeout";
+import { resolvePipelineMode } from "@/lib/builder/pipeline-routing";
 export {
   BuilderGenerationAbortedError,
   BuilderOrchestrationError,
@@ -76,6 +78,7 @@ export type GenerateBuilderCodeOptions = {
   onMetricsUpdate?: (metrics: BuilderGenerationMetrics) => void;
   onHealthCheckUpdate?: (result: HtmlHealthCheckResult) => void;
   qualityProfileId?: BuilderQualityProfileId;
+  onPartialPreview?: (html: string) => void;
 };
 
 export type {
@@ -227,6 +230,19 @@ ${planText}
 Generate the complete final HTML document now.`;
 }
 
+function healthFindingsToRepairInstructions(
+  html: string,
+  userPrompt: string,
+  qualityProfile: BuilderQualityProfile,
+): string[] {
+  const health = runHtmlHealthCheck(html, { userPrompt, qualityProfile });
+  return health.findings
+    .filter((finding) => finding.severity !== "info")
+    .map(
+      (finding) =>
+        `Fix ${finding.category} issue (${finding.id}, ${finding.severity}) before final review.`,
+    );
+}
 function buildReviewPrompt(
   userPrompt: string,
   planText: string,
@@ -407,9 +423,10 @@ async function runFastPipeline(
   orchestrationMode: BuilderOrchestrationMode,
   signal?: AbortSignal,
   traceContext?: BuilderTraceContext,
+  onPartialPreview?: (html: string) => void,
 ): Promise<string> {
   onStepChange(2, "Generating HTML...");
-  return runBuilderStep(
+  const draftHtml = await runBuilderStep(
     "building",
     orchestrationMode,
     signal,
@@ -421,6 +438,8 @@ async function runFastPipeline(
       }),
     traceStep(traceContext, "building"),
   );
+  onPartialPreview?.(normalizeGeneratedHtml(draftHtml));
+  return draftHtml;
 }
 
 async function runProPipeline(
@@ -431,6 +450,8 @@ async function runProPipeline(
   orchestrationMode: BuilderOrchestrationMode,
   signal?: AbortSignal,
   traceContext?: BuilderTraceContext,
+  onPartialPreview?: (html: string) => void,
+  qualityProfile?: BuilderQualityProfile,
 ): Promise<string> {
   onStepChange(2, "Planning architecture...");
   const planText = await runBuilderStep(
@@ -462,6 +483,12 @@ async function runProPipeline(
       ),
     traceStep(traceContext, "building"),
   );
+  onPartialPreview?.(normalizeGeneratedHtml(draftHtml));
+  const normalizedDraft = normalizeGeneratedHtml(draftHtml);
+  const healthRepairs =
+    qualityProfile != null
+      ? healthFindingsToRepairInstructions(normalizedDraft, userPrompt, qualityProfile)
+      : [];
 
   onStepChange(3, "Reviewing and repairing...");
   return runBuilderStep(
@@ -471,7 +498,7 @@ async function runProPipeline(
     (attemptSignal) =>
       generateWithAi(
         reviewerSystemPrompt,
-        buildReviewPrompt(userPrompt, planText, draftHtml),
+        buildReviewPrompt(userPrompt, planText, draftHtml, healthRepairs),
         serverChat,
         preferServerAi,
         { keySlot: "primary", role: "reviewer", signal: attemptSignal },
@@ -488,6 +515,8 @@ async function runBeastPipeline(
   orchestrationMode: BuilderOrchestrationMode,
   signal?: AbortSignal,
   traceContext?: BuilderTraceContext,
+  onPartialPreview?: (html: string) => void,
+  qualityProfile?: BuilderQualityProfile,
 ): Promise<string> {
   onStepChange(2, "Planning architecture...");
   const planText = await runBuilderStep(
@@ -572,6 +601,14 @@ async function runBeastPipeline(
     }
   }
 
+  onPartialPreview?.(normalizeGeneratedHtml(winnerDraft));
+  const normalizedWinner = normalizeGeneratedHtml(winnerDraft);
+  const healthRepairs =
+    qualityProfile != null
+      ? healthFindingsToRepairInstructions(normalizedWinner, userPrompt, qualityProfile)
+      : [];
+  const mergedRepairs = [...repairInstructions, ...healthRepairs];
+
   onStepChange(3, "Reviewing and repairing...");
   return runBuilderStep(
     "reviewing",
@@ -580,7 +617,7 @@ async function runBeastPipeline(
     (attemptSignal) =>
       generateWithAi(
         reviewerSystemPrompt,
-        buildReviewPrompt(userPrompt, planText, winnerDraft, repairInstructions),
+        buildReviewPrompt(userPrompt, planText, winnerDraft, mergedRepairs),
         serverChat,
         preferServerAi,
         { keySlot: "primary", role: "reviewer", signal: attemptSignal },
@@ -604,6 +641,8 @@ async function runOrchestratedPipeline(
   orchestrationMode: BuilderOrchestrationMode,
   signal?: AbortSignal,
   traceContext?: BuilderTraceContext,
+  onPartialPreview?: (html: string) => void,
+  qualityProfile?: BuilderQualityProfile,
 ): Promise<string> {
   if (orchestrationMode === "fast") {
     return runFastPipeline(
@@ -614,6 +653,7 @@ async function runOrchestratedPipeline(
       orchestrationMode,
       signal,
       traceContext,
+      onPartialPreview,
     );
   }
   if (orchestrationMode === "beast") {
@@ -625,6 +665,8 @@ async function runOrchestratedPipeline(
       orchestrationMode,
       signal,
       traceContext,
+      onPartialPreview,
+      qualityProfile,
     );
   }
   return runProPipeline(
@@ -635,6 +677,8 @@ async function runOrchestratedPipeline(
     orchestrationMode,
     signal,
     traceContext,
+    onPartialPreview,
+    qualityProfile,
   );
 }
 
@@ -674,12 +718,13 @@ export async function generateBuilderCode(
 ): Promise<BuilderGenerateResult> {
   const {
     preferServerAi = false,
-    orchestrationMode = getBuilderOrchestrationMode(),
+    orchestrationMode: requestedOrchestrationMode = getBuilderOrchestrationMode(),
     signal,
     onTraceUpdate,
     onMetricsUpdate,
     onHealthCheckUpdate,
     qualityProfileId = getBuilderQualityProfileId(),
+    onPartialPreview,
   } = normalizeGenerateOptions(options);
   const notifyTrace = (nextTrace: BuilderGenerationTrace) => {
     onTraceUpdate?.(nextTrace);
@@ -706,6 +751,7 @@ export async function generateBuilderCode(
   };
 
   const userPrompt = userPromptByMode[mode];
+  const orchestrationMode = resolvePipelineMode(userPrompt, requestedOrchestrationMode);
   const usesOrchestrationTrace = mode !== "explain";
   let trace: BuilderGenerationTrace | undefined;
 
@@ -721,7 +767,7 @@ export async function generateBuilderCode(
 
   try {
     onStepChange(0, "Connecting...");
-    await abortableSleep(200, signal, "connecting", orchestrationMode);
+    await abortableSleep(50, signal, "connecting", orchestrationMode);
 
     if ((mode === "refine" || mode === "fix" || mode === "explain") && !hasExistingCode) {
       throw new Error(`${mode} needs an existing app first.`);
@@ -758,16 +804,22 @@ export async function generateBuilderCode(
       orchestrationMode,
       signal,
       traceContext,
+      onPartialPreview,
+      resolvedQualityProfile,
     );
 
     onStepChange(3, "Finalizing...");
-    await runBuilderStep(
-      "finalizing",
-      orchestrationMode,
-      signal,
-      (attemptSignal) => abortableSleep(300, attemptSignal, "finalizing", orchestrationMode),
-      traceStep(traceContext, "finalizing"),
-    );
+    const finalizeStarted = Date.now();
+    await abortableSleep(100, signal, "finalizing", orchestrationMode);
+    if (traceContext) {
+      updateTraceStep(traceContext.trace, "finalizing", {
+        status: "success",
+        startedAt: finalizeStarted,
+        finishedAt: Date.now(),
+        durationMs: Date.now() - finalizeStarted,
+      });
+      notifyTrace(traceContext.trace);
+    }
     if (trace) {
       finalizeBuilderGenerationTrace(trace);
       notifyTrace(trace);

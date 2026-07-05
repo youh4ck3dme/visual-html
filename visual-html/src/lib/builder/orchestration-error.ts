@@ -348,6 +348,20 @@ function markTraceStepRunning(
   emitTraceUpdate(traceContext.trace, traceContext.onTraceUpdate);
 }
 
+const TRACE_HEARTBEAT_MS = 200;
+
+function startTraceStepHeartbeat(traceContext: BuilderTraceContext, startedAt: number): () => void {
+  const interval = globalThis.setInterval(() => {
+    const step = traceContext.trace.steps.find((item) => item.id === traceContext.stepId);
+    if (!step || (step.status !== "running" && step.status !== "retrying")) return;
+    updateTraceStep(traceContext.trace, traceContext.stepId, {
+      durationMs: Date.now() - startedAt,
+    });
+    emitTraceUpdate(traceContext.trace, traceContext.onTraceUpdate);
+  }, TRACE_HEARTBEAT_MS);
+  return () => globalThis.clearInterval(interval);
+}
+
 export async function runBuilderStep<T>(
   step: BuilderGenerationStep,
   mode: BuilderOrchestrationMode,
@@ -408,8 +422,12 @@ export async function runBuilderStep<T>(
       );
     }
 
+    const stopHeartbeat =
+      traceContext != null ? startTraceStepHeartbeat(traceContext, attemptStartedAt) : undefined;
+
     try {
       const result = await runStepWithTimeout(signal, timeoutMs, step, mode, action);
+      stopHeartbeat?.();
       assertNotAborted(signal, step, mode);
 
       if (traceContext) {
@@ -425,6 +443,7 @@ export async function runBuilderStep<T>(
 
       return result;
     } catch (error) {
+      stopHeartbeat?.();
       if (isAbortError(error)) {
         if (traceContext) {
           markTraceStepCancelled(traceContext, attemptStartedAt);

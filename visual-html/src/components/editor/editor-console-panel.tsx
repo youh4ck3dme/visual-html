@@ -27,7 +27,7 @@ export function EditorConsolePanel({
 
   return (
     <div
-      className={cn("flex flex-col bg-[var(--editor-bg)] text-xs", className)}
+      className={cn("flex flex-col bg-(--editor-bg) text-xs", className)}
       data-testid="editor-console"
     >
       <button
@@ -39,13 +39,13 @@ export function EditorConsolePanel({
         <span>{entries.length}</span>
       </button>
       {open ? (
-        <div className="max-h-32 overflow-y-auto border-t border-[var(--editor-border)] font-mono">
+        <div className="max-h-32 overflow-y-auto border-t border-(--editor-border) font-mono">
           {entries.length === 0 ? (
             <p className="p-3 text-shell-muted">{t("editor.consoleEmpty")}</p>
           ) : (
             <>
               {onClear && (
-                <div className="flex justify-end border-b border-[var(--editor-border)] p-1">
+                <div className="flex justify-end border-b border-(--editor-border) p-1">
                   <Button
                     type="button"
                     size="sm"
@@ -61,7 +61,7 @@ export function EditorConsolePanel({
                 <div
                   key={e.id}
                   className={cn(
-                    "border-b border-[var(--editor-border)] px-3 py-1",
+                    "border-b border-(--editor-border) px-3 py-1",
                     e.level === "error" && "text-destructive",
                     e.level === "warn" && "text-amber-500",
                   )}
@@ -74,7 +74,7 @@ export function EditorConsolePanel({
         </div>
       ) : null}
       {allowFix && lastError && onFixWithAi ? (
-        <div className="border-t border-[var(--editor-border)] p-2">
+        <div className="border-t border-(--editor-border) p-2">
           <Button
             type="button"
             size="sm"

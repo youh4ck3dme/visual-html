@@ -89,11 +89,11 @@ describe("generation diagnostics", () => {
     const phases: Array<[GenerationPhase, number]> = [
       ["validating", 5],
       ["rate_limited_check", 10],
-      ["uploading_to_blob", 25],
-      ["ocr", 45],
-      ["synthesizing", 75],
+      ["uploading_to_blob", 15],
+      ["ocr", 40],
+      ["synthesizing", 70],
       ["json_repair", 90],
-      ["sanitizing", 90],
+      ["sanitizing", 95],
       ["done", 100],
     ];
 

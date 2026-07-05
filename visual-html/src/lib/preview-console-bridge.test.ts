@@ -37,10 +37,11 @@ describe("preview-console-bridge", () => {
     expect(normalizePreviewConsoleMessage(null)).toBeNull();
   });
 
-  it("injects bridge script with location.origin postMessage target", () => {
+  it("injects bridge script with wildcard postMessage target", () => {
     const doc = "<!DOCTYPE html><html><head></head><body></body></html>";
     const out = injectConsoleBridge(doc);
-    expect(out).toContain("window.location.origin");
+    expect(out).toContain("}, '*');");
+    expect(out).not.toContain("window.location.origin");
   });
 
   it("capPreviewConsoleEntries keeps the most recent entries", () => {

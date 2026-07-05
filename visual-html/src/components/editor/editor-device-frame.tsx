@@ -21,7 +21,7 @@ export function EditorDeviceFrame({
 
   return (
     <div className={cn("flex flex-col items-center p-3 sm:p-4", className)}>
-      {label && <p className="mb-2 text-xs font-medium text-[var(--editor-muted)]">{label}</p>}
+      {label && <p className="mb-2 text-xs font-medium text-(--editor-muted)">{label}</p>}
       <div
         className="mx-auto rounded-[2rem] border-[3px] border-[#3c4043] bg-black p-1.5 shadow-2xl"
         style={{ width: `min(100%, ${width}px)` }}

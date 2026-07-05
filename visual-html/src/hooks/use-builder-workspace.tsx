@@ -19,6 +19,7 @@ import {
 } from "@/lib/builder/generation-metrics";
 import type { BuilderGenerationTrace } from "@/lib/builder/generation-trace";
 import type { HtmlHealthCheckResult } from "@/lib/builder/html-health-check";
+import { recordTraceDuration } from "@/lib/builder/trace-eta";
 import {
   getBuilderOrchestrationMode,
   type BuilderOrchestrationMode,
@@ -235,8 +236,15 @@ export function BuilderWorkspaceProvider({ children }: { children: ReactNode }) 
             onTraceUpdate: (trace) => {
               setCurrentGenerationTrace(trace);
               setLastGenerationMetrics(createMetricsFromTrace(trace));
+              if (trace.totalDurationMs != null) {
+                recordTraceDuration(trace.totalDurationMs);
+              }
             },
             onHealthCheckUpdate: setLastHtmlHealthCheck,
+            onPartialPreview: (html) => {
+              setGeneratedCode(html);
+              setOutputSource("ai");
+            },
           },
         );
 

@@ -20,6 +20,7 @@ export const messages = {
     "locale.switchAria": "Switch language to {lang}",
 
     "a11y.skipToContent": "Skip to main content",
+    "route.pending.loadingAria": "Loading page",
 
     // ── Theme ───────────────────────────────────────────────────
     "theme.light": "Light",
@@ -41,6 +42,7 @@ export const messages = {
     // ── Lovable editor shell ────────────────────────────────────
     "editor.promptPlaceholder": "Ask PNGtoHTML or describe a change…",
     "editor.build": "Build",
+    "editor.nav.generatingStatus": "Studio generation in progress",
     "editor.console": "Console",
     "editor.consoleEmpty": "No console output yet. Enable JS in preview to capture logs.",
     "editor.fixWithAi": "Fix with AI",
@@ -239,6 +241,8 @@ export const messages = {
     // ── Index route ─────────────────────────────────────────────
     "index.generateHtml": "Generate HTML",
     "index.generating": "Generating...",
+    "index.healthScore.label": "Health {score}",
+    "index.healthScore.title": "HTML quality score from automated health check",
     "index.continueGeneration": "Continue code generation",
     "index.continuing": "Continuing...",
     "index.generatedOutput": "Generated output",
@@ -518,6 +522,8 @@ export const messages = {
     "builder.status.initializingBuild": "Initializing build...",
     "builder.status.starting": "Starting {mode}...",
     "builder.status.connecting": "Connecting...",
+    "builder.fixRuntimeErrorPrompt": "Fix this runtime error in the preview: {consoleMessage}",
+    "builder.generationEta": "About {duration} remaining",
     "builder.status.building": "Building a new app...",
     "builder.status.preparingRefine": "Preparing current app for refinement...",
     "builder.status.inspectingFix": "Inspecting current app for targeted fixes...",
@@ -1011,6 +1017,7 @@ export const messages = {
     "locale.switchAria": "Prepnúť jazyk na {lang}",
 
     "a11y.skipToContent": "Preskočiť na hlavný obsah",
+    "route.pending.loadingAria": "Načítava sa stránka",
 
     // ── Theme ───────────────────────────────────────────────────
     "theme.light": "Svetlý",
@@ -1031,6 +1038,7 @@ export const messages = {
     // ── Lovable editor shell ────────────────────────────────────
     "editor.promptPlaceholder": "Opýtaj sa PNGtoHTML alebo popíš zmenu…",
     "editor.build": "Build",
+    "editor.nav.generatingStatus": "Generovanie v Štúdiu prebieha",
     "editor.console": "Konzola",
     "editor.consoleEmpty": "Zatiaľ žiadny výstup. Zapni JS v preview pre zachytenie logov.",
     "editor.fixWithAi": "Opraviť cez AI",
@@ -1225,6 +1233,8 @@ export const messages = {
     // ── Index route ─────────────────────────────────────────────
     "index.generateHtml": "Generovať HTML",
     "index.generating": "Generujem…",
+    "index.healthScore.label": "Kvalita {score}",
+    "index.healthScore.title": "Skóre kvality HTML z automatického health checku",
     "index.continueGeneration": "Pokračovať v generovaní",
     "index.continuing": "Pokračujem…",
     "index.generatedOutput": "Vygenerovaný výstup",
@@ -1504,6 +1514,8 @@ export const messages = {
     "builder.status.initializingBuild": "Inicializujem build…",
     "builder.status.starting": "Spúšťam {mode}…",
     "builder.status.connecting": "Pripájam…",
+    "builder.fixRuntimeErrorPrompt": "Oprav túto runtime chybu v náhľade: {consoleMessage}",
+    "builder.generationEta": "Približne {duration} zostáva",
     "builder.status.building": "Vytváram novú app…",
     "builder.status.preparingRefine": "Pripravujem app na úpravu…",
     "builder.status.inspectingFix": "Kontrolujem app pre cielené opravy…",
