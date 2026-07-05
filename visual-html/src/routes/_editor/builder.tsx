@@ -1,18 +1,32 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 
-import { BuilderWorkspace } from "@/components/builder/builder-workspace";
+import { RoutePendingFallback } from "@/components/app/route-pending-fallback";
 import { parseBuilderTemplateSearch } from "@/lib/builder/first-project-starter";
+
+const BuilderWorkspace = lazy(() =>
+  import("@/components/builder/builder-workspace").then((m) => ({
+    default: m.BuilderWorkspace,
+  })),
+);
 
 export const Route = createFileRoute("/_editor/builder")({
   validateSearch: parseBuilderTemplateSearch,
   head: () => ({
     meta: [
-      { title: "Studio — PNGtoHTMLapp" },
+      { title: "VibeCraft Builder — PNGtoHTMLapp" },
       {
         name: "description",
         content:
           "Prompt-to-HTML app builder with offline templates, AI generation, sandboxed preview, and revision history.",
       },
+      { property: "og:title", content: "VibeCraft Builder — PNGtoHTMLapp" },
+      {
+        property: "og:description",
+        content:
+          "Prompt-to-HTML app builder with offline templates, AI generation, sandboxed preview, and revision history.",
+      },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: BuilderPage,
@@ -21,5 +35,9 @@ export const Route = createFileRoute("/_editor/builder")({
 function BuilderPage() {
   const { template } = Route.useSearch();
 
-  return <BuilderWorkspace startTemplateId={template} />;
+  return (
+    <Suspense fallback={<RoutePendingFallback />}>
+      <BuilderWorkspace startTemplateId={template} />
+    </Suspense>
+  );
 }
