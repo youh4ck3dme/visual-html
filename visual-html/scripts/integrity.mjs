@@ -6,11 +6,12 @@
  *   node scripts/integrity.mjs --iphone-17-air
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const args = new Set(process.argv.slice(2));
 const iphone17Air = args.has("--iphone-17-air");
+const skipRateLimit = args.has("--skip-rate-limit") || iphone17Air;
 const skipSmoke = args.has("--skip-smoke") || iphone17Air;
 const skipProduction = args.has("--skip-production") || iphone17Air;
 const root = process.cwd();
@@ -139,13 +140,15 @@ if (!skipSmoke) {
   section("Env check");
   run("smoke --check-env", "node", ["scripts/smoke-generation.mjs", "--check-env"]);
 
-  section("Rate limit (Upstash)");
-  const rateOk = run("rate-limit", "bun", ["--env-file=.env.local", "scripts/test-rate-limit.mjs"]);
-  if (!rateOk) {
-    const last = results[results.length - 1];
-    if (/NOPERM|no permissions/i.test(`${last.stdout}\n${last.stderr}`)) {
-      last.stderr +=
-        "\nHint: UPSTASH_REDIS_REST_TOKEN must be read-write (not KV_REST_API_READ_ONLY_TOKEN).";
+  if (!skipRateLimit) {
+    section("Rate limit (Upstash)");
+    const rateOk = run("rate-limit", "bun", ["--env-file=.env.local", "scripts/test-rate-limit.mjs"]);
+    if (!rateOk) {
+      const last = results[results.length - 1];
+      if (/NOPERM|no permissions/i.test(`${last.stdout}\n${last.stderr}`)) {
+        last.stderr +=
+          "\nHint: UPSTASH_REDIS_REST_TOKEN must be read-write (not KV_REST_API_READ_ONLY_TOKEN).";
+      }
     }
   }
 }
@@ -180,6 +183,28 @@ if (!skipSmoke) {
   section("E2E generation smoke (production API)");
   run("smoke generation", "node", ["scripts/smoke-generation.mjs"]);
 }
+
+section("BYOK log audit");
+function walkSourceFiles(dir, acc = []) {
+  if (!existsSync(dir)) return acc;
+  for (const name of readdirSync(dir)) {
+    const filePath = join(dir, name);
+    if (statSync(filePath).isDirectory()) walkSourceFiles(filePath, acc);
+    else if (/\.(ts|tsx|mjs)$/.test(name)) acc.push(filePath);
+  }
+  return acc;
+}
+const byokPattern = /console\.(log|info|debug|warn)\([^)]*MISTRAL_API_KEY/;
+const byokHits = walkSourceFiles(join(root, "src")).filter((filePath) =>
+  byokPattern.test(readFileSync(filePath, "utf8")),
+);
+results.push({
+  name: "byok log audit",
+  ok: byokHits.length === 0,
+  ms: 0,
+  stdout: byokHits.length ? byokHits.join(", ") : "no API key logging in src/",
+  stderr: byokHits.length ? "Remove API keys from console logging" : "",
+});
 
 section("Summary");
 let failed = 0;
