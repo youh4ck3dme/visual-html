@@ -46,6 +46,15 @@ export function DocumentHead() {
       ["property", "og:description"],
       t(`meta.${page}.ogDescription` as MessageKey),
     );
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    let linkEl = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!linkEl) {
+      linkEl = document.createElement("link");
+      linkEl.rel = "canonical";
+      document.head.appendChild(linkEl);
+    }
+    linkEl.href = `${origin}${pathname}`;
+    setMetaContent('meta[property="og:url"]', ["property", "og:url"], `${origin}${pathname}`);
     document.documentElement.lang = locale;
   }, [locale, page, pathname, t]);
 

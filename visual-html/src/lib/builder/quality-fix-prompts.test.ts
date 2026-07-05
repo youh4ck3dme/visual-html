@@ -5,6 +5,7 @@ import { resolveBuilderQualityProfile } from "@/lib/builder/quality-profiles";
 import {
   APPLE_GLASS_QUALITY_POLISH_FIX_PROMPT,
   IPHONE_AIR_HTML_FIX_PROMPT,
+  SEO_REFINEMENT_INSTRUCTION,
   resolveQualityPolishFixPrompt,
   shouldOfferQualityPolishFix,
 } from "@/lib/builder/quality-fix-prompts";
@@ -45,6 +46,18 @@ describe("quality-fix-prompts", () => {
     );
   });
 
+  it("resolveQualityPolishFixPrompt — auto with PWA prompt resolves to iPhone Air", () => {
+    expect(resolveQualityPolishFixPrompt("auto", "Build a PWA mobile app shell")).toBe(
+      IPHONE_AIR_HTML_FIX_PROMPT,
+    );
+  });
+
+  it("shouldOfferQualityPolishFix — true when score below profile minimum", () => {
+    const profile = resolveBuilderQualityProfile("apple-glass", "landing");
+    const health = runHtmlHealthCheck(ANIMATED_NO_POLISH_HTML, { qualityProfile: profile });
+    expect(shouldOfferQualityPolishFix(health, profile.healthExpectations.minimumScore)).toBe(true);
+  });
+
   it("shouldOfferQualityPolishFix — true when motion/focus/responsive warnings present", () => {
     const profile = resolveBuilderQualityProfile("apple-glass", "apple glass landing");
     const health = runHtmlHealthCheck(ANIMATED_NO_POLISH_HTML, {
@@ -52,6 +65,13 @@ describe("quality-fix-prompts", () => {
       userPrompt: "apple glass premium landing",
     });
     expect(shouldOfferQualityPolishFix(health)).toBe(true);
+  });
+
+  it("SEO_REFINEMENT_INSTRUCTION includes meta and semantic guidance", () => {
+    expect(SEO_REFINEMENT_INSTRUCTION).toContain("<title>");
+    expect(SEO_REFINEMENT_INSTRUCTION).toContain("meta name=\"description\"");
+    expect(SEO_REFINEMENT_INSTRUCTION).toContain("og:title");
+    expect(SEO_REFINEMENT_INSTRUCTION).toMatch(/semantic/i);
   });
 
   it("shouldOfferQualityPolishFix — false when no matching findings", () => {
