@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useT } from "@/hooks/use-t";
 import { cn } from "@/lib/utils";
 
 import { EditorHeader } from "./editor-header";
@@ -30,6 +31,7 @@ export function EditorLayout({
   className,
   studioMode = false,
 }: EditorLayoutProps) {
+  const { t } = useT();
   const isMobile = useIsMobile();
   const hasSplit = Boolean(chatPanel && previewPanel);
 
@@ -51,18 +53,20 @@ export function EditorLayout({
               <section
                 className="editor-preview-mobile flex min-h-0 flex-[0.55] flex-col overflow-hidden border-b border-[var(--editor-border)]"
                 data-testid="editor-preview-stage"
+                aria-label={t("editor.previewPanelAria")}
               >
                 {previewPanel}
               </section>
               <section
                 className="editor-chat-mobile flex min-h-0 flex-1 flex-col overflow-hidden"
                 data-testid="editor-chat-panel"
+                aria-label={t("editor.chatPanelAria")}
               >
                 {chatPanel}
               </section>
               {promptBar && (
                 <div
-                  className="editor-prompt-bar shrink-0 border-t border-[var(--editor-border)] bg-[var(--editor-panel)] pb-[env(safe-area-inset-bottom,0px)]"
+                  className="editor-prompt-bar shrink-0 border-t border-[var(--editor-border)] bg-[var(--editor-panel)] pb-[max(0.5rem,var(--editor-safe-bottom))]"
                   data-testid="editor-prompt-bar"
                 >
                   {promptBar}
@@ -74,12 +78,14 @@ export function EditorLayout({
               <section
                 className="editor-chat-desktop flex w-[var(--editor-chat-width)] min-w-[var(--editor-chat-min)] max-w-[var(--editor-chat-max)] shrink-0 flex-col overflow-hidden border-r border-[var(--editor-border)] bg-[var(--editor-panel)]"
                 data-testid="editor-chat-panel"
+                aria-label={t("editor.chatPanelAria")}
               >
                 {chatPanel}
               </section>
               <section
                 className="editor-preview-desktop flex min-w-0 flex-1 flex-col overflow-hidden bg-[var(--editor-bg)]"
                 data-testid="editor-preview-stage"
+                aria-label={t("editor.previewPanelAria")}
               >
                 {previewPanel}
               </section>

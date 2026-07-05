@@ -19,6 +19,8 @@ export const messages = {
     "locale.groupAria": "Language",
     "locale.switchAria": "Switch language to {lang}",
 
+    "a11y.skipToContent": "Skip to main content",
+
     // ── Theme ───────────────────────────────────────────────────
     "theme.light": "Light",
     "theme.dark": "Dark",
@@ -46,6 +48,9 @@ export const messages = {
     "editor.modelPickerAria": "AI model for Studio",
     "editor.previewEmpty": "Build or upload to see preview here",
     "editor.previewEmptyHint": "Your generated HTML renders in this device frame.",
+    "editor.previewLoadingAria": "Loading preview",
+    "editor.previewPanelAria": "Preview panel",
+    "editor.chatPanelAria": "Chat and controls panel",
     "editor.screenshot.emptyTitle": "Preview will appear here",
     "editor.screenshot.emptyHint": "Upload a screenshot and generate HTML to see the live preview.",
     "editor.projects.selectTitle": "Select a project",
@@ -425,8 +430,8 @@ export const messages = {
     "builder.mobile.activeProject": "Active Project",
     "builder.mobile.untitledProject": "Untitled project",
     "builder.mobile.live": "Live",
-    "builder.mobile.deviceIphone17Air": "iPhone 17 Air (420px)",
-    "builder.mobile.deviceIphoneCompact": "iPhone compact (393px)",
+    "builder.mobile.deviceIphone17Air": "iPhone 17 Air (420 px)",
+    "builder.mobile.deviceIphoneCompact": "iPhone compact (393 px)",
     "builder.mobile.refreshPreview": "Refresh preview",
     "builder.mobile.runPreview": "Run preview",
     "builder.mobile.tabFiles": "Files",
@@ -1001,6 +1006,8 @@ export const messages = {
     "locale.groupAria": "Jazyk",
     "locale.switchAria": "Prepnúť jazyk na {lang}",
 
+    "a11y.skipToContent": "Preskočiť na hlavný obsah",
+
     // ── Theme ───────────────────────────────────────────────────
     "theme.light": "Svetlý",
     "theme.dark": "Tmavý",
@@ -1027,6 +1034,9 @@ export const messages = {
     "editor.modelPickerAria": "AI model pre Štúdio",
     "editor.previewEmpty": "Vygeneruj alebo nahraj pre náhľad",
     "editor.previewEmptyHint": "Vygenerované HTML sa zobrazí v tomto rámci zariadenia.",
+    "editor.previewLoadingAria": "Načítava sa náhľad",
+    "editor.previewPanelAria": "Panel náhľadu",
+    "editor.chatPanelAria": "Panel chatu a ovládania",
     "editor.screenshot.emptyTitle": "Náhľad sa zobrazí tu",
     "editor.screenshot.emptyHint": "Nahrajte snímku a vygenerujte HTML pre živý náhľad.",
     "editor.projects.selectTitle": "Vyberte projekt",
@@ -1401,8 +1411,8 @@ export const messages = {
     "builder.mobile.activeProject": "Aktívny projekt",
     "builder.mobile.untitledProject": "Projekt bez názvu",
     "builder.mobile.live": "Live",
-    "builder.mobile.deviceIphone17Air": "iPhone 17 Air (420px)",
-    "builder.mobile.deviceIphoneCompact": "iPhone compact (393px)",
+    "builder.mobile.deviceIphone17Air": "iPhone 17 Air (420 px)",
+    "builder.mobile.deviceIphoneCompact": "iPhone kompaktný (393 px)",
     "builder.mobile.refreshPreview": "Obnoviť náhľad",
     "builder.mobile.runPreview": "Spustiť náhľad",
     "builder.mobile.tabFiles": "Súbory",

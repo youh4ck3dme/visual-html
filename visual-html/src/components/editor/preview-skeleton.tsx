@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { useT } from "@/hooks/use-t";
 import { cn } from "@/lib/utils";
 
 type PreviewSkeletonProps = {
@@ -7,11 +8,15 @@ type PreviewSkeletonProps = {
 
 /** Apple-style shimmer placeholder while generation preview is loading. */
 export function PreviewSkeleton({ className }: PreviewSkeletonProps) {
+  const { t } = useT();
+
   return (
     <div
       className={cn("flex w-full flex-col gap-3 p-4", className)}
       data-testid="preview-skeleton"
-      aria-hidden
+      role="status"
+      aria-live="polite"
+      aria-label={t("editor.previewLoadingAria")}
     >
       <Skeleton className="h-4 w-[66%] rounded-md bg-primary/10" />
       <Skeleton className="h-24 w-full rounded-lg bg-primary/10" />
