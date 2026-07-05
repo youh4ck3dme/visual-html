@@ -21,6 +21,7 @@ import {
 } from "../lib/app-brand";
 import { useT } from "../hooks/use-t";
 import { LocaleProvider } from "../hooks/use-locale";
+import { BuilderWorkspaceProvider } from "../hooks/use-builder-workspace";
 import { ProjectsProvider } from "../hooks/use-projects";
 import { ThemeProvider } from "../hooks/use-theme";
 import { themeInitScript } from "../lib/theme";
@@ -157,12 +158,14 @@ function RootComponent() {
     <LocaleProvider>
       <ThemeProvider>
         <ProjectsProvider>
-          <QueryClientProvider client={queryClient}>
-            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-            <DocumentHead />
-            <Outlet />
-            <Toaster />
-          </QueryClientProvider>
+          <BuilderWorkspaceProvider>
+            <QueryClientProvider client={queryClient}>
+              {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+              <DocumentHead />
+              <Outlet />
+              <Toaster />
+            </QueryClientProvider>
+          </BuilderWorkspaceProvider>
         </ProjectsProvider>
       </ThemeProvider>
     </LocaleProvider>

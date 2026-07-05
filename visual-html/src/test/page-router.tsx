@@ -14,6 +14,7 @@ import { SettingsProvider } from "@/components/app/settings-context";
 import { EditorModeProjects } from "@/components/editor/editor-mode-projects";
 import { EditorModeScreenshot } from "@/components/editor/editor-mode-screenshot";
 import { Toaster } from "@/components/ui/sonner";
+import { BuilderWorkspaceProvider } from "@/hooks/use-builder-workspace";
 import { LocaleProvider } from "@/hooks/use-locale";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ProjectsProvider } from "@/hooks/use-projects";
@@ -27,7 +28,14 @@ function createTestQueryClient() {
   });
 }
 
-const rootRoute = createRootRoute({ component: () => <Outlet /> });
+const rootRoute = createRootRoute({
+  component: () => (
+    <BuilderWorkspaceProvider>
+      <Outlet />
+      <Toaster />
+    </BuilderWorkspaceProvider>
+  ),
+});
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -85,7 +93,6 @@ export async function renderPageAt(path: string) {
             <SettingsProvider>
               <RouterProvider router={router} />
               <SettingsDialog />
-              <Toaster />
             </SettingsProvider>
           </ProjectsProvider>
         </ThemeProvider>

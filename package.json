@@ -10,6 +10,8 @@
     "format": "npm run format --prefix visual-html",
     "test:integrity": "npm run test:integrity --prefix visual-html",
     "test:integrity:fast": "npm run test:integrity:fast --prefix visual-html",
-    "preview": "npm run preview --prefix visual-html"
+    "preview": "npm run preview --prefix visual-html",
+    "github:gate": "bash scripts/github-release-gate.sh",
+    "github:gate:full": "bash scripts/github-release-gate.sh --full"
   }
 }

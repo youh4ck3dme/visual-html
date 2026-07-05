@@ -11,6 +11,7 @@ import type { ReactElement, ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { SettingsDialog } from "@/components/app/settings-dialog";
 import { SettingsProvider } from "@/components/app/settings-context";
+import { BuilderWorkspaceProvider } from "@/hooks/use-builder-workspace";
 import { LocaleProvider } from "@/hooks/use-locale";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ProjectsProvider } from "@/hooks/use-projects";
@@ -54,9 +55,13 @@ function AllProviders({
       <LocaleProvider>
         <ThemeProvider>
           <SettingsProvider>
-            <RouterContextProvider router={router}>{inner}</RouterContextProvider>
+            <RouterContextProvider router={router}>
+              <BuilderWorkspaceProvider>
+                {inner}
+                <Toaster />
+              </BuilderWorkspaceProvider>
+            </RouterContextProvider>
             <SettingsDialog />
-            <Toaster />
           </SettingsProvider>
         </ThemeProvider>
       </LocaleProvider>

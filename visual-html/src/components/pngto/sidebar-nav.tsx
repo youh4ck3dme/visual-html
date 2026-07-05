@@ -4,6 +4,7 @@ import { Settings } from "lucide-react";
 import { NAV_ITEMS, type NavTo } from "@/components/app/nav-config";
 import { useSettingsDialog } from "@/components/app/settings-context";
 import { AppLogo } from "@/components/pngto/app-logo";
+import { useBuilderWorkspaceOptional } from "@/hooks/use-builder-workspace-consumer";
 import { useT } from "@/hooks/use-t";
 import { cn } from "@/lib/utils";
 import { LocaleSwitcher } from "./locale-switcher";
@@ -37,27 +38,36 @@ function NavLink({
   icon: Icon,
   to,
   compact = false,
+  showGeneratingBadge = false,
 }: {
   id: string;
   label: string;
   icon: (typeof NAV_ITEMS)[number]["icon"];
   to: NavTo;
   compact?: boolean;
+  showGeneratingBadge?: boolean;
 }) {
   return (
     <Link
       to={to}
       aria-label={label}
       data-testid={`nav-${id}`}
-      className={navButtonClass(false, false, compact)}
+      className={cn(navButtonClass(false, false, compact), "relative")}
       activeProps={{
-        className: navButtonClass(true, false, compact),
+        className: cn(navButtonClass(true, false, compact), "relative"),
         "aria-current": "page" as const,
       }}
       inactiveProps={{
-        className: navButtonClass(false, false, compact),
+        className: cn(navButtonClass(false, false, compact), "relative"),
       }}
     >
+      {showGeneratingBadge && (
+        <span
+          className="absolute right-1 top-1 h-2 w-2 animate-pulse rounded-full bg-primary"
+          data-testid="nav-builder-generating-badge"
+          aria-hidden
+        />
+      )}
       <Icon className="h-4 w-4 shrink-0" aria-hidden />
       {!compact && <span>{label}</span>}
     </Link>
@@ -84,6 +94,8 @@ function NavSettingsButton({ compact = false }: { compact?: boolean }) {
 
 export function VisualSidebar() {
   const { t } = useT();
+  const builderWorkspace = useBuilderWorkspaceOptional();
+  const builderGenerating = builderWorkspace?.isGenerating ?? false;
 
   return (
     <>
@@ -108,6 +120,7 @@ export function VisualSidebar() {
               label={t(item.labelKey)}
               icon={item.icon}
               to={item.to}
+              showGeneratingBadge={item.id === "builder" && builderGenerating}
             />
           ))}
         </nav>
@@ -139,6 +152,7 @@ export function VisualSidebar() {
             icon={item.icon}
             to={item.to}
             compact
+            showGeneratingBadge={item.id === "builder" && builderGenerating}
           />
         ))}
         <LocaleSwitcher compact />

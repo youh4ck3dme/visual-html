@@ -528,6 +528,11 @@ export const messages = {
     "builder.status.explanationReady": "Explanation ready.",
 
     // Builder chat messages
+    "builder.background.complete": "VibeCraft generation finished",
+    "builder.background.completeHint": "Your workspace was updated while you were away.",
+    "builder.background.openBuilder": "Open Builder",
+    "builder.background.failed": "VibeCraft generation failed",
+    "builder.background.failedHint": "Open Builder to review the error and try again.",
     "builder.chat.greet":
       "VibeCraft AI Ready. Select a starter template or describe your application to generate a single-file interactive layout.",
     "builder.chat.newWorkspace": "New workspace. Pick a template or describe your layout.",
@@ -1497,6 +1502,11 @@ export const messages = {
     "builder.status.explanationReady": "Vysvetlenie pripravené.",
 
     // Builder chat messages
+    "builder.background.complete": "VibeCraft generovanie dokončené",
+    "builder.background.completeHint": "Workspace bol aktualizovaný, kým ste boli inde.",
+    "builder.background.openBuilder": "Otvoriť Builder",
+    "builder.background.failed": "VibeCraft generovanie zlyhalo",
+    "builder.background.failedHint": "Otvorte Builder, skontrolujte chybu a skúste znova.",
     "builder.chat.greet":
       "VibeCraft AI pripravené. Vyberte šablónu alebo popíšte aplikáciu pre generovanie interaktívneho layoutu v jednom súbore.",
     "builder.chat.newWorkspace": "Nový workspace. Vyberte šablónu alebo popíšte layout.",
