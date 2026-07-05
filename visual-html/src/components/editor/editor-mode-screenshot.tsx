@@ -124,7 +124,7 @@ export function EditorModeScreenshot({ projectId, projectIdFromUrl }: EditorMode
   const showInputPanel = !busy;
 
   const inputPanels = showInputPanel ? (
-    <div className="rounded-xl border border-[var(--editor-border)] bg-[var(--editor-bg)] p-3">
+    <div className="rounded-xl border border-(--editor-border) bg-(--editor-bg) p-3">
       {image ? (
         <ImagePreview
           image={image}
@@ -250,7 +250,7 @@ export function EditorModeScreenshot({ projectId, projectIdFromUrl }: EditorMode
               <button
                 type="button"
                 onClick={resetForNewImage}
-                className="text-[var(--editor-muted)] hover:text-[var(--editor-fg)]"
+                className="text-(--editor-muted) hover:text-(--editor-fg)"
               >
                 {t("index.newUpload")}
               </button>
@@ -293,10 +293,10 @@ export function EditorModeScreenshot({ projectId, projectIdFromUrl }: EditorMode
       ) : (
         <EditorDeviceFrame className="h-full justify-center" profile={iphoneProfile}>
           <div className="flex min-h-[min(55dvh,480px)] flex-col items-center justify-center gap-2 p-6 text-center">
-            <p className="text-sm font-semibold text-[var(--editor-fg)]">
+            <p className="font-semibold text-sm text-(--editor-fg)">
               {t("editor.screenshot.emptyTitle")}
             </p>
-            <p className="max-w-xs text-xs text-[var(--editor-muted)]">
+            <p className="max-w-xs text-xs text-(--editor-muted)">
               {t("editor.screenshot.emptyHint")}
             </p>
           </div>
@@ -322,14 +322,14 @@ function LoadedProjectBanner({ project, onClear }: { project: SavedProject; onCl
       <img src={project.thumbnailDataUrl} alt="" className="h-16 w-16 rounded-md object-cover" />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{project.name}</p>
-        <p className="text-xs text-[var(--editor-muted)]">
+        <p className="text-xs text-(--editor-muted)">
           {t("index.loadedProject.hint", { fileName: project.fileName })}
         </p>
       </div>
       <button
         type="button"
         onClick={onClear}
-        className="text-xs text-[var(--editor-muted)]"
+        className="text-xs text-(--editor-muted)"
         data-testid="clear-loaded-project"
       >
         {t("index.loadedProject.clear")}

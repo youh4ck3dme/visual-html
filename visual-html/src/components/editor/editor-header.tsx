@@ -35,19 +35,19 @@ function NavTab({
       data-testid={`nav-${id}`}
       className={cn(
         "relative inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
-        "text-[var(--editor-muted)] hover:bg-[var(--editor-hover)] hover:text-[var(--editor-fg)]",
+        "text-(--editor-muted) hover:bg-(--editor-hover) hover:text-(--editor-fg)",
       )}
       activeProps={{
         className: cn(
           "relative inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold",
-          "bg-[var(--editor-accent-dim)] text-[var(--editor-accent)] ring-1 ring-inset ring-[var(--editor-accent)]/30",
+          "bg-(--editor-accent-dim) text-(--editor-accent) ring-1 ring-inset ring-(--editor-accent)/30",
         ),
         "aria-current": "page" as const,
       }}
       inactiveProps={{
         className: cn(
           "relative inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
-          "text-[var(--editor-muted)] hover:bg-[var(--editor-hover)] hover:text-[var(--editor-fg)]",
+          "text-(--editor-muted) hover:bg-(--editor-hover) hover:text-(--editor-fg)",
         ),
       }}
     >
@@ -89,7 +89,7 @@ function ModelPicker() {
       value={model}
       onChange={(e) => onChange(e.target.value)}
       data-testid="editor-model-picker"
-      className="hidden h-9 max-w-[9rem] truncate rounded-lg border border-[var(--editor-border)] bg-[var(--editor-panel)] px-2 text-[11px] text-[var(--editor-fg)] lg:block"
+      className="hidden h-9 max-w-36 truncate rounded-lg border border-(--editor-border) bg-(--editor-panel) px-2 text-[11px] text-(--editor-fg) lg:block"
     >
       {MODEL_PRICING.map((m) => (
         <option key={m.id} value={m.id}>
@@ -108,7 +108,7 @@ export function EditorHeader() {
 
   return (
     <header
-      className="editor-header flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--editor-border)] bg-[var(--editor-panel)] px-3 py-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))] sm:px-4"
+      className="editor-header flex shrink-0 flex-wrap items-center gap-2 border-b border-(--editor-border) bg-(--editor-panel) px-3 py-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))] sm:px-4"
       data-testid="editor-header"
     >
       <Link
@@ -118,13 +118,13 @@ export function EditorHeader() {
         data-testid="nav-home"
       >
         <AppLogo size="sm" />
-        <span className="hidden text-sm font-bold text-[var(--editor-fg)] sm:inline">
+        <span className="hidden text-sm font-bold text-(--editor-fg) sm:inline">
           {t("nav.homeTitle")}
         </span>
       </Link>
 
       <nav
-        className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden"
         aria-label={t("nav.appAria")}
       >
         {NAV_ITEMS.map((item) => (
@@ -148,7 +148,7 @@ export function EditorHeader() {
           onClick={openSettings}
           aria-label={t("nav.settings")}
           data-testid="nav-settings"
-          className="grid h-11 min-w-11 place-items-center rounded-lg text-[var(--editor-muted)] transition-colors hover:bg-[var(--editor-hover)] hover:text-[var(--editor-fg)]"
+          className="grid h-11 min-w-11 place-items-center rounded-lg text-(--editor-muted) transition-colors hover:bg-(--editor-hover) hover:text-(--editor-fg)"
         >
           <Settings className="h-4 w-4" aria-hidden />
         </button>

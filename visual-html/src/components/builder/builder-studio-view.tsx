@@ -123,7 +123,7 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
   } = studio;
 
   const modeTabs = (
-    <div className="mb-2 flex gap-1 rounded-lg border border-[var(--editor-border)] bg-[var(--editor-bg)] p-1">
+    <div className="mb-2 flex gap-1 rounded-lg border border-(--editor-border) bg-(--editor-bg) p-1">
       {STUDIO_MODES.map(({ mode, labelKey, hintKey }) => {
         const off = (mode !== "build" && !generatedCode) || isGenerating || isCancelling;
         return (
@@ -137,7 +137,7 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
               "flex-1 rounded-md px-2 py-1.5 text-[11px] font-bold",
               generationMode === mode
                 ? "bg-primary text-primary-foreground"
-                : "text-[var(--editor-muted)]",
+                : "text-(--editor-muted)",
               off && "opacity-35",
             )}
             data-testid={`builder-mode-${mode}`}
@@ -182,8 +182,8 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium",
               currentCategory === c.id
-                ? "bg-[var(--editor-hover)] text-[var(--editor-fg)]"
-                : "text-[var(--editor-muted)] hover:bg-[var(--editor-hover)]",
+                ? "bg-(--editor-hover) text-(--editor-fg)"
+                : "text-(--editor-muted) hover:bg-(--editor-hover)",
             )}
           >
             {CAT_ICON[c.icon]}
@@ -191,27 +191,24 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
           </button>
         ))}
       </div>
-      <details
-        className="group rounded-lg border border-[var(--editor-border)] bg-[var(--editor-bg)]"
-        open
-      >
-        <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-semibold text-[var(--editor-fg)] marker:content-none">
+      <details className="group rounded-lg border border-(--editor-border) bg-(--editor-bg)" open>
+        <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-semibold text-(--editor-fg) marker:content-none">
           {t("builder.starterTemplates")}
-          <ChevronDown className="h-4 w-4 text-[var(--editor-muted)] transition-transform group-open:rotate-180" />
+          <ChevronDown className="h-4 w-4 text-(--editor-muted) transition-transform group-open:rotate-180" />
         </summary>
-        <div className="space-y-2 border-t border-[var(--editor-border)] p-3">
+        <div className="space-y-2 border-t border-(--editor-border) p-3">
           {prompts.map((p) => (
             <button
               key={p.id}
               type="button"
               onClick={() => handleSelectPrompt(p)}
-              className="w-full rounded-lg border border-[var(--editor-border)] bg-[var(--editor-panel)] p-2 text-left hover:border-primary/40"
+              className="w-full rounded-lg border border-(--editor-border) bg-(--editor-panel) p-2 text-left hover:border-primary/40"
               data-testid={`builder-template-${p.id}`}
             >
               <p className="text-xs font-semibold">
                 {t(`builder.template.${p.id}.title` as MessageKey)}
               </p>
-              <p className="mt-0.5 line-clamp-2 text-[11px] text-[var(--editor-muted)]">
+              <p className="mt-0.5 line-clamp-2 text-[11px] text-(--editor-muted)">
                 {t(`builder.template.${p.id}.description` as MessageKey)}
               </p>
             </button>
@@ -229,9 +226,7 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
           <div className="flex items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-bold">{t("builder.workspaceTitle")}</h2>
-              <p className="text-[11px] text-[var(--editor-muted)]">
-                {modeHint ? t(modeHint) : ""}
-              </p>
+              <p className="text-[11px] text-(--editor-muted)">{modeHint ? t(modeHint) : ""}</p>
             </div>
             <Button
               type="button"
@@ -248,12 +243,10 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
           <div className="flex items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-bold">{t("builder.workspaceTitle")}</h2>
-              <p className="text-[11px] text-[var(--editor-muted)]">
-                {modeHint ? t(modeHint) : ""}
-              </p>
+              <p className="text-[11px] text-(--editor-muted)">{modeHint ? t(modeHint) : ""}</p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <span className="rounded-full border border-[var(--editor-border)] px-2 py-0.5 text-[10px] font-bold uppercase text-[var(--editor-muted)]">
+              <span className="rounded-full border border-(--editor-border) px-2 py-0.5 text-[10px] font-bold uppercase text-(--editor-muted)">
                 {t(`builder.mode.${generationMode}` as MessageKey)}
               </span>
               <Button size="sm" onClick={handleNewChat} data-testid="builder-new-application">
@@ -280,7 +273,7 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
                 "rounded-xl px-3 py-2 leading-relaxed",
                 m.sender === "user"
                   ? "rounded-br-none border border-primary/30 bg-primary/10"
-                  : "rounded-bl-none border border-[var(--editor-border)] bg-[var(--editor-panel)]",
+                  : "rounded-bl-none border border-(--editor-border) bg-(--editor-panel)",
               )}
             >
               {m.text}
@@ -316,7 +309,7 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
         )}
         {showCancelledNotice && !isGenerating && (
           <div
-            className="max-w-[90%] self-start rounded-xl border border-[var(--editor-border)] px-3 py-2 text-xs text-[var(--editor-muted)]"
+            className="max-w-[90%] self-start rounded-xl border border-(--editor-border) px-3 py-2 text-xs text-(--editor-muted)"
             data-testid="builder-cancelled-notice"
           >
             {t("builder.status.cancelled")}
@@ -335,7 +328,7 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
         )}
         {!isMobile && consolePanel}
         {!isMobile && (
-          <div className="border-t border-[var(--editor-border)] pt-3 text-[11px]">
+          <div className="border-t border-(--editor-border) pt-3 text-[11px]">
             <span
               className={cn(
                 "mr-2 inline-block h-2 w-2 rounded-full",
@@ -368,7 +361,7 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
                   handleSelectPrompt(p);
                   setTemplatesOpen(false);
                 }}
-                className="min-h-11 rounded-lg border border-[var(--editor-border)] p-3 text-left"
+                className="min-h-11 rounded-lg border border-(--editor-border) p-3 text-left"
                 data-testid={`builder-template-${p.id}`}
               >
                 <p className="text-sm font-semibold">
@@ -418,7 +411,7 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
       <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
         {isGenerating && previewTab === "preview" && (
           <div
-            className="absolute inset-0 z-10 flex flex-col bg-[var(--editor-bg)]"
+            className="absolute inset-0 z-10 flex flex-col bg-(--editor-bg)"
             data-testid="builder-preview-skeleton"
           >
             <PreviewSkeleton className="min-h-[min(55dvh,480px)] flex-1" />
@@ -485,12 +478,12 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
                 </span>
                 {versions.length > 0 && (
                   <div className="relative">
-                    <RotateCcw className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-[var(--editor-muted)]" />
+                    <RotateCcw className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-(--editor-muted)" />
                     <select
                       aria-label={t("builder.historyAria")}
                       value=""
                       onChange={(e) => handleRestore(e.target.value)}
-                      className="h-8 w-28 rounded-md border border-[var(--editor-border)] bg-[var(--editor-bg)] pl-7 text-[11px]"
+                      className="h-8 w-28 rounded-md border border-(--editor-border) bg-(--editor-bg) pl-7 text-[11px]"
                     >
                       <option value="">
                         {t("builder.historyOption", { count: versions.length })}

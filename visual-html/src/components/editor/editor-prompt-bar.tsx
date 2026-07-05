@@ -45,6 +45,7 @@ export function EditorPromptBar({
   const resolvedPlaceholder = placeholder ?? t("builder.inputPlaceholder");
 
   const inputAriaLabel = multiline ? t("builder.inputPlaceholder") : t("builder.inputPlaceholder");
+  const fieldClassName = "min-h-11 flex-1 bg-(--editor-bg) pr-12";
 
   return (
     <form
@@ -66,7 +67,7 @@ export function EditorPromptBar({
             placeholder={resolvedPlaceholder}
             aria-label={inputAriaLabel}
             rows={2}
-            className="min-h-11 flex-1 resize-none bg-[var(--editor-bg)] pr-12"
+            className={cn(fieldClassName, "resize-none")}
           />
         ) : (
           <Input
@@ -75,7 +76,7 @@ export function EditorPromptBar({
             disabled={disabled || busy}
             placeholder={resolvedPlaceholder}
             aria-label={inputAriaLabel}
-            className="min-h-11 flex-1 bg-[var(--editor-bg)] pr-12"
+            className={fieldClassName}
           />
         )}
         <Button

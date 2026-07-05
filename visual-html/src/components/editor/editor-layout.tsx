@@ -39,7 +39,7 @@ function SplitPanels({
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <section
-          className="editor-preview-mobile flex min-h-0 flex-[0.55] flex-col overflow-hidden border-b border-[var(--editor-border)]"
+          className="editor-preview-mobile flex min-h-0 flex-[0.55] flex-col overflow-hidden border-b border-(--editor-border)"
           data-testid="editor-preview-stage"
           aria-label={t("editor.previewPanelAria")}
         >
@@ -54,7 +54,7 @@ function SplitPanels({
         </section>
         {promptBar && (
           <div
-            className="editor-prompt-bar shrink-0 border-t border-[var(--editor-border)] bg-[var(--editor-panel)] pb-[max(0.5rem,var(--editor-safe-bottom))]"
+            className="editor-prompt-bar shrink-0 border-t border-(--editor-border) bg-(--editor-panel) pb-[max(0.5rem,var(--editor-safe-bottom))]"
             data-testid="editor-prompt-bar"
           >
             {promptBar}
@@ -67,14 +67,17 @@ function SplitPanels({
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <section
-        className="editor-chat-desktop flex w-[var(--editor-chat-width)] min-w-[var(--editor-chat-min)] max-w-[var(--editor-chat-max)] shrink-0 flex-col overflow-hidden border-r border-[var(--editor-border)] bg-[var(--editor-panel)]"
+        className={cn(
+          "editor-chat-desktop flex w-(--editor-chat-width) min-w-(--editor-chat-min) max-w-(--editor-chat-max)",
+          "shrink-0 flex-col overflow-hidden border-r border-(--editor-border) bg-(--editor-panel)",
+        )}
         data-testid="editor-chat-panel"
         aria-label={t("editor.chatPanelAria")}
       >
         {chatPanel}
       </section>
       <section
-        className="editor-preview-desktop flex min-w-0 flex-1 flex-col overflow-hidden bg-[var(--editor-bg)]"
+        className="editor-preview-desktop flex min-w-0 flex-1 flex-col overflow-hidden bg-(--editor-bg)"
         data-testid="editor-preview-stage"
         aria-label={t("editor.previewPanelAria")}
       >
@@ -99,7 +102,7 @@ export function EditorLayout({
   return (
     <div
       className={cn(
-        "editor-layout flex h-dvh max-h-dvh flex-col overflow-hidden bg-[var(--editor-bg)] text-[var(--editor-fg)]",
+        "editor-layout flex h-dvh max-h-dvh flex-col overflow-hidden bg-(--editor-bg) text-(--editor-fg)",
         className,
       )}
       data-testid={studioMode ? "builder-mobile-studio" : "editor-layout"}
