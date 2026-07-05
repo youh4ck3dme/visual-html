@@ -14,6 +14,8 @@ export type EditorPromptBarProps = {
   onSubmit: (e: FormEvent) => void;
   disabled?: boolean;
   busy?: boolean;
+  /** When set, shows error styling on the form. */
+  error?: boolean;
   placeholder?: string;
   /** Primary action label (e.g. Generate, Build). Shown on wide submit button variant. */
   submitLabel?: string;
@@ -31,6 +33,7 @@ export function EditorPromptBar({
   onSubmit,
   disabled = false,
   busy = false,
+  error = false,
   placeholder,
   submitLabel,
   multiline = false,
@@ -41,8 +44,18 @@ export function EditorPromptBar({
   const { t } = useT();
   const resolvedPlaceholder = placeholder ?? t("builder.inputPlaceholder");
 
+  const inputAriaLabel = multiline ? t("builder.inputPlaceholder") : t("builder.inputPlaceholder");
+
   return (
-    <form className={cn("space-y-2 p-3 sm:p-4", className)} onSubmit={onSubmit}>
+    <form
+      className={cn(
+        "space-y-2 p-3 sm:p-4",
+        error && "rounded-lg border border-destructive/40 bg-destructive/5",
+        className,
+      )}
+      onSubmit={onSubmit}
+      aria-busy={busy || undefined}
+    >
       {prefix}
       <div className="relative flex gap-2">
         {multiline ? (
@@ -51,6 +64,7 @@ export function EditorPromptBar({
             onChange={(e) => onChange(e.target.value)}
             disabled={disabled || busy}
             placeholder={resolvedPlaceholder}
+            aria-label={inputAriaLabel}
             rows={2}
             className="min-h-11 flex-1 resize-none bg-[var(--editor-bg)] pr-12"
           />
@@ -60,6 +74,7 @@ export function EditorPromptBar({
             onChange={(e) => onChange(e.target.value)}
             disabled={disabled || busy}
             placeholder={resolvedPlaceholder}
+            aria-label={inputAriaLabel}
             className="min-h-11 flex-1 bg-[var(--editor-bg)] pr-12"
           />
         )}
@@ -73,6 +88,7 @@ export function EditorPromptBar({
               : "absolute right-1 top-1/2 min-h-11 min-w-11 -translate-y-1/2",
           )}
           disabled={submitLabel ? disabled || busy : !value.trim() || disabled || busy}
+          aria-label={submitLabel ?? t("builder.action.sendPrompt")}
           data-testid={testId}
         >
           {busy ? (

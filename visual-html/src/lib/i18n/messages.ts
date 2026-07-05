@@ -248,6 +248,11 @@ export const messages = {
       "Your generated output is still available here, but saving to browser storage failed. This often happens when local storage is full — try removing old projects.",
     "index.viewInProjects": "View in Projects",
     "index.newUpload": "New upload",
+    "index.chat.uploaded": "Uploaded {fileName}",
+    "index.chat.generationComplete": "HTML generated — check the preview panel.",
+    "index.chat.continueReady": "Partial output is ready. Continue generation to finish.",
+    "index.jsxValidation.warning":
+      "Component output may not render correctly in preview: {error}",
     "index.loadedProject.hint":
       "Opened from Projects · {fileName} · continue refining or generate from a new screenshot",
     "index.loadedProject.clear": "Clear",
@@ -1230,6 +1235,11 @@ export const messages = {
       "Vygenerovaný výstup je stále k dispozícii, ale uloženie do úložiska prehliadača zlyhalo. Často to spôsobí plné lokálne úložisko — skúste odstrániť staré projekty.",
     "index.viewInProjects": "Zobraziť v Projektoch",
     "index.newUpload": "Nové nahratie",
+    "index.chat.uploaded": "Nahrané {fileName}",
+    "index.chat.generationComplete": "HTML vygenerované — pozrite panel náhľadu.",
+    "index.chat.continueReady": "Čiastočný výstup je pripravený. Pokračujte v generovaní.",
+    "index.jsxValidation.warning":
+      "Výstup komponentu sa nemusí v náhľade zobraziť správne: {error}",
     "index.loadedProject.hint":
       "Otvorené z Projektov · {fileName} · pokračujte v úpravách alebo nahrajte nový screenshot",
     "index.loadedProject.clear": "Zrušiť",

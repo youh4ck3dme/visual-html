@@ -20,10 +20,12 @@ import {
 import { toast } from "sonner";
 
 import { OutputPanel } from "@/components/app/output-panel";
+import { RoutePendingFallback } from "@/components/app/route-pending-fallback";
 import { BuilderGenerationTracePanel } from "@/components/builder/builder-generation-trace";
 import { EditorChatPanel } from "@/components/editor/editor-chat-panel";
 import { EditorConsolePanel } from "@/components/editor/editor-console-panel";
 import { GenerationPipelineCard } from "@/components/editor/generation-pipeline-card";
+import { PreviewSkeleton } from "@/components/editor/preview-skeleton";
 import { EditorLayout } from "@/components/editor/editor-layout";
 import { EditorPreviewStage } from "@/components/editor/editor-preview-stage";
 import { EditorPromptBar } from "@/components/editor/editor-prompt-bar";
@@ -41,6 +43,7 @@ import {
 } from "@/hooks/use-editor-studio";
 import type { MessageKey } from "@/lib/i18n/messages";
 import type { PreviewConsoleEntry } from "@/lib/preview-console-bridge";
+import { capPreviewConsoleEntries } from "@/lib/preview-console-bridge";
 import { cn } from "@/lib/utils";
 
 const CAT_ICON: Record<string, React.ReactNode> = {
@@ -68,6 +71,7 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
 
   const {
     t,
+    hydrated,
     currentCategory,
     setCurrentCategory,
     messages,
@@ -411,124 +415,136 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
           </div>
         </div>
       )}
-      <OutputPanel
-        variant={isMobile ? "mobile" : "builder"}
-        activeTab={previewTab}
-        onTabChange={setPreviewTab}
-        previewDoc={previewDoc}
-        previewTitle={t("builder.previewFrameTitle")}
-        previewRefreshKey={previewRefreshKey}
-        onRefreshPreview={() => setPreviewRefreshKey((k) => k + 1)}
-        showDeviceChrome={isMobile}
-        extraTabs={isMobile ? filesTab : undefined}
-        code={generatedCode}
-        onCodeChange={(value) => {
-          setGeneratedCode(value);
-          setOutputSource(value.trim() ? "manual" : "empty");
-        }}
-        isEmpty={!generatedCode}
-        showAllowJs={Boolean(generatedCode)}
-        hasJs={previewHasJs}
-        allowJs={previewAllowJs}
-        onAllowJsChange={setPreviewAllowJs}
-        onAllowJsBeforeEnable={() => {
-          if (risks.length === 0) return true;
-          return window.confirm(t("builder.previewJsRiskConfirm"));
-        }}
-        onConsoleEntry={
-          previewAllowJs ? (entry) => setConsoleEntries((p) => [...p, entry]) : undefined
-        }
-        allowJsInputId="builder-preview-allow-js"
-        allowJsTestId="builder-preview-allow-js"
-        showCopy={Boolean(generatedCode)}
-        copied={copied}
-        copyTestId={isMobile ? "builder-mobile-copy-code" : "builder-copy"}
-        onCopy={async () => {
-          try {
-            await navigator.clipboard.writeText(generatedCode);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-          } catch {
-            toast.error(t("result.code.copyFailed"));
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+        {isGenerating && previewTab === "preview" && (
+          <div
+            className="absolute inset-0 z-10 flex flex-col bg-[var(--editor-bg)]"
+            data-testid="builder-preview-skeleton"
+          >
+            <PreviewSkeleton className="min-h-[min(55dvh,480px)] flex-1" />
+          </div>
+        )}
+        <OutputPanel
+          variant={isMobile ? "mobile" : "builder"}
+          activeTab={previewTab}
+          onTabChange={setPreviewTab}
+          previewDoc={previewDoc}
+          previewTitle={t("builder.previewFrameTitle")}
+          previewRefreshKey={previewRefreshKey}
+          onRefreshPreview={() => setPreviewRefreshKey((k) => k + 1)}
+          showDeviceChrome={isMobile}
+          extraTabs={isMobile ? filesTab : undefined}
+          code={generatedCode}
+          onCodeChange={(value) => {
+            setGeneratedCode(value);
+            setOutputSource(value.trim() ? "manual" : "empty");
+          }}
+          isEmpty={!generatedCode}
+          showAllowJs={Boolean(generatedCode)}
+          hasJs={previewHasJs}
+          allowJs={previewAllowJs}
+          onAllowJsChange={setPreviewAllowJs}
+          onAllowJsBeforeEnable={() => {
+            if (risks.length === 0) return true;
+            return window.confirm(t("builder.previewJsRiskConfirm"));
+          }}
+          onConsoleEntry={
+            previewAllowJs
+              ? (entry) => setConsoleEntries((p) => capPreviewConsoleEntries([...p, entry]))
+              : undefined
           }
-        }}
-        showDownload={Boolean(generatedCode)}
-        downloadFileName="vibecraft-application.html"
-        downloadContent={generatedCode}
-        downloadTestId="builder-download"
-        headerActions={
-          generatedCode ? (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span
-                className={cn(
-                  "rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase",
-                  STUDIO_SOURCE_BADGE[outputSource],
-                )}
-              >
-                {sourceLabel(outputSource)}
-                {hasUnsaved ? t("builder.unsavedMarker") : ""}
-              </span>
-              {versions.length > 0 && (
-                <div className="relative">
-                  <RotateCcw className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-[var(--editor-muted)]" />
-                  <select
-                    aria-label={t("builder.historyAria")}
-                    value=""
-                    onChange={(e) => handleRestore(e.target.value)}
-                    className="h-8 w-28 rounded-md border border-[var(--editor-border)] bg-[var(--editor-bg)] pl-7 text-[11px]"
-                  >
-                    <option value="">
-                      {t("builder.historyOption", { count: versions.length })}
-                    </option>
-                    {[...versions].reverse().map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.label}
+          allowJsInputId="builder-preview-allow-js"
+          allowJsTestId="builder-preview-allow-js"
+          showCopy={Boolean(generatedCode)}
+          copied={copied}
+          copyTestId={isMobile ? "builder-mobile-copy-code" : "builder-copy"}
+          onCopy={async () => {
+            try {
+              await navigator.clipboard.writeText(generatedCode);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            } catch {
+              toast.error(t("result.code.copyFailed"));
+            }
+          }}
+          showDownload={Boolean(generatedCode)}
+          downloadFileName="vibecraft-application.html"
+          downloadContent={generatedCode}
+          downloadTestId="builder-download"
+          headerActions={
+            generatedCode ? (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span
+                  className={cn(
+                    "rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase",
+                    STUDIO_SOURCE_BADGE[outputSource],
+                  )}
+                >
+                  {sourceLabel(outputSource)}
+                  {hasUnsaved ? t("builder.unsavedMarker") : ""}
+                </span>
+                {versions.length > 0 && (
+                  <div className="relative">
+                    <RotateCcw className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-[var(--editor-muted)]" />
+                    <select
+                      aria-label={t("builder.historyAria")}
+                      value=""
+                      onChange={(e) => handleRestore(e.target.value)}
+                      className="h-8 w-28 rounded-md border border-[var(--editor-border)] bg-[var(--editor-bg)] pl-7 text-[11px]"
+                    >
+                      <option value="">
+                        {t("builder.historyOption", { count: versions.length })}
                       </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              {hasUnsaved && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() =>
-                    setVersions((p) => [
-                      ...p,
-                      makeVersion(generatedCode, "manual", t("builder.version.manualEdit")),
-                    ])
-                  }
-                  data-testid="builder-save-manual"
-                >
-                  <Save className="h-3.5 w-3.5" /> {t("builder.saveManual")}
-                </Button>
-              )}
-              {isMobile && previewTab === "code" && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  data-testid="builder-mobile-run-preview"
-                  onClick={() => {
-                    setPreviewTab("preview");
-                    scrollIntoViewRespectingMotion(messagesEndRef.current);
-                  }}
-                >
-                  {t("builder.mobile.runPreview")}
-                </Button>
-              )}
-            </div>
-          ) : undefined
-        }
-      />
+                      {[...versions].reverse().map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {hasUnsaved && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() =>
+                      setVersions((p) => [
+                        ...p,
+                        makeVersion(generatedCode, "manual", t("builder.version.manualEdit")),
+                      ])
+                    }
+                    data-testid="builder-save-manual"
+                  >
+                    <Save className="h-3.5 w-3.5" /> {t("builder.saveManual")}
+                  </Button>
+                )}
+                {isMobile && previewTab === "code" && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    data-testid="builder-mobile-run-preview"
+                    onClick={() => {
+                      setPreviewTab("preview");
+                      scrollIntoViewRespectingMotion(messagesEndRef.current);
+                    }}
+                  >
+                    {t("builder.mobile.runPreview")}
+                  </Button>
+                )}
+              </div>
+            ) : undefined
+          }
+        />
+      </div>
     </EditorPreviewStage>
   );
 
   return (
     <EditorLayout
       studioMode
-      chatPanel={chatPanel}
-      previewPanel={previewPanel}
+      chatPanel={hydrated ? chatPanel : <RoutePendingFallback />}
+      previewPanel={hydrated ? previewPanel : <RoutePendingFallback />}
       promptBar={isMobile ? promptBar : undefined}
       className="vibecraft-studio"
     />
