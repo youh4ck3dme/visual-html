@@ -19,3 +19,30 @@ export function mockAbortAwareHangingChat(builderChat: Mock): void {
 export function mockServerAiOnly(builderAiStatus: Mock): void {
   builderAiStatus.mockResolvedValue({ serverKeysConfigured: true });
 }
+
+type BuilderChatResult = { ok: boolean; content: string };
+
+/** Holds all builderChat calls until `release()` (stable off-builder toast tests). */
+export function mockGatedBuilderChat(
+  builderChat: Mock,
+  content: string,
+): { release: () => void } {
+  let released = false;
+  const pending: Array<(value: BuilderChatResult) => void> = [];
+  const result: BuilderChatResult = { ok: true, content };
+
+  builderChat.mockReset();
+  builderChat.mockImplementation(() => {
+    if (released) return Promise.resolve(result);
+    return new Promise<BuilderChatResult>((resolve) => {
+      pending.push(resolve);
+    });
+  });
+
+  return {
+    release: () => {
+      released = true;
+      pending.splice(0).forEach((resolve) => resolve(result));
+    },
+  };
+}

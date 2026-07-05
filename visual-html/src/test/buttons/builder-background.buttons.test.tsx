@@ -9,12 +9,13 @@ import {
 } from "@tanstack/react-router";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { BuilderWorkspace } from "@/components/builder/builder-workspace";
 import { SettingsDialog } from "@/components/app/settings-dialog";
 import { SettingsProvider } from "@/components/app/settings-context";
-import { VisualSidebar } from "@/components/pngto/sidebar-nav";
+import { EditorModeProjects } from "@/components/editor/editor-mode-projects";
+import { EditorModeScreenshot } from "@/components/editor/editor-mode-screenshot";
 import { Toaster } from "@/components/ui/sonner";
 import { useBuilderWorkspace } from "@/hooks/use-builder-workspace-consumer";
 import { BuilderWorkspaceProvider } from "@/hooks/use-builder-workspace";
@@ -27,6 +28,10 @@ import {
   writeStoredWorkspace,
   type StoredWorkspace,
 } from "@/lib/builder/workspace-storage";
+import {
+  mockAbortAwareHangingChat,
+  mockGatedBuilderChat,
+} from "@/test/helpers/builder-chat-mock";
 import { getServerFnMocks } from "@/test/mocks/server-fns";
 
 function GenerationProbe() {
@@ -45,7 +50,6 @@ function GenerationProbe() {
 function ShellLayout() {
   return (
     <>
-      <VisualSidebar />
       <Outlet />
       <GenerationProbe />
     </>
@@ -70,12 +74,12 @@ async function renderBackgroundApp(initialPath: string) {
   const homeRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/",
-    component: () => <div data-testid="page-home">Home</div>,
+    component: () => <EditorModeScreenshot />,
   });
   const projectsRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/projects",
-    component: () => <div data-testid="page-projects">Projects</div>,
+    component: () => <EditorModeProjects />,
   });
   const builderRoute = createRoute({
     getParentRoute: () => rootRoute,
@@ -106,10 +110,10 @@ describe("buttons › builder-background", () => {
   it("keeps generation alive after navigating away from /builder", async () => {
     const user = userEvent.setup();
     const { builderChat } = getServerFnMocks();
-    builderChat.mockReset();
-    builderChat.mockImplementation(() => new Promise(() => {}));
+    mockAbortAwareHangingChat(builderChat);
 
     await renderBackgroundApp("/builder");
+    await waitFor(() => expect(screen.getByTestId("builder-send")).toBeInTheDocument());
     await user.type(
       screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
       "Build a route change test page",
@@ -122,19 +126,19 @@ describe("buttons › builder-background", () => {
 
     await user.click(screen.getByTestId("nav-projects"));
 
-    await waitFor(() => expect(screen.getByTestId("page-projects")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId("editor-layout")).toBeInTheDocument());
     expect(screen.getByTestId("builder-generating-state")).toHaveTextContent("yes");
     expect(screen.getAllByTestId("nav-builder-generating-badge").length).toBeGreaterThan(0);
   });
 
   it("shows VibeCraft nav badge while generation runs off-builder", async () => {
+    // EditorHeader shows the badge on the builder tab when generation continues in the background.
     const user = userEvent.setup();
     const { builderChat } = getServerFnMocks();
-    builderChat.mockReset();
-    builderChat.mockImplementation(() => new Promise(() => {}));
+    mockAbortAwareHangingChat(builderChat);
 
     await renderBackgroundApp("/");
-    await user.click(screen.getByTestId("nav-builder"));
+    await user.click(screen.getByTestId("nav-studio"));
     await waitFor(() => expect(screen.getByTestId("builder-send")).toBeInTheDocument());
 
     await user.type(
@@ -142,6 +146,11 @@ describe("buttons › builder-background", () => {
       "Build a background badge test page",
     );
     await user.click(screen.getByTestId("builder-send"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("builder-generating-state")).toHaveTextContent("yes"),
+    );
+
     await user.click(screen.getByTestId("nav-projects"));
 
     await waitFor(() =>
@@ -154,24 +163,29 @@ describe("buttons › builder-background", () => {
     localStorage.removeItem(WORKSPACE_STORAGE_KEY);
     const { builderChat, builderAiStatus } = getServerFnMocks();
     builderAiStatus.mockResolvedValue({ serverKeysConfigured: true });
-    builderChat.mockReset();
-    builderChat.mockResolvedValue({
-      ok: true,
-      content:
-        "<!DOCTYPE html><html><head><title>Bg</title></head><body><main>Background OK</main></body></html>",
-    });
+    const { release: releaseChat } = mockGatedBuilderChat(
+      builderChat,
+      "<!DOCTYPE html><html><head><title>Bg</title></head><body><main>Background OK</main></body></html>",
+    );
 
     await renderBackgroundApp("/builder");
+    await waitFor(() => expect(screen.getByTestId("builder-send")).toBeInTheDocument());
     await user.type(
       screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
       "Build a background persistence page",
     );
     await user.click(screen.getByTestId("builder-send"));
-    await user.click(screen.getByTestId("nav-home"));
 
     await waitFor(() =>
-      expect(screen.getByText(/VibeCraft generation finished/i)).toBeInTheDocument(),
+      expect(screen.getByTestId("builder-generating-state")).toHaveTextContent("yes"),
     );
+
+    await user.click(screen.getByTestId("nav-home"));
+    await waitFor(() => expect(screen.getByTestId("editor-layout")).toBeInTheDocument());
+
+    releaseChat();
+
+    await screen.findByText(/VibeCraft generation finished/i);
 
     await waitFor(() =>
       expect(screen.getByTestId("builder-generated-code")).toHaveTextContent(/Background OK/),
@@ -184,20 +198,27 @@ describe("buttons › builder-background", () => {
     const user = userEvent.setup();
     const { builderChat, builderAiStatus } = getServerFnMocks();
     builderAiStatus.mockResolvedValue({ serverKeysConfigured: true });
-    builderChat.mockReset();
-    builderChat.mockResolvedValue({
-      ok: true,
-      content:
-        "<!DOCTYPE html><html><head><title>Nav</title></head><body><main>Nav OK</main></body></html>",
-    });
+    const { release: releaseChat } = mockGatedBuilderChat(
+      builderChat,
+      "<!DOCTYPE html><html><head><title>Nav</title></head><body><main>Nav OK</main></body></html>",
+    );
 
     const { router } = await renderBackgroundApp("/builder");
+    await waitFor(() => expect(screen.getByTestId("builder-send")).toBeInTheDocument());
     await user.type(
       screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
       "Build a toast navigation page",
     );
     await user.click(screen.getByTestId("builder-send"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("builder-generating-state")).toHaveTextContent("yes"),
+    );
+
     await user.click(screen.getByTestId("nav-projects"));
+    await waitFor(() => expect(screen.getByTestId("editor-layout")).toBeInTheDocument());
+
+    releaseChat();
 
     await screen.findByText(/VibeCraft generation finished/i);
     await user.click(screen.getByRole("button", { name: /Open Builder/i }));
@@ -206,23 +227,25 @@ describe("buttons › builder-background", () => {
     expect(screen.getByTestId("builder-send")).toBeInTheDocument();
   });
 
-  it("cancel clears generation state and sidebar badge", async () => {
+  it("cancel clears generation state and header badge", async () => {
     const user = userEvent.setup();
     const { builderChat } = getServerFnMocks();
-    builderChat.mockReset();
-    builderChat.mockImplementation(() => new Promise(() => {}));
+    mockAbortAwareHangingChat(builderChat);
 
     await renderBackgroundApp("/builder");
+    await waitFor(() => expect(screen.getByTestId("builder-send")).toBeInTheDocument());
     await user.type(
       screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
       "Build a cancel test page",
     );
     await user.click(screen.getByTestId("builder-send"));
-    await user.click(screen.getByTestId("nav-home"));
 
     await waitFor(() =>
       expect(screen.getByTestId("builder-generating-state")).toHaveTextContent("yes"),
     );
+
+    await user.click(screen.getByTestId("nav-home"));
+    expect(screen.getByTestId("builder-generating-state")).toHaveTextContent("yes");
     await user.click(screen.getByTestId("probe-cancel-generation"));
 
     await waitFor(() =>
@@ -245,6 +268,7 @@ describe("buttons › builder-background", () => {
 
     await renderBackgroundApp("/builder");
 
+    await waitFor(() => expect(screen.getByTestId("builder-send")).toBeInTheDocument());
     await waitFor(() =>
       expect(screen.getByTestId("builder-generated-code")).toHaveTextContent(/Reloaded/),
     );
