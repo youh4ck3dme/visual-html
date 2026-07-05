@@ -69,7 +69,7 @@ describe("quality-fix-prompts", () => {
 
   it("SEO_REFINEMENT_INSTRUCTION includes meta and semantic guidance", () => {
     expect(SEO_REFINEMENT_INSTRUCTION).toContain("<title>");
-    expect(SEO_REFINEMENT_INSTRUCTION).toContain("meta name=\"description\"");
+    expect(SEO_REFINEMENT_INSTRUCTION).toContain('meta name="description"');
     expect(SEO_REFINEMENT_INSTRUCTION).toContain("og:title");
     expect(SEO_REFINEMENT_INSTRUCTION).toMatch(/semantic/i);
   });

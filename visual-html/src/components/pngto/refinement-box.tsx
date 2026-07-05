@@ -23,7 +23,10 @@ const QUICK = [
     instruction: "Remove unnecessary wrappers",
   },
   { labelKey: "refinement.chip.convertTailwind" as MessageKey, instruction: "Convert to Tailwind" },
-  { labelKey: "refinement.chip.optimizeSeo" as MessageKey, instruction: SEO_REFINEMENT_INSTRUCTION },
+  {
+    labelKey: "refinement.chip.optimizeSeo" as MessageKey,
+    instruction: SEO_REFINEMENT_INSTRUCTION,
+  },
 ];
 
 export function RefinementBox({

@@ -269,7 +269,8 @@ export function BuilderHtmlHealthPanel({
   const { t } = useT();
   const shouldExpandDetails = health.criticalCount > 0 || health.score < 85;
   const [showDetails, setShowDetails] = useState(shouldExpandDetails);
-  const showPolishFix = shouldOfferQualityPolishFix(health) && onApplyPolishFix;
+  const showPolishFix =
+    shouldOfferQualityPolishFix(health, health.profile?.minimumScore ?? 0) && onApplyPolishFix;
 
   useEffect(() => {
     if (health.criticalCount > 0) {
