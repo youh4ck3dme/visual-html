@@ -22,6 +22,68 @@ export type EditorLayoutProps = {
   studioMode?: boolean;
 };
 
+function SplitPanels({
+  chatPanel,
+  previewPanel,
+  isMobile,
+  promptBar,
+}: {
+  chatPanel: ReactNode;
+  previewPanel: ReactNode;
+  isMobile: boolean;
+  promptBar?: ReactNode;
+}) {
+  const { t } = useT();
+
+  if (isMobile) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <section
+          className="editor-preview-mobile flex min-h-0 flex-[0.55] flex-col overflow-hidden border-b border-[var(--editor-border)]"
+          data-testid="editor-preview-stage"
+          aria-label={t("editor.previewPanelAria")}
+        >
+          {previewPanel}
+        </section>
+        <section
+          className="editor-chat-mobile flex min-h-0 flex-[0.45] flex-col overflow-hidden"
+          data-testid="editor-chat-panel"
+          aria-label={t("editor.chatPanelAria")}
+        >
+          {chatPanel}
+        </section>
+        {promptBar && (
+          <div
+            className="editor-prompt-bar shrink-0 border-t border-[var(--editor-border)] bg-[var(--editor-panel)] pb-[max(0.5rem,var(--editor-safe-bottom))]"
+            data-testid="editor-prompt-bar"
+          >
+            {promptBar}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-0 flex-1 overflow-hidden">
+      <section
+        className="editor-chat-desktop flex w-[var(--editor-chat-width)] min-w-[var(--editor-chat-min)] max-w-[var(--editor-chat-max)] shrink-0 flex-col overflow-hidden border-r border-[var(--editor-border)] bg-[var(--editor-panel)]"
+        data-testid="editor-chat-panel"
+        aria-label={t("editor.chatPanelAria")}
+      >
+        {chatPanel}
+      </section>
+      <section
+        className="editor-preview-desktop flex min-w-0 flex-1 flex-col overflow-hidden bg-[var(--editor-bg)]"
+        data-testid="editor-preview-stage"
+        aria-label={t("editor.previewPanelAria")}
+      >
+        {previewPanel}
+      </section>
+    </div>
+  );
+}
+
 export function EditorLayout({
   chatPanel,
   previewPanel,
@@ -31,7 +93,6 @@ export function EditorLayout({
   className,
   studioMode = false,
 }: EditorLayoutProps) {
-  const { t } = useT();
   const isMobile = useIsMobile();
   const hasSplit = Boolean(chatPanel && previewPanel);
 
@@ -42,55 +103,17 @@ export function EditorLayout({
         className,
       )}
       data-testid={studioMode ? "builder-mobile-studio" : "editor-layout"}
-      data-studio-mode={studioMode ? "" : undefined}
     >
       <EditorHeader />
       {topBar}
       <main id="main-content" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {hasSplit ? (
-          isMobile ? (
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              <section
-                className="editor-preview-mobile flex min-h-0 flex-[0.55] flex-col overflow-hidden border-b border-[var(--editor-border)]"
-                data-testid="editor-preview-stage"
-                aria-label={t("editor.previewPanelAria")}
-              >
-                {previewPanel}
-              </section>
-              <section
-                className="editor-chat-mobile flex min-h-0 flex-1 flex-col overflow-hidden"
-                data-testid="editor-chat-panel"
-                aria-label={t("editor.chatPanelAria")}
-              >
-                {chatPanel}
-              </section>
-              {promptBar && (
-                <div
-                  className="editor-prompt-bar shrink-0 border-t border-[var(--editor-border)] bg-[var(--editor-panel)] pb-[max(0.5rem,var(--editor-safe-bottom))]"
-                  data-testid="editor-prompt-bar"
-                >
-                  {promptBar}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex min-h-0 flex-1 overflow-hidden">
-              <section
-                className="editor-chat-desktop flex w-[var(--editor-chat-width)] min-w-[var(--editor-chat-min)] max-w-[var(--editor-chat-max)] shrink-0 flex-col overflow-hidden border-r border-[var(--editor-border)] bg-[var(--editor-panel)]"
-                data-testid="editor-chat-panel"
-                aria-label={t("editor.chatPanelAria")}
-              >
-                {chatPanel}
-              </section>
-              <section
-                className="editor-preview-desktop flex min-w-0 flex-1 flex-col overflow-hidden bg-[var(--editor-bg)]"
-                data-testid="editor-preview-stage"
-                aria-label={t("editor.previewPanelAria")}
-              >
-                {previewPanel}
-              </section>
-            </div>
-          )
+          <SplitPanels
+            chatPanel={chatPanel}
+            previewPanel={previewPanel}
+            isMobile={isMobile}
+            promptBar={promptBar}
+          />
         ) : (
           <div className="min-h-0 flex-1 overflow-y-auto overflow-x-clip">{children}</div>
         )}

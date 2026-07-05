@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { NAV_ITEMS, type NavTo } from "@/components/app/nav-config";
 import { useSettingsDialog } from "@/components/app/settings-context";
 import { AppLogo } from "@/components/pngto/app-logo";
+import { useBuilderWorkspaceOptional } from "@/hooks/use-builder-workspace-consumer";
 import { LocaleSwitcher } from "@/components/pngto/locale-switcher";
 import { ThemeSwitcher } from "@/components/pngto/theme-switcher";
 import { useT } from "@/hooks/use-t";
@@ -19,11 +20,13 @@ function NavTab({
   label,
   icon: Icon,
   to,
+  showGeneratingBadge = false,
 }: {
   id: string;
   label: string;
   icon: (typeof NAV_ITEMS)[number]["icon"];
   to: NavTo;
+  showGeneratingBadge?: boolean;
 }) {
   return (
     <Link
@@ -31,23 +34,30 @@ function NavTab({
       aria-label={label}
       data-testid={`nav-${id}`}
       className={cn(
-        "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+        "relative inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
         "text-[var(--editor-muted)] hover:bg-[var(--editor-hover)] hover:text-[var(--editor-fg)]",
       )}
       activeProps={{
         className: cn(
-          "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold",
+          "relative inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold",
           "bg-[var(--editor-accent-dim)] text-[var(--editor-accent)] ring-1 ring-inset ring-[var(--editor-accent)]/30",
         ),
         "aria-current": "page" as const,
       }}
       inactiveProps={{
         className: cn(
-          "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+          "relative inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
           "text-[var(--editor-muted)] hover:bg-[var(--editor-hover)] hover:text-[var(--editor-fg)]",
         ),
       }}
     >
+      {showGeneratingBadge && (
+        <span
+          className="absolute right-1 top-1 h-2 w-2 animate-pulse rounded-full bg-primary"
+          data-testid="nav-builder-generating-badge"
+          aria-hidden
+        />
+      )}
       <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
       <span className="hidden sm:inline">{label}</span>
     </Link>
@@ -93,6 +103,8 @@ function ModelPicker() {
 export function EditorHeader() {
   const { t } = useT();
   const { openSettings } = useSettingsDialog();
+  const builderWorkspace = useBuilderWorkspaceOptional();
+  const builderGenerating = builderWorkspace?.isGenerating ?? false;
 
   return (
     <header
@@ -122,6 +134,7 @@ export function EditorHeader() {
             label={t(item.labelKey)}
             icon={item.icon}
             to={item.to}
+            showGeneratingBadge={item.id === "studio" && builderGenerating}
           />
         ))}
       </nav>
