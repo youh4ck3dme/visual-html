@@ -27,7 +27,7 @@ describe("buttons › projects page", () => {
 
   it("Create first project — opens builder with Photographer Lightbox starter", async () => {
     await renderPageAt("/projects");
-    const link = screen.getByRole("link", { name: /Create first project/i });
+    const link = await screen.findByRole("link", { name: /Create first project/i });
     expect(link).toHaveAttribute("href", "/builder?template=photo-portfolio");
   });
 

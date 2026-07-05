@@ -50,6 +50,10 @@ export function ProjectCard({
           <img
             src={project.thumbnailDataUrl}
             alt=""
+            width={compact ? 48 : undefined}
+            height={compact ? 48 : undefined}
+            loading="lazy"
+            decoding="async"
             className={cn(
               "h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.02]",
             )}

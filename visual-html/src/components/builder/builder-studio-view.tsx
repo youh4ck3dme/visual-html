@@ -12,7 +12,6 @@ import {
   LayoutDashboard,
   LayoutGrid,
   Plus,
-  RefreshCw,
   RotateCcw,
   Save,
   Wrench,
@@ -24,12 +23,14 @@ import { OutputPanel } from "@/components/app/output-panel";
 import { BuilderGenerationTracePanel } from "@/components/builder/builder-generation-trace";
 import { EditorChatPanel } from "@/components/editor/editor-chat-panel";
 import { EditorConsolePanel } from "@/components/editor/editor-console-panel";
+import { GenerationPipelineCard } from "@/components/editor/generation-pipeline-card";
 import { EditorLayout } from "@/components/editor/editor-layout";
 import { EditorPreviewStage } from "@/components/editor/editor-preview-stage";
 import { EditorPromptBar } from "@/components/editor/editor-prompt-bar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { scrollIntoViewRespectingMotion } from "@/lib/motion-prefs";
 import {
   promptCategories,
   promptLibrary,
@@ -265,7 +266,10 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
         {messages.map((m) => (
           <div
             key={m.id}
-            className={cn("max-w-[85%] text-sm", m.sender === "user" ? "self-end" : "self-start")}
+            className={cn(
+              "max-w-[85%] text-sm motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-200",
+              m.sender === "user" ? "self-end" : "self-start",
+            )}
           >
             <div
               className={cn(
@@ -280,45 +284,23 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
           </div>
         ))}
         {isGenerating && (
-          <div
-            className="max-w-[90%] self-start rounded-xl border border-[var(--editor-border)] bg-[var(--editor-panel)] p-3 text-xs"
-            data-testid="builder-generation-status"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <p className="flex items-center gap-2 font-medium text-primary">
-                <RefreshCw className={cn("h-4 w-4", !isCancelling && "animate-spin")} />
-                {stepStatusText}
-              </p>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="h-7 shrink-0 px-2 text-[11px]"
-                onClick={handleCancelGeneration}
-                disabled={isCancelling}
-                data-testid="builder-cancel-generation"
-                aria-label={t("builder.action.cancelGeneration")}
-              >
-                <X className="mr-1 h-3 w-3" />
-                {t("builder.action.cancelGeneration")}
-              </Button>
-            </div>
-            {STUDIO_STEP_KEYS.map((stepKey, i) => (
-              <p
-                key={stepKey}
-                className={cn(
-                  "mt-1",
-                  activeStep > i
-                    ? "text-emerald-500"
-                    : activeStep === i
-                      ? "text-primary"
-                      : "text-[var(--editor-muted)]",
-                )}
-              >
-                {activeStep > i ? "✓" : i + 1}. {t(stepKey)}
-              </p>
-            ))}
-          </div>
+          <GenerationPipelineCard
+            className="max-w-[90%] self-start text-xs"
+            title={stepStatusText}
+            progress={Math.round((activeStep / Math.max(1, STUDIO_STEP_KEYS.length - 1)) * 100)}
+            steps={STUDIO_STEP_KEYS.map((stepKey) => ({
+              id: stepKey,
+              label: t(stepKey),
+            }))}
+            activeIndex={activeStep}
+            status="running"
+            progressAriaLabel={t("loading.generationProgressAria")}
+            onCancel={handleCancelGeneration}
+            cancelLabel={t("builder.action.cancelGeneration")}
+            cancelDisabled={isCancelling}
+            cancelAriaLabel={t("builder.action.cancelGeneration")}
+            testId="builder-generation-status"
+          />
         )}
         {currentGenerationTrace && (
           <BuilderGenerationTracePanel
@@ -366,7 +348,10 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
       </div>
 
       <Sheet open={templatesOpen} onOpenChange={setTemplatesOpen}>
-        <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto">
+        <SheetContent
+          side="bottom"
+          className="max-h-[85dvh] overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]"
+        >
           <SheetHeader>
             <SheetTitle>{t("builder.starterTemplates")}</SheetTitle>
           </SheetHeader>
@@ -379,7 +364,7 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
                   handleSelectPrompt(p);
                   setTemplatesOpen(false);
                 }}
-                className="rounded-lg border border-[var(--editor-border)] p-3 text-left"
+                className="min-h-11 rounded-lg border border-[var(--editor-border)] p-3 text-left"
                 data-testid={`builder-template-${p.id}`}
               >
                 <p className="text-sm font-semibold">
@@ -526,7 +511,7 @@ function BuilderStudioViewInner({ startTemplateId }: BuilderStudioViewProps = {}
                   data-testid="builder-mobile-run-preview"
                   onClick={() => {
                     setPreviewTab("preview");
-                    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+                    scrollIntoViewRespectingMotion(messagesEndRef.current);
                   }}
                 >
                   {t("builder.mobile.runPreview")}

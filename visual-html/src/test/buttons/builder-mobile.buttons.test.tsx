@@ -6,7 +6,8 @@ import { BuilderWorkspace } from "@/components/builder/builder-workspace";
 import { promptLibrary } from "@/lib/builder/prompt-library";
 import { getServerFnMocks } from "@/test/mocks/server-fns";
 import { mockAbortAwareHangingChat, mockServerAiOnly } from "@/test/helpers/builder-chat-mock";
-import { setMobileViewport } from "@/test/helpers/viewport";
+import { setIphoneViewport } from "@/test/helpers/viewport";
+import type { IphoneViewportProfile } from "@/lib/iphone-viewport";
 import { renderBuilderWorkspace } from "@/test/test-utils";
 
 async function waitForMobileStudio() {
@@ -43,7 +44,7 @@ async function loadSnakePreview(user: ReturnType<typeof userEvent.setup>) {
 describe("buttons › builder-mobile", () => {
   beforeEach(() => {
     localStorage.removeItem("vibecraft_workspace_v1");
-    setMobileViewport();
+    setIphoneViewport("air");
   });
 
   it("nav-settings — opens BYOK dialog", async () => {
@@ -173,6 +174,10 @@ describe("buttons › builder-mobile", () => {
   });
 
   describe("HTML health and polish fix", () => {
+    beforeEach(() => {
+      localStorage.removeItem("visual-html.builder.qualityProfile");
+    });
+
     const POLISH_TRIGGER_HTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Polish</title><style>
       .hero { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; }
       .card { width: 1200px; animation: float 3s infinite; }
@@ -229,8 +234,27 @@ describe("buttons › builder-mobile", () => {
       ) as HTMLInputElement;
       expect(input.value).toContain("prefers-reduced-motion");
       expect(input.value).toContain(":focus-visible");
-      expect(input.value).toContain("max-width: 480px");
+      expect(input.value).toMatch(/max-width: 480px|max-width: 420px/);
       expect(within(studio).getByText("Fix")).toBeInTheDocument();
+    }, 15000);
+
+    it("apply polish fix — loads iPhone Air prompt for pwa-mobile profile", async () => {
+      localStorage.setItem("visual-html.builder.qualityProfile", "pwa-mobile");
+      const user = userEvent.setup();
+      renderBuilderWorkspace(<BuilderWorkspace />);
+      await waitForMobileStudio();
+      await generatePolishTriggerPage(user);
+
+      const studio = screen.getByTestId("builder-mobile-studio");
+      await user.click(await within(studio).findByTestId("builder-generation-trace-trigger"));
+      await user.click(await within(studio).findByTestId("builder-health-apply-polish-fix"));
+
+      const input = screen.getByPlaceholderText(
+        /Build, refine, fix, or explain/i,
+      ) as HTMLInputElement;
+      expect(input.value).toContain("420×912");
+      expect(input.value).toContain("safe-area-inset-bottom");
+      expect(input.value).toContain("max-width: 420px");
     }, 15000);
   });
 
@@ -363,3 +387,35 @@ describe("buttons › builder-mobile", () => {
     }, 15000);
   });
 });
+
+describe.each(["air", "legacy"] as const)(
+  "buttons › builder-mobile viewport %s",
+  (profile: IphoneViewportProfile) => {
+    beforeEach(() => {
+      localStorage.removeItem("vibecraft_workspace_v1");
+      setIphoneViewport(profile);
+    });
+
+    it("builder-send — disabled when input empty", async () => {
+      renderBuilderWorkspace(<BuilderWorkspace />);
+      await waitForMobileStudio();
+      expect(screen.getByTestId("builder-send")).toBeDisabled();
+    });
+
+    it("builder-send — enabled with text", async () => {
+      const user = userEvent.setup();
+      renderBuilderWorkspace(<BuilderWorkspace />);
+      await waitForMobileStudio();
+      await user.type(
+        screen.getByPlaceholderText(/Build, refine, fix, or explain/i),
+        "Build a todo app",
+      );
+      expect(screen.getByTestId("builder-send")).toBeEnabled();
+    });
+
+    it("matches profile logical width", () => {
+      const expected = profile === "air" ? 420 : 393;
+      expect(window.innerWidth).toBe(expected);
+    });
+  },
+);

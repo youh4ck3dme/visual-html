@@ -18,13 +18,14 @@ import {
 import { promptCategories, promptLibrary, type PromptItem } from "@/lib/builder/prompt-library";
 import { scanGeneratedHtml } from "@/lib/builder/risk-scanner";
 import type { MessageKey } from "@/lib/i18n/messages";
+import { scrollIntoViewRespectingMotion } from "@/lib/motion-prefs";
 import { buildSingleFileHtml } from "@/lib/utils/build-single-file-html";
 import {
   createMetricsFromTrace,
   type BuilderGenerationMetrics,
 } from "@/lib/builder/generation-metrics";
 import type { HtmlHealthCheckResult } from "@/lib/builder/html-health-check";
-import { APPLE_GLASS_QUALITY_POLISH_FIX_PROMPT } from "@/lib/builder/quality-fix-prompts";
+import { resolveQualityPolishFixPrompt } from "@/lib/builder/quality-fix-prompts";
 import {
   getBuilderQualityProfileId,
   type BuilderQualityProfileId,
@@ -303,7 +304,7 @@ export function useEditorStudio({ startTemplateId }: UseEditorStudioOptions = {}
   }, [hydrated, currentCategory, messages, generatedCode, outputSource, versions, generationMode]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    scrollIntoViewRespectingMotion(messagesEndRef.current);
   }, [messages, isGenerating, stepStatusText]);
 
   const addAi = (text: string) => setMessages((p) => [...p, { id: id(), sender: "ai", text }]);
@@ -474,8 +475,8 @@ export function useEditorStudio({ startTemplateId }: UseEditorStudioOptions = {}
   const handleApplyQualityPolishFix = useCallback(() => {
     if (!generatedCode.trim() || isGenerating || isCancelling) return;
     setGenerationMode("fix");
-    setInputVal(APPLE_GLASS_QUALITY_POLISH_FIX_PROMPT);
-  }, [generatedCode, isCancelling, isGenerating]);
+    setInputVal(resolveQualityPolishFixPrompt(qualityProfileId));
+  }, [generatedCode, isCancelling, isGenerating, qualityProfileId]);
 
   const handleFixWithAi = useCallback((consoleMessage: string) => {
     setGenerationMode("fix");

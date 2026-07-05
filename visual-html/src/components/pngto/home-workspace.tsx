@@ -17,7 +17,7 @@ export function TopCreditBar() {
   const { t } = useT();
 
   return (
-    <div className="sticky top-0 z-30 border-b border-shell-border bg-shell/90 px-4 py-3 backdrop-blur-md sm:px-6">
+    <div className="sticky top-0 z-30 border-b border-shell-border bg-shell/90 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top,0px))] backdrop-blur-md sm:px-6">
       <p className="px-2 text-center text-xs leading-relaxed text-shell-muted sm:text-sm">
         {t("topbar.credit")}
       </p>

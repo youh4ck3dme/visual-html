@@ -91,6 +91,14 @@
   --theme-ease: cubic-bezier(0.4, 0, 0.2, 1);
   --theme-duration: 320ms;
 
+  /* Apple HIG motion (animation-only — brand colors unchanged) */
+  --apple-motion-fast: 150ms;
+  --apple-motion-normal: 300ms;
+  --apple-motion-slow: 500ms;
+  --apple-ease-out: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --apple-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --apple-radius-grouped: 8px;
+
   /* Brand */
   --primary: oklch(0.5 0.21 285);
   --primary-hover: oklch(0.44 0.19 285);
@@ -303,6 +311,120 @@
     html.theme-animate *::after {
       transition-duration: 0.01ms !important;
     }
+
+    .apple-pipeline-card,
+    .apple-pipeline-card *,
+    .apple-check-pop,
+    .apple-step-pulse,
+    .apple-shimmer,
+    .apple-pipeline-enter {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  @keyframes apple-check-pop {
+    from {
+      opacity: 0;
+      transform: scale(0.85);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes apple-pipeline-enter {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes apple-shimmer {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes apple-step-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 25%, transparent);
+    }
+    50% {
+      box-shadow: 0 0 0 4px color-mix(in oklch, var(--primary) 12%, transparent);
+    }
+  }
+
+  @keyframes apple-shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-3px);
+    }
+    75% {
+      transform: translateX(3px);
+    }
+  }
+
+  .apple-pipeline-card {
+    border-radius: var(--apple-radius-grouped);
+    border: 1px solid var(--editor-border, var(--shell-border));
+    background: var(--editor-panel, var(--shell-elevated));
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklch, var(--foreground) 4%, transparent),
+      0 1px 2px color-mix(in oklch, var(--foreground) 6%, transparent);
+  }
+
+  .apple-pipeline-enter {
+    animation: apple-pipeline-enter var(--apple-motion-normal) var(--apple-ease-out) both;
+  }
+
+  .apple-check-pop {
+    animation: apple-check-pop var(--apple-motion-fast) var(--apple-ease-spring) both;
+  }
+
+  .apple-step-pulse {
+    animation: apple-step-pulse 1.6s var(--apple-ease-out) infinite;
+  }
+
+  .apple-shake {
+    animation: apple-shake var(--apple-motion-normal) var(--apple-ease-out) 1;
+  }
+
+  .apple-press {
+    transition: transform var(--apple-motion-fast) var(--apple-ease-out);
+  }
+
+  .apple-press:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  .apple-progress-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklch, var(--primary-foreground, white) 35%, transparent),
+      transparent
+    );
+    animation: apple-shimmer 1.8s var(--apple-ease-out) infinite;
+    pointer-events: none;
   }
 }
 
@@ -319,6 +441,10 @@
 
 @utility shell-safe-bottom {
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+}
+
+@utility shell-safe-top {
+  padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
 }
 
 @utility shell-card {

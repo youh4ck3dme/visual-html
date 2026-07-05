@@ -170,7 +170,8 @@ Prioritize scanability, dense-but-clean layout, and mobile-friendly breakpoints.
     ],
     promptEnhancer: `Quality profile: PWA Mobile.
 Style: mobile-first app shell, safe-area support, bottom navigation, touch-friendly controls, thumb-reachable actions.
-Use viewport meta, responsive spacing, and reduced visual noise.`,
+Use viewport meta with viewport-fit=cover, responsive spacing, and reduced visual noise.
+Breakpoints must cover iPhone 17 Air (420px) and iPhone compact (393px) with min 44px touch targets.`,
     healthExpectations: {
       ...DEFAULT_HEALTH_EXPECTATIONS,
       minimumScore: 88,

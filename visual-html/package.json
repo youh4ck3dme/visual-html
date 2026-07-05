@@ -24,6 +24,7 @@
     "test:watch": "vitest",
     "test:integrity": "node scripts/integrity.mjs",
     "test:integrity:fast": "node scripts/integrity.mjs --skip-smoke",
+    "test:integrity:iphone-17-air": "node scripts/integrity.mjs --iphone-17-air",
     "postinstall": "node scripts/patch-nf3-nft-import.mjs"
   },
   "dependencies": {

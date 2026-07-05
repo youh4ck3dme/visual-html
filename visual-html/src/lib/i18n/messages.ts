@@ -362,6 +362,7 @@ export const messages = {
       "Upload a screenshot on New and generate HTML — each successful run is saved here automatically.",
     "projects.empty.cta": "Create first project",
     "projects.noMatch": "No projects match “{query}”.",
+    "projects.loadingAria": "Loading projects",
 
     // ── Projects toolbar ────────────────────────────────────────
     "projects.toolbar.searchPlaceholder": "Search projects…",
@@ -424,7 +425,8 @@ export const messages = {
     "builder.mobile.activeProject": "Active Project",
     "builder.mobile.untitledProject": "Untitled project",
     "builder.mobile.live": "Live",
-    "builder.mobile.deviceIphone17Air": "iPhone 17 Air (375px)",
+    "builder.mobile.deviceIphone17Air": "iPhone 17 Air (420px)",
+    "builder.mobile.deviceIphoneCompact": "iPhone compact (393px)",
     "builder.mobile.refreshPreview": "Refresh preview",
     "builder.mobile.runPreview": "Run preview",
     "builder.mobile.tabFiles": "Files",
@@ -1264,9 +1266,9 @@ export const messages = {
 
     // ── Refinement box ──────────────────────────────────────────
     "refinement.chip.improveFidelity": "Zlepšiť vernosť",
-    "refinement.chip.makeResponsive": "Urobiť responzívne",
+    "refinement.chip.makeResponsive": "Spraviť responzívne",
     "refinement.chip.improveSemantics": "Zlepšiť sémantiku",
-    "refinement.chip.simplifyWrappers": "Zjednodušiť obaly",
+    "refinement.chip.simplifyWrappers": "Zjednodušiť wrappery",
     "refinement.chip.convertTailwind": "Previesť na Tailwind",
     "refinement.chip.optimizeSeo": "Optimalizovať SEO",
     "refinement.inputAria": "Inštrukcia na úpravu",
@@ -1336,6 +1338,7 @@ export const messages = {
       "Nahrajte screenshot v Nový a vygenerujte HTML — každý úspešný beh sa uloží automaticky.",
     "projects.empty.cta": "Vytvoriť prvý projekt",
     "projects.noMatch": "Žiadny projekt nezodpovedá „{query}“.",
+    "projects.loadingAria": "Načítavanie projektov",
 
     // ── Projects toolbar ────────────────────────────────────────
     "projects.toolbar.searchPlaceholder": "Hľadať projekty…",
@@ -1398,7 +1401,8 @@ export const messages = {
     "builder.mobile.activeProject": "Aktívny projekt",
     "builder.mobile.untitledProject": "Projekt bez názvu",
     "builder.mobile.live": "Live",
-    "builder.mobile.deviceIphone17Air": "iPhone 17 Air (375px)",
+    "builder.mobile.deviceIphone17Air": "iPhone 17 Air (420px)",
+    "builder.mobile.deviceIphoneCompact": "iPhone compact (393px)",
     "builder.mobile.refreshPreview": "Obnoviť náhľad",
     "builder.mobile.runPreview": "Spustiť náhľad",
     "builder.mobile.tabFiles": "Súbory",

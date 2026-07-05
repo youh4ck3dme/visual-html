@@ -44,7 +44,7 @@ export function EditorLayout({
     >
       <EditorHeader />
       {topBar}
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <main id="main-content" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {hasSplit ? (
           isMobile ? (
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -86,9 +86,9 @@ export function EditorLayout({
             </div>
           )
         ) : (
-          <main className="min-h-0 flex-1 overflow-y-auto overflow-x-clip">{children}</main>
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-clip">{children}</div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

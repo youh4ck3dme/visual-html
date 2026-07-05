@@ -67,7 +67,10 @@ export function EditorPromptBar({
           type="submit"
           size={submitLabel ? "default" : "icon"}
           className={cn(
-            submitLabel ? "shrink-0 gap-1.5" : "absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2",
+            "apple-press",
+            submitLabel
+              ? "shrink-0 gap-1.5 min-h-11"
+              : "absolute right-1 top-1/2 min-h-11 min-w-11 -translate-y-1/2",
           )}
           disabled={submitLabel ? disabled || busy : !value.trim() || disabled || busy}
           data-testid={testId}

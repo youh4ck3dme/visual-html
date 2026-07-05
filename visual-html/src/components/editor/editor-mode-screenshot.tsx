@@ -10,6 +10,7 @@ import { EditorDeviceFrame } from "@/components/editor/editor-device-frame";
 import { EditorLayout } from "@/components/editor/editor-layout";
 import { EditorPreviewStage } from "@/components/editor/editor-preview-stage";
 import { EditorPromptBar } from "@/components/editor/editor-prompt-bar";
+import { PreviewSkeleton } from "@/components/editor/preview-skeleton";
 import {
   ImportInputPanel,
   TextInputPanel,
@@ -22,6 +23,7 @@ import { RefinementBox } from "@/components/pngto/refinement-box";
 import { UploadDropzone } from "@/components/pngto/upload-dropzone";
 import { Button } from "@/components/ui/button";
 import { useGenerationWorkflow } from "@/hooks/use-generation-workflow";
+import { useIphoneViewportProfile } from "@/hooks/use-iphone-viewport-profile";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useT } from "@/hooks/use-t";
 import { useProjects } from "@/hooks/use-projects";
@@ -41,6 +43,7 @@ type EditorModeScreenshotProps = {
 export function EditorModeScreenshot({ projectId, projectIdFromUrl }: EditorModeScreenshotProps) {
   const { t } = useT();
   const isMobile = useIsMobile();
+  const iphoneProfile = useIphoneViewportProfile();
   const navigate = useNavigate();
   const { importProjects } = useProjects();
   const workflow = useGenerationWorkflow(projectId ?? projectIdFromUrl);
@@ -195,7 +198,7 @@ export function EditorModeScreenshot({ projectId, projectIdFromUrl }: EditorMode
   const previewPanel = (
     <EditorPreviewStage>
       {result ? (
-        <div className="flex h-full flex-col overflow-y-auto p-3 sm:p-4">
+        <div className="motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300 flex h-full flex-col overflow-y-auto p-3 sm:p-4">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-medium">{t("index.generatedOutput")}</h2>
             <div className="flex items-center gap-2 text-xs">
@@ -233,8 +236,12 @@ export function EditorModeScreenshot({ projectId, projectIdFromUrl }: EditorMode
             notesContent={null}
           />
         </div>
+      ) : busy ? (
+        <EditorDeviceFrame className="h-full justify-center" profile={iphoneProfile}>
+          <PreviewSkeleton className="min-h-[min(55dvh,480px)]" />
+        </EditorDeviceFrame>
       ) : (
-        <EditorDeviceFrame className="h-full justify-center">
+        <EditorDeviceFrame className="h-full justify-center" profile={iphoneProfile}>
           <div className="flex min-h-[min(55dvh,480px)] flex-col items-center justify-center gap-2 p-6 text-center">
             <p className="text-sm font-semibold text-[var(--editor-fg)]">
               {t("editor.previewEmpty")}

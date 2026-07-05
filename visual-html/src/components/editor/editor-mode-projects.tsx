@@ -151,7 +151,21 @@ export function EditorModeProjects({ initialProjectId }: EditorModeProjectsProps
         </div>
       }
     >
-      {projects.length === 0 ? (
+      {!isHydrated ? (
+        <div
+          className="grid gap-2"
+          aria-busy="true"
+          aria-label={t("projects.loadingAria")}
+          data-testid="projects-loading"
+        >
+          {Array.from({ length: 4 }, (_, index) => (
+            <div
+              key={index}
+              className="h-[4.5rem] animate-pulse rounded-lg border border-[var(--editor-border)] bg-[var(--editor-hover)]"
+            />
+          ))}
+        </div>
+      ) : projects.length === 0 ? (
         <section className="flex flex-col items-center py-12 text-center">
           <FolderKanban className="mb-3 h-8 w-8 text-info" />
           <h2 className="text-sm font-medium">{t("projects.empty.title")}</h2>

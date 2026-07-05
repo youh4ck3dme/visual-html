@@ -11,6 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useT } from "@/hooks/use-t";
+import {
+  useIphoneDeviceLabelKey,
+  useIphoneViewportProfile,
+} from "@/hooks/use-iphone-viewport-profile";
 import { cn } from "@/lib/utils";
 import { downloadTextFile } from "@/lib/utils/download";
 
@@ -126,6 +130,8 @@ export function OutputPanel({
   className,
 }: OutputPanelProps) {
   const { t } = useT();
+  const iphoneProfile = useIphoneViewportProfile();
+  const deviceLabelKey = useIphoneDeviceLabelKey();
   const [internalAllowJs, setInternalAllowJs] = useState(false);
   const [internalCopied, setInternalCopied] = useState(false);
   const [internalTab, setInternalTab] = useState<BuilderTab>("preview");
@@ -376,7 +382,7 @@ export function OutputPanel({
           <div className="flex items-center justify-between gap-2 border-b border-shell-border/80 px-3 py-2">
             <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-shell-muted">
               <Smartphone className="h-3.5 w-3.5" />
-              {t("builder.mobile.deviceIphone17Air")}
+              {t(deviceLabelKey)}
             </div>
             <button
               type="button"
@@ -402,7 +408,9 @@ export function OutputPanel({
             emptyState
           ) : tab === "preview" ? (
             showDeviceChrome ? (
-              <EditorDeviceFrame className="p-0">{previewFrame}</EditorDeviceFrame>
+              <EditorDeviceFrame className="p-0" profile={iphoneProfile}>
+                {previewFrame}
+              </EditorDeviceFrame>
             ) : (
               previewFrame
             )

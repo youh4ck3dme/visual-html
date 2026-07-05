@@ -31,19 +31,19 @@ function NavTab({
       aria-label={label}
       data-testid={`nav-${id}`}
       className={cn(
-        "inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+        "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
         "text-[var(--editor-muted)] hover:bg-[var(--editor-hover)] hover:text-[var(--editor-fg)]",
       )}
       activeProps={{
         className: cn(
-          "inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold",
+          "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold",
           "bg-[var(--editor-accent-dim)] text-[var(--editor-accent)] ring-1 ring-inset ring-[var(--editor-accent)]/30",
         ),
         "aria-current": "page" as const,
       }}
       inactiveProps={{
         className: cn(
-          "inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+          "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
           "text-[var(--editor-muted)] hover:bg-[var(--editor-hover)] hover:text-[var(--editor-fg)]",
         ),
       }}
@@ -96,7 +96,7 @@ export function EditorHeader() {
 
   return (
     <header
-      className="editor-header flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--editor-border)] bg-[var(--editor-panel)] px-3 py-2 sm:px-4"
+      className="editor-header flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--editor-border)] bg-[var(--editor-panel)] px-3 py-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))] sm:px-4"
       data-testid="editor-header"
     >
       <Link

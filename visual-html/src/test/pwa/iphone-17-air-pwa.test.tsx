@@ -22,6 +22,7 @@ import {
   IPHONE_17_AIR_HEAD_RELS,
   IPHONE_17_AIR_REQUIRED_META,
   IPHONE_17_AIR_REQUIRED_VIEWPORT_TOKENS,
+  IPHONE_LEGACY_COMPACT,
 } from "./iphone-17-air-profile";
 
 const ROOT_HEAD = RootRoute.options.head?.({} as never) as {
@@ -39,6 +40,8 @@ describe("iPhone 17 Air PWA compliance", () => {
       ["model", "iPhone 17 Air"],
       ["os", "iOS 26"],
       ["devicePixelRatio", 3],
+      ["logicalWidth", 420],
+      ["logicalHeight", 912],
       ["homeScreenIconPoints", 180],
       ["statusBarStyle", "black-translucent"],
       ["displayMode", "standalone"],
@@ -62,6 +65,18 @@ describe("iPhone 17 Air PWA compliance", () => {
       expect(IPHONE_17_AIR.homeScreenIconPhysical).toBe(
         IPHONE_17_AIR.homeScreenIconPoints * IPHONE_17_AIR.devicePixelRatio,
       );
+    });
+  });
+
+  describe("legacy compact profile", () => {
+    it("uses 393×852 logical resolution", () => {
+      expect(IPHONE_LEGACY_COMPACT.logicalWidth).toBe(393);
+      expect(IPHONE_LEGACY_COMPACT.logicalHeight).toBe(852);
+    });
+
+    it("physical dimensions are 3× logical", () => {
+      expect(IPHONE_LEGACY_COMPACT.physicalWidth).toBe(1179);
+      expect(IPHONE_LEGACY_COMPACT.physicalHeight).toBe(2556);
     });
   });
 
