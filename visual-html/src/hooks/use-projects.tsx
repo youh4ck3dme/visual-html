@@ -114,14 +114,22 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     const result = await listProjects();
-    setProjects(result.projects);
+    setProjects((prev) => mergeImportedProjects(prev, result.projects));
     setStorageStatus(getStorageStatus(result.projects, result.backend));
     setIsHydrated(true);
     handleStorageSideEffects(result);
   }, [handleStorageSideEffects]);
 
   useEffect(() => {
-    void refresh();
+    const load = () => {
+      void refresh();
+    };
+    if (typeof requestIdleCallback !== "undefined") {
+      const id = requestIdleCallback(load, { timeout: 2000 });
+      return () => cancelIdleCallback(id);
+    }
+    const timer = window.setTimeout(load, 0);
+    return () => window.clearTimeout(timer);
   }, [refresh]);
 
   const persist = useCallback(

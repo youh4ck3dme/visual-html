@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { AlertTriangle, Code2, FileImage } from "lucide-react";
+import { useMemo } from "react";
 
 import { useT } from "@/hooks/use-t";
 import { formatProjectDate, projectSummaryStats } from "@/lib/projects-store";
@@ -22,7 +23,7 @@ export function ProjectCard({
   onSelect,
 }: ProjectCardProps) {
   const { t } = useT();
-  const stats = projectSummaryStats(project.result);
+  const stats = useMemo(() => projectSummaryStats(project.result), [project.result]);
 
   const cardClass = cn(
     "group flex overflow-hidden text-left transition-[border-color,box-shadow,background-color] duration-300",
@@ -30,8 +31,8 @@ export function ProjectCard({
       ? cn(
           "w-full items-center gap-3 rounded-lg border p-2",
           selected
-            ? "border-[var(--editor-accent)] bg-[var(--editor-accent-dim)] ring-1 ring-inset ring-[var(--editor-accent)]/30"
-            : "border-[var(--editor-border)] hover:border-info/40 hover:bg-[var(--editor-hover)]",
+            ? "border-(--editor-accent) bg-(--editor-accent-dim) ring-1 ring-inset ring-(--editor-accent)/30"
+            : "border-(--editor-border) hover:border-info/40 hover:bg-(--editor-hover)",
         )
       : "shell-card flex-col hover:border-info/40 hover:shadow-md",
   );
@@ -42,8 +43,8 @@ export function ProjectCard({
         className={cn(
           "relative shrink-0 overflow-hidden bg-shell",
           compact
-            ? "h-12 w-12 rounded-md border border-[var(--editor-border)]"
-            : "aspect-[16/10] border-b border-shell-border",
+            ? "h-12 w-12 rounded-md border border-(--editor-border)"
+            : "aspect-16/10 border-b border-shell-border",
         )}
       >
         {project.thumbnailDataUrl ? (
@@ -102,7 +103,7 @@ export function ProjectCard({
         )}
 
         {compact && (
-          <p className="truncate text-[11px] text-[var(--editor-muted)]">
+          <p className="truncate text-[11px] text-(--editor-muted)">
             {t("projectCard.updated", { date: formatProjectDate(project.updatedAt) })}
           </p>
         )}

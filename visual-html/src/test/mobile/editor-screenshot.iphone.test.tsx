@@ -55,7 +55,7 @@ describe.each(["air", "legacy"] as const)(
       renderAtIphone(<EditorModeScreenshot />, profile);
 
       const promptBar = await waitFor(() => screen.getByTestId("editor-prompt-bar"));
-      expect(promptBar.className).toMatch(/safe-area-inset-bottom/);
+      expect(promptBar.className).toMatch(/--editor-safe-bottom/);
     });
 
     it("viewport width matches profile constant", () => {

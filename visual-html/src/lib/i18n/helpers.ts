@@ -1,6 +1,7 @@
 import { diagnosticForError } from "@/lib/generation-diagnostics";
 import { messages, type MessageKey } from "@/lib/i18n/messages";
 import type { Locale } from "@/lib/locale";
+import type { ApiError } from "@/types/generation";
 import { imageBudgetReport, type ImageBudgetStatus } from "@/lib/image-budget";
 import type { ForensicPreset, ForensicZone, ForensicZoneType } from "@/lib/image-forensics";
 import type { ApiErrorCode } from "@/types/generation";
@@ -173,6 +174,28 @@ export function localizedDiagnosticFix(locale: Locale, code: ApiErrorCode, fallb
   const key = `diagnostic.${code}.suggestedFix` as MessageKey;
   if (messages.en[key]) return msg(locale, key);
   return fallback;
+}
+
+/** Localize diagnostic fields on an ApiError for display in the editor workflow. */
+export function withLocalizedApiError(locale: Locale, error: ApiError): ApiError {
+  if (!error.diagnostic) return error;
+  const phase = error.phase;
+  return {
+    ...error,
+    message: localizedDiagnosticDetail(locale, error.code, error.message, phase),
+    diagnostic: {
+      ...error.diagnostic,
+      title: localizedDiagnosticTitle(locale, error.code, error.diagnostic.title, phase),
+      detail: localizedDiagnosticDetail(locale, error.code, error.diagnostic.detail, phase),
+      likelyCause: localizedDiagnosticLikelyCause(
+        locale,
+        error.code,
+        error.diagnostic.likelyCause,
+        phase,
+      ),
+      suggestedFix: localizedDiagnosticFix(locale, error.code, error.diagnostic.suggestedFix),
+    },
+  };
 }
 
 export function localizedAspectProfile(locale: Locale, profile: string): string {

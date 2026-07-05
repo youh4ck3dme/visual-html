@@ -4,6 +4,7 @@ import { AppLogo } from "@/components/pngto/app-logo";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useT } from "@/hooks/use-t";
+import { SEO_REFINEMENT_INSTRUCTION } from "@/lib/builder/quality-fix-prompts";
 import type { MessageKey } from "@/lib/i18n/messages";
 
 const QUICK = [
@@ -22,7 +23,10 @@ const QUICK = [
     instruction: "Remove unnecessary wrappers",
   },
   { labelKey: "refinement.chip.convertTailwind" as MessageKey, instruction: "Convert to Tailwind" },
-  { labelKey: "refinement.chip.optimizeSeo" as MessageKey, instruction: "Optimize for SEO" },
+  {
+    labelKey: "refinement.chip.optimizeSeo" as MessageKey,
+    instruction: SEO_REFINEMENT_INSTRUCTION,
+  },
 ];
 
 export function RefinementBox({

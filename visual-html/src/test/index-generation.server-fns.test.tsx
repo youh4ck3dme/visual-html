@@ -52,9 +52,12 @@ describe("index route › server function mocks", () => {
     await waitFor(() => expect(screen.getByText(/Generated output/i)).toBeInTheDocument(), {
       timeout: 15000,
     });
-    await waitFor(() => expect(screen.getByText(/Saved to Projects/i)).toBeInTheDocument(), {
-      timeout: 15000,
-    });
+    await waitFor(
+      () => expect(screen.getByTestId("index-save-notice")).toHaveTextContent(/Saved to Projects/i),
+      {
+        timeout: 15000,
+      },
+    );
   }, 20000);
 
   it("can simulate OCR success while generateHtml fails", async () => {
@@ -123,7 +126,7 @@ describe("index route › server function mocks", () => {
         screen.getByText(/stored in browser database because local storage is full/i),
       ).toBeInTheDocument(),
     );
-    expect(screen.getByText(/Saved to Projects/i)).toBeInTheDocument();
+    expect(screen.getByTestId("index-save-notice")).toHaveTextContent(/Saved to Projects/i);
   });
 
   it("shows save failure toast when both storage backends fail but keeps generated output", async () => {
@@ -147,7 +150,7 @@ describe("index route › server function mocks", () => {
       { timeout: 10000 },
     );
     expect(screen.getByText(/browser storage failed/i)).toBeInTheDocument();
-    expect(screen.queryByText(/Saved to Projects/i)).not.toBeInTheDocument();
+    expect(screen.queryByTestId("index-save-notice")).not.toBeInTheDocument();
   }, 20000);
 
   it("does not satisfy PNG generation when only builderChat mock would succeed", async () => {

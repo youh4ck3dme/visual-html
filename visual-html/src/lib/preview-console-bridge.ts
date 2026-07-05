@@ -16,7 +16,7 @@ export const PREVIEW_CONSOLE_BRIDGE_SCRIPT = `
             catch(e) { return String(a); }
           }),
           ts: Date.now()
-        }, '*');
+        }, window.location.origin || '*');
       } catch(e) {}
       return orig.apply(console, arguments);
     };
@@ -64,4 +64,13 @@ export function normalizePreviewConsoleMessage(data: unknown): PreviewConsoleEnt
   if (legacy) return legacy;
   if (isPreviewConsoleMessage(data)) return data.entry;
   return null;
+}
+
+export const PREVIEW_CONSOLE_MAX_ENTRIES = 100;
+
+/** Cap console stream length to avoid main-thread churn in long preview sessions. */
+export function capPreviewConsoleEntries(entries: PreviewConsoleEntry[]): PreviewConsoleEntry[] {
+  return entries.length > PREVIEW_CONSOLE_MAX_ENTRIES
+    ? entries.slice(-PREVIEW_CONSOLE_MAX_ENTRIES)
+    : entries;
 }

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://visual-html.vercel.app/sitemap.xml

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 
 import { useT } from "@/hooks/use-t";
@@ -26,11 +26,16 @@ export function PreviewFrame({
 }: PreviewFrameProps) {
   const { t } = useT();
   const sandbox = allowJs ? "allow-scripts" : "";
+  const [frameReady, setFrameReady] = useState(false);
 
   const resolvedDoc = useMemo(
     () => (allowJs && onConsoleEntry ? injectConsoleBridge(srcDoc) : srcDoc),
     [allowJs, onConsoleEntry, srcDoc],
   );
+
+  useEffect(() => {
+    setFrameReady(false);
+  }, [resolvedDoc, allowJs]);
 
   useEffect(() => {
     if (!allowJs || !onConsoleEntry) return;
@@ -50,13 +55,24 @@ export function PreviewFrame({
           {t("result.previewJsWarning")}
         </div>
       )}
-      <iframe
-        title={title ?? t("result.previewFrameTitle")}
-        sandbox={sandbox}
-        srcDoc={resolvedDoc}
-        className="min-h-0 w-full flex-1 bg-white"
-        data-testid="preview-frame-iframe"
-      />
+      <div className="relative min-h-[240px] flex-1">
+        {!frameReady && (
+          <div
+            className="absolute inset-0 animate-pulse bg-muted/30"
+            role="status"
+            aria-label={t("editor.previewLoadingAria")}
+            data-testid="preview-frame-loading"
+          />
+        )}
+        <iframe
+          title={title ?? t("result.previewFrameTitle")}
+          sandbox={sandbox}
+          srcDoc={resolvedDoc}
+          onLoad={() => setFrameReady(true)}
+          className="min-h-[240px] w-full flex-1 bg-white"
+          data-testid="preview-frame-iframe"
+        />
+      </div>
     </div>
   );
 }

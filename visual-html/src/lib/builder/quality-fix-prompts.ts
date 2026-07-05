@@ -1,5 +1,6 @@
 import type { HtmlHealthCheckResult } from "@/lib/builder/html-health-check";
 import type { BuilderQualityProfileId } from "@/lib/builder/quality-profiles";
+import { resolveBuilderQualityProfile } from "@/lib/builder/quality-profiles";
 
 /** Targets motion, focus-visible, and responsive media-query health warnings. */
 export const APPLE_GLASS_QUALITY_POLISH_FIX_PROMPT = `Fix the current HTML/CSS to remove these quality warnings without changing the core layout, content, or visual identity.
@@ -101,6 +102,14 @@ Return the complete corrected single-file HTML only.
 Do not explain anything.
 Do not wrap the result in Markdown.`;
 
+/** Refinement chip instruction for SEO improvements in screenshot workflow. */
+export const SEO_REFINEMENT_INSTRUCTION = `Optimize for SEO without changing layout or visual design:
+- Add a descriptive <title> and <meta name="description"> when missing
+- Use a single logical <h1> and semantic heading hierarchy
+- Add meaningful alt text on images; set lang on <html> when missing
+- Include Open Graph tags (og:title, og:description) where appropriate
+- Prefer semantic elements (<main>, <nav>, <article>, <section>) over generic divs`;
+
 const QUALITY_POLISH_FIX_FINDING_IDS = new Set([
   "animationWithoutReducedMotion",
   "noFocusStyles",
@@ -114,16 +123,23 @@ const QUALITY_POLISH_FIX_FINDING_IDS = new Set([
 
 export function shouldOfferQualityPolishFix(
   health: HtmlHealthCheckResult | null | undefined,
+  minimumScore = 0,
 ): boolean {
   if (!health) return false;
+  if (minimumScore > 0 && health.score < minimumScore) return true;
   return health.findings.some(
     (finding) => finding.severity !== "info" && QUALITY_POLISH_FIX_FINDING_IDS.has(finding.id),
   );
 }
 
 /** Picks iPhone Air fix prompt for PWA mobile profile; otherwise Apple Glass polish. */
-export function resolveQualityPolishFixPrompt(profileId: BuilderQualityProfileId = "auto"): string {
-  return profileId === "pwa-mobile"
+export function resolveQualityPolishFixPrompt(
+  profileId: BuilderQualityProfileId = "auto",
+  userPrompt = "",
+): string {
+  const resolvedId =
+    profileId === "auto" ? resolveBuilderQualityProfile("auto", userPrompt).id : profileId;
+  return resolvedId === "pwa-mobile"
     ? IPHONE_AIR_HTML_FIX_PROMPT
     : APPLE_GLASS_QUALITY_POLISH_FIX_PROMPT;
 }

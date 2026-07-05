@@ -19,11 +19,13 @@ import {
   GENERATION_DEFAULTS_CHANGE_EVENT,
   loadGenerationDefaults,
 } from "@/lib/generation-defaults";
-import { messages } from "@/lib/i18n/messages";
+import { withLocalizedApiError } from "@/lib/i18n/helpers";
+import { messages, type MessageKey } from "@/lib/i18n/messages";
 import type { SavedProject } from "@/types/project";
 import type {
   ApiError,
   GenerationOptions,
+  GenerationPhase,
   GenerationSensor,
   GenerateHtmlResult,
 } from "@/types/generation";
@@ -143,6 +145,16 @@ export function useGenerationWorkflow(projectIdFromUrl?: string): UseGenerationW
     [activeProjectId, getProject, image, loadedProject, options, saveFromGeneration, t],
   );
 
+  const localizedPhaseMessage = useCallback(
+    (phase: GenerationPhase) => t(`phase.message.${phase}` as MessageKey),
+    [t],
+  );
+
+  const localizeError = useCallback(
+    (error: ApiError) => withLocalizedApiError(locale, error),
+    [locale],
+  );
+
   const handleResult = useCallback(
     (res: ServerResult) => {
       if (res.ok) {
@@ -151,11 +163,12 @@ export function useGenerationWorkflow(projectIdFromUrl?: string): UseGenerationW
         setSensor(createSensor("done", "success"));
         void persistResult(res.data);
       } else {
-        setError(res.error);
-        setSensor(createSensor(res.error.phase ?? "failed", "failed", res.error.diagnostic));
+        const localized = localizeError(res.error);
+        setError(localized);
+        setSensor(createSensor(localized.phase ?? "failed", "failed", localized.diagnostic));
       }
     },
-    [persistResult],
+    [localizeError, persistResult],
   );
 
   const resetUploadState = useCallback(() => {
@@ -187,7 +200,7 @@ export function useGenerationWorkflow(projectIdFromUrl?: string): UseGenerationW
       setSensor({
         ...createSensor("uploading_to_blob"),
         progress: 10,
-        message: "Preparing image for OCR...",
+        message: localizedPhaseMessage("uploading_to_blob"),
       });
       const ocr = await ocrFn({
         data: { imageBase64: image.base64, mimeType: image.mimeType },
@@ -210,10 +223,12 @@ export function useGenerationWorkflow(projectIdFromUrl?: string): UseGenerationW
     },
     onSuccess: handleResult,
     onError: (e) => {
-      const apiError = createApiError(
-        "SERVER_ERROR",
-        (e as Error).message ?? "Unexpected error",
-        "failed",
+      const apiError = localizeError(
+        createApiError(
+          "SERVER_ERROR",
+          (e as Error).message ?? t("diagnostic.message.unexpectedServerError"),
+          "failed",
+        ),
       );
       setError(apiError);
       setSensor(createSensor("failed", "failed", apiError.diagnostic));
@@ -229,7 +244,7 @@ export function useGenerationWorkflow(projectIdFromUrl?: string): UseGenerationW
       setSensor({
         ...createSensor("synthesizing"),
         progress: 75,
-        message: "Continuing code generation...",
+        message: t("phase.message.continuing"),
       });
       return continueFn({
         data: {
@@ -244,10 +259,12 @@ export function useGenerationWorkflow(projectIdFromUrl?: string): UseGenerationW
     },
     onSuccess: handleResult,
     onError: (e) => {
-      const apiError = createApiError(
-        "SERVER_ERROR",
-        (e as Error).message ?? "Unexpected error",
-        "failed",
+      const apiError = localizeError(
+        createApiError(
+          "SERVER_ERROR",
+          (e as Error).message ?? t("diagnostic.message.unexpectedServerError"),
+          "failed",
+        ),
       );
       setError(apiError);
       setSensor(createSensor("failed", "failed", apiError.diagnostic));
@@ -263,7 +280,7 @@ export function useGenerationWorkflow(projectIdFromUrl?: string): UseGenerationW
       setSensor({
         ...createSensor("synthesizing"),
         progress: 10,
-        message: "Applying your refinement...",
+        message: t("phase.message.refining"),
       });
       return refineFn({
         data: {
@@ -279,10 +296,12 @@ export function useGenerationWorkflow(projectIdFromUrl?: string): UseGenerationW
     },
     onSuccess: handleResult,
     onError: (e) => {
-      const apiError = createApiError(
-        "SERVER_ERROR",
-        (e as Error).message ?? "Unexpected error",
-        "failed",
+      const apiError = localizeError(
+        createApiError(
+          "SERVER_ERROR",
+          (e as Error).message ?? t("diagnostic.message.unexpectedServerError"),
+          "failed",
+        ),
       );
       setError(apiError);
       setSensor(createSensor("failed", "failed", apiError.diagnostic));
@@ -313,9 +332,12 @@ export function useGenerationWorkflow(projectIdFromUrl?: string): UseGenerationW
     [navigate, resetUploadState],
   );
 
-  const onUploadError = useCallback((message: string) => {
-    setError(createApiError("INVALID_FILE", message, "validating"));
-  }, []);
+  const onUploadError = useCallback(
+    (message: string) => {
+      setError(localizeError(createApiError("INVALID_FILE", message, "validating")));
+    },
+    [localizeError],
+  );
 
   const onForensicGenerate = useCallback(
     (nextOptions: GenerationOptions) => {

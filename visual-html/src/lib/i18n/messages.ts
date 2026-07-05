@@ -19,6 +19,8 @@ export const messages = {
     "locale.groupAria": "Language",
     "locale.switchAria": "Switch language to {lang}",
 
+    "a11y.skipToContent": "Skip to main content",
+
     // ── Theme ───────────────────────────────────────────────────
     "theme.light": "Light",
     "theme.dark": "Dark",
@@ -46,6 +48,9 @@ export const messages = {
     "editor.modelPickerAria": "AI model for Studio",
     "editor.previewEmpty": "Build or upload to see preview here",
     "editor.previewEmptyHint": "Your generated HTML renders in this device frame.",
+    "editor.previewLoadingAria": "Loading preview",
+    "editor.previewPanelAria": "Preview panel",
+    "editor.chatPanelAria": "Chat and controls panel",
     "editor.screenshot.emptyTitle": "Preview will appear here",
     "editor.screenshot.emptyHint": "Upload a screenshot and generate HTML to see the live preview.",
     "editor.projects.selectTitle": "Select a project",
@@ -243,6 +248,10 @@ export const messages = {
       "Your generated output is still available here, but saving to browser storage failed. This often happens when local storage is full — try removing old projects.",
     "index.viewInProjects": "View in Projects",
     "index.newUpload": "New upload",
+    "index.chat.uploaded": "Uploaded {fileName}",
+    "index.chat.generationComplete": "HTML generated — check the preview panel.",
+    "index.chat.continueReady": "Partial output is ready. Continue generation to finish.",
+    "index.jsxValidation.warning": "Component output may not render correctly in preview: {error}",
     "index.loadedProject.hint":
       "Opened from Projects · {fileName} · continue refining or generate from a new screenshot",
     "index.loadedProject.clear": "Clear",
@@ -425,8 +434,8 @@ export const messages = {
     "builder.mobile.activeProject": "Active Project",
     "builder.mobile.untitledProject": "Untitled project",
     "builder.mobile.live": "Live",
-    "builder.mobile.deviceIphone17Air": "iPhone 17 Air (420px)",
-    "builder.mobile.deviceIphoneCompact": "iPhone compact (393px)",
+    "builder.mobile.deviceIphone17Air": "iPhone 17 Air (420 px)",
+    "builder.mobile.deviceIphoneCompact": "iPhone compact (393 px)",
     "builder.mobile.refreshPreview": "Refresh preview",
     "builder.mobile.runPreview": "Run preview",
     "builder.mobile.tabFiles": "Files",
@@ -1001,6 +1010,8 @@ export const messages = {
     "locale.groupAria": "Jazyk",
     "locale.switchAria": "Prepnúť jazyk na {lang}",
 
+    "a11y.skipToContent": "Preskočiť na hlavný obsah",
+
     // ── Theme ───────────────────────────────────────────────────
     "theme.light": "Svetlý",
     "theme.dark": "Tmavý",
@@ -1027,6 +1038,9 @@ export const messages = {
     "editor.modelPickerAria": "AI model pre Štúdio",
     "editor.previewEmpty": "Vygeneruj alebo nahraj pre náhľad",
     "editor.previewEmptyHint": "Vygenerované HTML sa zobrazí v tomto rámci zariadenia.",
+    "editor.previewLoadingAria": "Načítava sa náhľad",
+    "editor.previewPanelAria": "Panel náhľadu",
+    "editor.chatPanelAria": "Panel chatu a ovládania",
     "editor.screenshot.emptyTitle": "Náhľad sa zobrazí tu",
     "editor.screenshot.emptyHint": "Nahrajte snímku a vygenerujte HTML pre živý náhľad.",
     "editor.projects.selectTitle": "Vyberte projekt",
@@ -1220,6 +1234,11 @@ export const messages = {
       "Vygenerovaný výstup je stále k dispozícii, ale uloženie do úložiska prehliadača zlyhalo. Často to spôsobí plné lokálne úložisko — skúste odstrániť staré projekty.",
     "index.viewInProjects": "Zobraziť v Projektoch",
     "index.newUpload": "Nové nahratie",
+    "index.chat.uploaded": "Nahrané {fileName}",
+    "index.chat.generationComplete": "HTML vygenerované — pozrite panel náhľadu.",
+    "index.chat.continueReady": "Čiastočný výstup je pripravený. Pokračujte v generovaní.",
+    "index.jsxValidation.warning":
+      "Výstup komponentu sa nemusí v náhľade zobraziť správne: {error}",
     "index.loadedProject.hint":
       "Otvorené z Projektov · {fileName} · pokračujte v úpravách alebo nahrajte nový screenshot",
     "index.loadedProject.clear": "Zrušiť",
@@ -1401,8 +1420,8 @@ export const messages = {
     "builder.mobile.activeProject": "Aktívny projekt",
     "builder.mobile.untitledProject": "Projekt bez názvu",
     "builder.mobile.live": "Live",
-    "builder.mobile.deviceIphone17Air": "iPhone 17 Air (420px)",
-    "builder.mobile.deviceIphoneCompact": "iPhone compact (393px)",
+    "builder.mobile.deviceIphone17Air": "iPhone 17 Air (420 px)",
+    "builder.mobile.deviceIphoneCompact": "iPhone kompaktný (393 px)",
     "builder.mobile.refreshPreview": "Obnoviť náhľad",
     "builder.mobile.runPreview": "Spustiť náhľad",
     "builder.mobile.tabFiles": "Súbory",
