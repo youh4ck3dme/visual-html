@@ -24,7 +24,8 @@ export function PreviewLightbox({ open, onClose, srcDoc, allowJs, title }: Previ
       <DialogContent
         data-testid="preview-fullscreen-dialog"
         className={cn(
-          "flex max-h-[92vh] w-[min(92vw,1200px)] max-w-[min(92vw,1200px)] flex-col gap-0 overflow-hidden border-shell-border bg-white p-0",
+          "flex max-h-[min(92dvh,92vh)] w-[min(92vw,1200px)] max-w-[min(92vw,1200px)] flex-col gap-0 overflow-hidden border-shell-border bg-white p-0",
+          "pb-[env(safe-area-inset-bottom,0px)]",
           "duration-300 motion-reduce:duration-0",
           "data-[state=open]:zoom-in-[0.92] data-[state=closed]:zoom-out-[0.92]",
         )}
@@ -42,7 +43,7 @@ export function PreviewLightbox({ open, onClose, srcDoc, allowJs, title }: Previ
           title={frameTitle}
           sandbox={sandbox}
           srcDoc={srcDoc}
-          className="min-h-[min(72vh,900px)] w-full flex-1 bg-white"
+          className="min-h-[min(72dvh,72vh,900px)] w-full flex-1 bg-white"
           data-testid="preview-fullscreen-iframe"
         />
       </DialogContent>

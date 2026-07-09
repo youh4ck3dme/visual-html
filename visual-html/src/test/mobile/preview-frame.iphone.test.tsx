@@ -61,8 +61,10 @@ describe("PreviewFrame @ iPhone 17 Air (420×912)", () => {
     const user = userEvent.setup();
     renderAtIphone(<PreviewFrame srcDoc={NEXUSPRESS_DOC} allowJs={false} />);
     await user.click(await screen.findByTestId("preview-expand-fullscreen"));
-    expect(screen.getByTestId("preview-fullscreen-dialog")).toBeInTheDocument();
+    const dialog = screen.getByTestId("preview-fullscreen-dialog");
+    expect(dialog).toBeInTheDocument();
     expect(screen.getByTestId("preview-fullscreen-iframe")).toBeInTheDocument();
+    expect(dialog.className).toMatch(/92dvh/);
   });
 
   it("hides expand control when srcDoc is empty", async () => {
