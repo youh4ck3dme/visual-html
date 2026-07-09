@@ -19,6 +19,16 @@ describe("buttons › preview-lightbox", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("Escape — calls onClose", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    renderWithProviders(
+      <PreviewLightbox open onClose={onClose} srcDoc={SAMPLE_DOC} allowJs={false} />,
+    );
+    await user.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalled();
+  });
+
   it("renders fullscreen iframe with srcdoc content", () => {
     renderWithProviders(
       <PreviewLightbox open onClose={vi.fn()} srcDoc={SAMPLE_DOC} allowJs={false} />,

@@ -38,6 +38,9 @@ release
 !.env.local.template
 !.env.example
 
+# Local Lighthouse reports (manual prod audits)
+.lighthouse/
+
 # Upstash CLI account credentials (Developer API key — not REST runtime tokens)
 .upstash-cli.env
 .upstash-account.env
