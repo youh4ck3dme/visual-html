@@ -474,7 +474,7 @@ Set server-side keys in `.env.local`:
 # Screenshot → HTML pipeline
 MISTRAL_API_KEY=your_real_mistral_api_key
 MISTRAL_OCR_MODEL=mistral-ocr-latest
-MISTRAL_MODEL=pixtral-large-latest
+MISTRAL_MODEL=mistral-medium-3.5
 BLOB_READ_WRITE_TOKEN=your_vercel_blob_rw_token
 
 # VibeCraft builder (/builder) — server-side AI when no browser BYOK keys
@@ -489,7 +489,7 @@ MISTRAL_MAX_TOKENS=3000
 MISTRAL_TIMEOUT_MS=55000
 ```
 
-`mistral-ocr-latest` handles OCR extraction and `pixtral-large-latest` handles HTML synthesis/refinement.
+`mistral-ocr-latest` handles OCR extraction and `mistral-medium-3.5` handles HTML synthesis/refinement.
 `MISTRAL_BUILDER_MODEL` controls the `/builder` server function; it falls back to `MISTRAL_MODEL`.
 Large uploads are automatically optimized in the browser to reduce production timeouts.
 
@@ -619,7 +619,7 @@ Vstupy/výstupy, rate limiting a chybové kódy: [docs/DEVELOPER.md#server-api-t
 | `MISTRAL_CHAT_API_KEY_FALLBACK` | No                  | Dedicated synthesis/refine/continue fallback key tried before the global pool                         |
 | `MISTRAL_CHAT_API_KEYS`         | No                  | Comma-separated synthesis/refine/continue-only key pool                                               |
 | `MISTRAL_OCR_MODEL`             | No                  | OCR model for uploaded screenshots; default is `mistral-ocr-latest`                                   |
-| `MISTRAL_MODEL`                 | No                  | Chat/synthesis model for HTML generation and refine; default is `pixtral-large-latest`                |
+| `MISTRAL_MODEL`                 | No                  | Chat/synthesis model for HTML generation and refine; default is `mistral-medium-3.5`                |
 | `MISTRAL_BUILDER_MODEL`         | No                  | Model for `/builder` server AI; default falls back to `MISTRAL_MODEL`, then `mistral-large-latest`    |
 | `BLOB_READ_WRITE_TOKEN`         | Yes for OCR uploads | Vercel Blob token used to stage uploaded images so the OCR API can fetch them by URL                  |
 | `MISTRAL_MAX_TOKENS`            | No                  | Caps completion size; default is `3000` to reduce truncated JSON responses                            |
