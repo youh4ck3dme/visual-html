@@ -18,7 +18,7 @@ import { annotateGenerateOutputQuality, type GenerateOutput } from "@/lib/valida
 
 const MISTRAL_CHAT_URL = "https://api.mistral.ai/v1/chat/completions";
 const MISTRAL_OCR_URL = "https://api.mistral.ai/v1/ocr";
-const DEFAULT_MODEL = "pixtral-large-latest";
+const DEFAULT_MODEL = "mistral-medium-3.5";
 const DEFAULT_OCR_MODEL = "mistral-ocr-latest";
 const DEFAULT_MAX_TOKENS = 3000;
 const REPAIR_MAX_TOKENS = 3500;
@@ -221,8 +221,13 @@ function throwMistralHttpError(role: MistralKeyRole, res: Response, bodyText: st
   console.error(`Mistral ${role} error`, {
     status: res.status,
     requestId: res.headers.get("x-request-id") ?? undefined,
+    body: bodyText.slice(0, 300),
   });
-  throw new AiError("SERVER_ERROR", `AI provider returned ${res.status}`);
+  const detail = bodyText.trim().slice(0, 200);
+  throw new AiError(
+    "SERVER_ERROR",
+    detail ? `AI provider returned ${res.status}: ${detail}` : `AI provider returned ${res.status}`,
+  );
 }
 
 async function callMistralChat(

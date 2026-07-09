@@ -60,3 +60,4 @@ visual-html.worktrees/
 # legacy standalone copy — integrated into visual-html/src/routes/builder.tsx
 # upstream: https://github.com/youh4ck3dme/vibecraft
 vibecraft/
+.vercel

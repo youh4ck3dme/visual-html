@@ -18,6 +18,7 @@ release
 .tanstack/**
 .nitro
 *.local
+.env.vercel.*
 
 # Wrangler / Cloudflare
 .wrangler/
