@@ -23,8 +23,8 @@ export const MODEL_PRICING: ModelPricingRow[] = [
     currency: "USD",
   },
   {
-    id: "pixtral-large-latest",
-    label: "Pixtral Large",
+    id: "mistral-medium-3.5",
+    label: "Mistral Medium 3.5",
     inputPer1M: 2,
     outputPer1M: 6,
     currency: "USD",

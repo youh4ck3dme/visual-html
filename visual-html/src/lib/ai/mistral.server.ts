@@ -18,7 +18,7 @@ import { annotateGenerateOutputQuality, type GenerateOutput } from "@/lib/valida
 
 const MISTRAL_CHAT_URL = "https://api.mistral.ai/v1/chat/completions";
 const MISTRAL_OCR_URL = "https://api.mistral.ai/v1/ocr";
-const DEFAULT_MODEL = "pixtral-large-latest";
+const DEFAULT_MODEL = "mistral-medium-3.5";
 const DEFAULT_OCR_MODEL = "mistral-ocr-latest";
 const DEFAULT_MAX_TOKENS = 3000;
 const REPAIR_MAX_TOKENS = 3500;
