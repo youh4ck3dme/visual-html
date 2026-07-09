@@ -169,15 +169,25 @@ if (!skipProduction) {
       },
     );
     const code = (proc.stdout || "").trim();
-    checks.push({ path, code, ok: code === "200" });
+    const headerProc = spawnSync("curl", ["-sI", `${base}${path}`], { encoding: "utf8" });
+    const headers = (headerProc.stdout || "").trim();
+    const location = headers.match(/^location:\s*(.+)$/im)?.[1]?.trim() ?? null;
+    const ssoRedirect = Boolean(location && /vercel\.com\/sso-api/i.test(location));
+    checks.push({ path, code, ok: code === "200", ssoRedirect });
   }
   const prodOk = checks.every((c) => c.ok);
+  const ssoBlocked = checks.some((c) => c.ssoRedirect);
+  let prodStderr = prodOk ? "" : "One or more production endpoints not 200";
+  if (!prodOk && ssoBlocked) {
+    prodStderr +=
+      "\nHint: SMOKE_BASE_URL points to a Vercel preview with Deployment Protection (302 → vercel.com/sso-api). Use https://visual-html.vercel.app or disable preview protection / use a bypass token.";
+  }
   results.push({
     name: "production http",
     ok: prodOk,
     ms: 0,
     stdout: checks.map((c) => `${c.path} -> ${c.code}`).join("; "),
-    stderr: prodOk ? "" : "One or more production endpoints not 200",
+    stderr: prodStderr,
   });
 }
 
