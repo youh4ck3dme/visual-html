@@ -221,8 +221,13 @@ function throwMistralHttpError(role: MistralKeyRole, res: Response, bodyText: st
   console.error(`Mistral ${role} error`, {
     status: res.status,
     requestId: res.headers.get("x-request-id") ?? undefined,
+    body: bodyText.slice(0, 300),
   });
-  throw new AiError("SERVER_ERROR", `AI provider returned ${res.status}`);
+  const detail = bodyText.trim().slice(0, 200);
+  throw new AiError(
+    "SERVER_ERROR",
+    detail ? `AI provider returned ${res.status}: ${detail}` : `AI provider returned ${res.status}`,
+  );
 }
 
 async function callMistralChat(

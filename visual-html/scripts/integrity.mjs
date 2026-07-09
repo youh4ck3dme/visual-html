@@ -142,10 +142,9 @@ if (!skipSmoke) {
 
   if (!skipRateLimit) {
     section("Rate limit (Upstash)");
-    const rateOk = run("rate-limit", "bun", [
-      "--env-file=.env.local",
-      "scripts/test-rate-limit.mjs",
-    ]);
+    const rateOk = run("rate-limit", "bun", ["scripts/test-rate-limit.mjs"], {
+      env: { ...process.env, PATH: `/opt/homebrew/bin:${process.env.PATH || ""}` },
+    });
     if (!rateOk) {
       const last = results[results.length - 1];
       if (/NOPERM|no permissions/i.test(`${last.stdout}\n${last.stderr}`)) {
