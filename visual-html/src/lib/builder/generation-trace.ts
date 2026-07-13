@@ -11,7 +11,13 @@ export type BuilderTraceStepStatus =
   | "skipped";
 
 export type BuilderTraceStepId =
-  "planning" | "building" | "buildingA" | "buildingB" | "judging" | "reviewing" | "finalizing";
+  | "planning"
+  | "building"
+  | "buildingA"
+  | "buildingB"
+  | "judging"
+  | "reviewing"
+  | "finalizing";
 
 export type BuilderTraceStep = {
   id: BuilderTraceStepId;
