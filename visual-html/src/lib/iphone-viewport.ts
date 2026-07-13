@@ -53,7 +53,8 @@ export function resolveIphoneViewportProfile(width: number): IphoneViewportProfi
 }
 
 export type IphoneDeviceLabelKey =
-  "builder.mobile.deviceIphone17Air" | "builder.mobile.deviceIphoneCompact";
+  | "builder.mobile.deviceIphone17Air"
+  | "builder.mobile.deviceIphoneCompact";
 
 export function iphoneDeviceLabelKey(profile: IphoneViewportProfile): IphoneDeviceLabelKey {
   return profile === "legacy"

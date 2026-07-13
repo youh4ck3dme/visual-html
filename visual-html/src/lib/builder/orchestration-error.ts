@@ -10,7 +10,13 @@ import { computeRetryDelayMs } from "@/lib/builder/retry-backoff";
 import { getStepTimeoutMs } from "@/lib/builder/step-timeout";
 
 export type BuilderGenerationStep =
-  "connecting" | "planning" | "building" | "reviewing" | "judging" | "explaining" | "finalizing";
+  | "connecting"
+  | "planning"
+  | "building"
+  | "reviewing"
+  | "judging"
+  | "explaining"
+  | "finalizing";
 
 export const DEFAULT_STEP_MAX_RETRIES = 1;
 

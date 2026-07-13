@@ -15,7 +15,12 @@ const AI_STEP_IDS = new Set<BuilderTraceStepId>([
 ]);
 
 export type BuilderStepErrorCategory =
-  "timeout" | "cancelled" | "auth" | "transient" | "validation" | "unknown";
+  | "timeout"
+  | "cancelled"
+  | "auth"
+  | "transient"
+  | "validation"
+  | "unknown";
 
 export type BuilderStepMetrics = {
   id: BuilderTraceStepId;
